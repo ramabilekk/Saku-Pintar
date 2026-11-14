@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidMonthKey(monthKey) {
+      return monthKey is string && monthKey.size() == 7 && monthKey.matches('^[0-9]{4}-(0[1-9]|1[0-2])$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidExpense(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 80 &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 10000000000 &&
+             data.category in ['FOOD', 'TRANSPORT', 'BILLS', 'HEALTH', 'SHOPPING', 'ENTERTAINMENT', 'OTHER'] &&
+             data.paymentMethod in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+             data.dateEpochDay is int &&
+             data.dateEpochDay >= 0 &&
+             data.dateEpochDay <= 100000 &&
+             isValidMonthKey(data.monthKey) &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 200)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidCategoryBudgetsMap(mapData) {
+      return mapData is map &&
+             mapData.keys().hasOnly(['FOOD', 'TRANSPORT', 'BILLS', 'HEALTH', 'SHOPPING', 'ENTERTAINMENT', 'OTHER']) &&
+             (!('FOOD' in mapData) || (mapData.FOOD is int && mapData.FOOD >= 0 && mapData.FOOD <= 100000000000)) &&
+             (!('TRANSPORT' in mapData) || (mapData.TRANSPORT is int && mapData.TRANSPORT >= 0 && mapData.TRANSPORT <= 100000000000)) &&
+             (!('BILLS' in mapData) || (mapData.BILLS is int && mapData.BILLS >= 0 && mapData.BILLS <= 100000000000)) &&
+             (!('HEALTH' in mapData) || (mapData.HEALTH is int && mapData.HEALTH >= 0 && mapData.HEALTH <= 100000000000)) &&
+             (!('SHOPPING' in mapData) || (mapData.SHOPPING is int && mapData.SHOPPING >= 0 && mapData.SHOPPING <= 100000000000)) &&
+             (!('ENTERTAINMENT' in mapData) || (mapData.ENTERTAINMENT is int && mapData.ENTERTAINMENT >= 0 && mapData.ENTERTAINMENT <= 100000000000)) &&
+             (!('OTHER' in mapData) || (mapData.OTHER is int && mapData.OTHER >= 0 && mapData.OTHER <= 100000000000));
+    }
+
+    function isValidBudget(data, userId, monthKey) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             isValidMonthKey(data.monthKey) &&
+             data.monthKey == monthKey &&
+             data.monthlyIncome is int &&
+             data.monthlyIncome >= 0 &&
+             data.monthlyIncome <= 100000000000 &&
+             data.strategy in ['BALANCED_50_30_20', 'FRUGAL_60_10_30', 'ADAPTIVE_HISTORY', 'CUSTOM'] &&
+             data.savingsTarget is int &&
+             data.savingsTarget >= 0 &&
+             data.savingsTarget <= 100000000000 &&
+             data.needsPercent is int &&
+             data.needsPercent >= 0 &&
+             data.needsPercent <= 100 &&
+             data.wantsPercent is int &&
+             data.wantsPercent >= 0 &&
+             data.wantsPercent <= 100 &&
+             data.savingsPercent is int &&
+             data.savingsPercent >= 0 &&
+             data.savingsPercent <= 100 &&
+             data.needsPercent + data.wantsPercent + data.savingsPercent == 100 &&
+             isValidCategoryBudgetsMap(data.categoryBudgets) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/expenses/{expenseId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(expenseId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(expenseId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidExpense(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(expenseId) &&
+                       request.auth.uid == userId &&
+                       isValidExpense(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(expenseId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/budgets/{monthKey} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidMonthKey(monthKey) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidMonthKey(monthKey) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'monthKey', 'monthlyIncome', 'strategy', 'savingsTarget', 'needsPercent', 'wantsPercent', 'savingsPercent', 'categoryBudgets', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'monthKey', 'monthlyIncome', 'strategy', 'savingsTarget', 'needsPercent', 'wantsPercent', 'savingsPercent', 'categoryBudgets', 'createdAt', 'updatedAt']) &&
+                       isValidBudget(incoming(), userId, monthKey);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidMonthKey(monthKey) &&
+                       request.auth.uid == userId &&
+                       isValidBudget(incoming(), userId, monthKey) &&
+                       incoming().userId == existing().userId &&
+                       incoming().monthKey == existing().monthKey &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['monthlyIncome', 'strategy', 'savingsTarget', 'needsPercent', 'wantsPercent', 'savingsPercent', 'categoryBudgets', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidMonthKey(monthKey) && request.auth.uid == userId;
+    }
+  }
+}

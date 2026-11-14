@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SakuPintar</string>
+    <string name="auth_headline">Kendalikan Pengeluaran Harian, Susun Anggaran Otomatis</string>
+    <string name="auth_subheadline">Catat transaksi harian dalam hitungan detik dan biarkan SakuPintar menyusun alokasi anggaran bulanan secara otomatis.</string>
+    <string name="auth_sign_in_google">Masuk dengan Google</string>
+    <string name="auth_feature_daily">Pencatatan pengeluaran harian cepat &amp; terstruktur</string>
+    <string name="auth_feature_auto_budget">Penyusunan anggaran bulanan otomatis &amp; adaptif</string>
+    <string name="auth_feature_cloud">Sinkronisasi aman ke cloud per akun Anda</string>
+    <string name="nav_home">Beranda</string>
+    <string name="nav_expenses">Harian</string>
+    <string name="nav_budget">Anggaran</string>
+    <string name="action_add_expense">Catat Pengeluaran</string>
+    <string name="action_sign_out">Keluar</string>
+</resources>

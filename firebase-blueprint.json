@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "Expense": {
+      "title": "Expense",
+      "description": "A daily personal expense entry logged by the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short label or merchant description (1..80 chars)."
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Expense amount in IDR (positive integer)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["FOOD", "TRANSPORT", "BILLS", "HEALTH", "SHOPPING", "ENTERTAINMENT", "OTHER"],
+          "description": "Expense category key."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["QRIS", "CASH", "TRANSFER", "CARD"],
+          "description": "Payment method used for the expense."
+        },
+        "dateEpochDay": {
+          "type": "integer",
+          "description": "LocalDate epoch day for timezone-stable daily grouping."
+        },
+        "monthKey": {
+          "type": "string",
+          "description": "Year-month key in YYYY-MM format."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional note (0..200 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "amount",
+        "category",
+        "paymentMethod",
+        "dateEpochDay",
+        "monthKey",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MonthlyBudget": {
+      "title": "MonthlyBudget",
+      "description": "Automatically composed or customized monthly budget plan for a given YYYY-MM month.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "monthKey": {
+          "type": "string",
+          "description": "Year-month identifier in YYYY-MM format matching document ID."
+        },
+        "monthlyIncome": {
+          "type": "integer",
+          "description": "Total monthly income in IDR."
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["BALANCED_50_30_20", "FRUGAL_60_10_30", "ADAPTIVE_HISTORY", "CUSTOM"],
+          "description": "Automatic budget composition strategy."
+        },
+        "savingsTarget": {
+          "type": "integer",
+          "description": "Target monthly savings in IDR."
+        },
+        "needsPercent": {
+          "type": "integer",
+          "description": "Percentage allocated to essential needs (0..100)."
+        },
+        "wantsPercent": {
+          "type": "integer",
+          "description": "Percentage allocated to lifestyle wants (0..100)."
+        },
+        "savingsPercent": {
+          "type": "integer",
+          "description": "Percentage allocated to savings (0..100)."
+        },
+        "categoryBudgets": {
+          "type": "object",
+          "description": "Map of category keys to allocated IDR limits."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "monthKey",
+        "monthlyIncome",
+        "strategy",
+        "savingsTarget",
+        "needsPercent",
+        "wantsPercent",
+        "savingsPercent",
+        "categoryBudgets",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "User-owned daily expenses subcollection."
+    },
+    "/users/{userId}/budgets/{monthKey}": {
+      "schema": { "$ref": "#/entities/MonthlyBudget" },
+      "description": "User-owned monthly budget plans keyed by YYYY-MM."
+    }
+  }
+}
