@@ -3,6 +3,9 @@ package com.example.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.ai.AiFinancialInsight
+import com.example.data.ai.AiParsedExpense
+import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
 import com.example.data.budget.DailyBudgetInsight
 import com.example.data.model.BudgetStrategy
@@ -32,6 +35,20 @@ sealed interface UiState<out T> {
   data class Error(val message: String) : UiState<Nothing>
 }
 
+sealed interface AiInsightUiState {
+  data object Idle : AiInsightUiState
+  data object Loading : AiInsightUiState
+  data class Success(val insight: AiFinancialInsight, val monthKey: String) : AiInsightUiState
+  data class Error(val message: String) : AiInsightUiState
+}
+
+sealed interface AiExpenseParseState {
+  data object Idle : AiExpenseParseState
+  data object Loading : AiExpenseParseState
+  data class Success(val parsed: AiParsedExpense) : AiExpenseParseState
+  data class Error(val message: String) : AiExpenseParseState
+}
+
 data class CategoryProgress(
   val category: ExpenseCategory,
   val allocated: Long,
@@ -57,6 +74,7 @@ data class FinanceDashboardData(
 class FinanceViewModel(
   private val repository: FinanceRepository,
   private val currentUserId: String,
+  private val aiAssistant: FinanceAiAssistant = FinanceAiAssistant(),
 ) : ViewModel() {
 
   private val _selectedMonthKey = MutableStateFlow(Formatters.currentMonthKey())
@@ -69,6 +87,12 @@ class FinanceViewModel(
 
   private val _isSaving = MutableStateFlow(false)
   val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+  private val _aiInsightState = MutableStateFlow<AiInsightUiState>(AiInsightUiState.Idle)
+  val aiInsightState: StateFlow<AiInsightUiState> = _aiInsightState.asStateFlow()
+
+  private val _aiParseState = MutableStateFlow<AiExpenseParseState>(AiExpenseParseState.Idle)
+  val aiParseState: StateFlow<AiExpenseParseState> = _aiParseState.asStateFlow()
 
   @OptIn(ExperimentalCoroutinesApi::class)
   private val monthExpensesFlow = _selectedMonthKey.flatMapLatest { monthKey ->
@@ -150,6 +174,7 @@ class FinanceViewModel(
 
   fun shiftMonth(deltaMonths: Long) {
     _selectedMonthKey.value = Formatters.shiftMonthKey(_selectedMonthKey.value, deltaMonths)
+    _aiInsightState.value = AiInsightUiState.Idle
   }
 
   fun setCategoryFilter(category: ExpenseCategory?) {
@@ -260,6 +285,52 @@ class FinanceViewModel(
         _isSaving.value = false
       }
     }
+  }
+
+  fun generateMonthlyAiInsight() {
+    val current = uiState.value as? UiState.Success ?: return
+    val dashboard = current.data
+    viewModelScope.launch {
+      _aiInsightState.value = AiInsightUiState.Loading
+      try {
+        val insight = aiAssistant.analyzeMonthlyFinances(
+          monthKey = dashboard.monthKey,
+          expenses = dashboard.expenses,
+          budget = dashboard.budget,
+          dailyInsight = dashboard.dailyInsight,
+        )
+        _aiInsightState.value = AiInsightUiState.Success(
+          insight = insight,
+          monthKey = dashboard.monthKey,
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _aiInsightState.value = AiInsightUiState.Error(
+          e.localizedMessage ?: "Gagal menganalisis keuangan dengan Gemini AI.",
+        )
+      }
+    }
+  }
+
+  fun parseExpenseWithAi(rawInput: String) {
+    viewModelScope.launch {
+      _aiParseState.value = AiExpenseParseState.Loading
+      try {
+        val parsed = aiAssistant.parseNaturalExpense(rawInput)
+        _aiParseState.value = AiExpenseParseState.Success(parsed)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _aiParseState.value = AiExpenseParseState.Error(
+          e.localizedMessage ?: "Gagal membaca deskripsi pengeluaran.",
+        )
+      }
+    }
+  }
+
+  fun resetAiExpenseParser() {
+    _aiParseState.value = AiExpenseParseState.Idle
   }
 
   fun clearActionStatus() {

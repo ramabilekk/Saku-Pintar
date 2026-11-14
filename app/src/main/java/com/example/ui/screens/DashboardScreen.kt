@@ -51,12 +51,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.budget.BudgetPaceStatus
 import com.example.data.model.Expense
+import com.example.ui.components.AiInsightCard
 import com.example.ui.components.CategoryIconBadge
 import com.example.ui.components.SevenDaySpendingChart
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldBright
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.viewmodel.AiInsightUiState
 import com.example.ui.viewmodel.CategoryProgress
 import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.util.Formatters
@@ -64,6 +66,8 @@ import com.example.util.Formatters
 @Composable
 fun DashboardScreen(
   data: FinanceDashboardData,
+  aiInsightState: AiInsightUiState,
+  onRequestAiInsight: () -> Unit,
   onNavigateToExpenses: () -> Unit,
   onNavigateToAutoBudget: () -> Unit,
   onEditExpense: (Expense) -> Unit,
@@ -95,7 +99,16 @@ fun DashboardScreen(
         }
       }
 
-      // 3. 7-Day Daily Pace Chart
+      // 3. Gemini AI Financial Advisor Card
+      item {
+        AiInsightCard(
+          state = aiInsightState,
+          currentMonthKey = data.monthKey,
+          onAnalyzeClick = onRequestAiInsight,
+        )
+      }
+
+      // 4. 7-Day Daily Pace Chart
       item {
         Card(
           shape = RoundedCornerShape(22.dp),

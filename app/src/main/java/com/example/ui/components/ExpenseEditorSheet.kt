@@ -19,12 +19,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -39,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,13 +51,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.viewmodel.AiExpenseParseState
 import com.example.util.Formatters
 import java.time.Instant
 import java.time.LocalDate
@@ -63,6 +70,9 @@ import java.time.ZoneOffset
 @Composable
 fun ExpenseEditorSheet(
   existingExpense: Expense?,
+  aiParseState: AiExpenseParseState,
+  onParseWithAi: (String) -> Unit,
+  onClearAiParse: () -> Unit,
   onDismiss: () -> Unit,
   onSave: (
     title: String,
@@ -90,8 +100,24 @@ fun ExpenseEditorSheet(
     mutableLongStateOf(existingExpense?.dateEpochDay ?: today.toEpochDay())
   }
   var note by remember(existingExpense) { mutableStateOf(existingExpense?.note ?: "") }
+  var aiPromptText by remember(existingExpense) { mutableStateOf("") }
   var showDatePicker by remember { mutableStateOf(false) }
   var validationError by remember { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(aiParseState) {
+    if (aiParseState is AiExpenseParseState.Success) {
+      val parsed = aiParseState.parsed
+      title = parsed.title
+      amountText = parsed.amount.toString()
+      selectedCategory = parsed.category
+      selectedMethod = parsed.paymentMethod
+      if (parsed.note.isNotBlank()) {
+        note = parsed.note
+      }
+      validationError = null
+      onClearAiParse()
+    }
+  }
 
   ModalBottomSheet(
     onDismissRequest = onDismiss,
@@ -112,6 +138,83 @@ fun ExpenseEditorSheet(
         style = MaterialTheme.typography.headlineSmall,
         color = MaterialTheme.colorScheme.onSurface,
       )
+
+      if (existingExpense == null) {
+        Surface(
+          shape = RoundedCornerShape(16.dp),
+          color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+              )
+              Text(
+                text = stringResource(R.string.ai_quick_fill_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+            }
+            OutlinedTextField(
+              value = aiPromptText,
+              onValueChange = {
+                aiPromptText = it.take(160)
+                if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
+              },
+              placeholder = { Text(stringResource(R.string.ai_quick_fill_hint)) },
+              maxLines = 2,
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .fillMaxWidth()
+                .testTag("ai_quick_fill_input"),
+            )
+            if (aiParseState is AiExpenseParseState.Error) {
+              Text(
+                text = aiParseState.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+              )
+            }
+            FilledTonalButton(
+              onClick = { onParseWithAi(aiPromptText) },
+              enabled = aiParseState !is AiExpenseParseState.Loading && aiPromptText.isNotBlank(),
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("ai_quick_fill_button"),
+            ) {
+              if (aiParseState is AiExpenseParseState.Loading) {
+                CircularProgressIndicator(
+                  modifier = Modifier.size(18.dp),
+                  strokeWidth = 2.dp,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Membaca dengan Gemini AI...")
+              } else {
+                Icon(
+                  imageVector = Icons.Rounded.AutoAwesome,
+                  contentDescription = null,
+                  modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.ai_quick_fill_action))
+              }
+            }
+          }
+        }
+      }
 
       // Amount Input + Quick Nominal Chips
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

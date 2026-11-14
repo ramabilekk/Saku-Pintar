@@ -11,4 +11,11 @@
     <string name="nav_budget">Anggaran</string>
     <string name="action_add_expense">Catat Pengeluaran</string>
     <string name="action_sign_out">Keluar</string>
+    <string name="ai_insight_title">Asisten Keuangan AI</string>
+    <string name="ai_insight_subtitle">Analisis pola belanja &amp; saran hemat bulan ini</string>
+    <string name="ai_insight_button">Analisis dengan Gemini AI</string>
+    <string name="ai_insight_refresh">Perbarui Analisis</string>
+    <string name="ai_quick_fill_title">Isi Cepat dengan AI</string>
+    <string name="ai_quick_fill_hint">Contoh: Makan siang soto 28rb bayar QRIS</string>
+    <string name="ai_quick_fill_action">Isi Otomatis</string>
 </resources>

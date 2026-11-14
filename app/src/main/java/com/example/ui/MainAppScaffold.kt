@@ -149,6 +149,8 @@ fun MainAppScaffold(
   val selectedMonthKey by viewModel.selectedMonthKey.collectAsStateWithLifecycle()
   val actionStatus by viewModel.actionStatus.collectAsStateWithLifecycle()
   val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+  val aiInsightState by viewModel.aiInsightState.collectAsStateWithLifecycle()
+  val aiParseState by viewModel.aiParseState.collectAsStateWithLifecycle()
 
   val navController = rememberNavController()
   val backStackEntry by navController.currentBackStackEntryAsState()
@@ -368,6 +370,8 @@ fun MainAppScaffold(
               composable(ROUTE_DASHBOARD) {
                 DashboardScreen(
                   data = state.data,
+                  aiInsightState = aiInsightState,
+                  onRequestAiInsight = viewModel::generateMonthlyAiInsight,
                   onNavigateToExpenses = { navigateToTab(ROUTE_EXPENSES) },
                   onNavigateToAutoBudget = { navigateToTab(ROUTE_BUDGET) },
                   onEditExpense = { expense ->
@@ -406,7 +410,11 @@ fun MainAppScaffold(
   if (showExpenseSheet) {
     ExpenseEditorSheet(
       existingExpense = editingExpense,
+      aiParseState = aiParseState,
+      onParseWithAi = viewModel::parseExpenseWithAi,
+      onClearAiParse = viewModel::resetAiExpenseParser,
       onDismiss = {
+        viewModel.resetAiExpenseParser()
         showExpenseSheet = false
         editingExpense = null
       },
@@ -417,6 +425,7 @@ fun MainAppScaffold(
         } else {
           viewModel.updateExpense(currentEdit, title, amount, category, method, epochDay, note)
         }
+        viewModel.resetAiExpenseParser()
         showExpenseSheet = false
         editingExpense = null
       },
