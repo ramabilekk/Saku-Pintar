@@ -39,10 +39,24 @@ jobs:
             yes | "$SDKMANAGER" --licenses > /dev/null || true
           fi
 
-      - name: Restore debug keystore for Firebase & Google Sign-In
+      - name: Ensure debug keystore exists
         run: |
-          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+          if [ ! -f debug.keystore ]; then
+            if [ -f debug.keystore.base64 ]; then
+              base64 -d debug.keystore.base64 > debug.keystore
+              echo "Restored debug.keystore from debug.keystore.base64"
+            else
+              keytool -genkeypair -noprompt \
+                -keystore debug.keystore \
+                -storepass android \
+                -alias androiddebugkey \
+                -keypass android \
+                -keyalg RSA \
+                -keysize 2048 \
+                -validity 10000 \
+                -dname "CN=Android Debug,O=Android,C=US"
+              echo "Generated debug.keystore via keytool"
+            fi
           fi
 
       - name: Build Debug APK
@@ -59,7 +73,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v1.0.${{ github.run_number }}"
-          cp app/build/outputs/apk/debug/app-debug.apk "SakuPintar-${TAG}.apk"
-          gh release create "$TAG" "SakuPintar-${TAG}.apk" \
-            --title "SakuPintar ${TAG}" \
-            --notes "Build APK otomatis untuk SakuPintar (termasuk Firebase Firestore, Google Sign-In, dan Gemini AI)."
+          APK_NAME="SakuPintar-${TAG}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
+          SHA1=$(keytool -list -v -keystore debug.keystore -storepass android 2>/dev/null | grep -m1 "SHA1:" | awk '{print $2}' || echo "N/A")
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK_NAME" --clobber
+          else
+            gh release create "$TAG" "$APK_NAME" \
+              --title "SakuPintar ${TAG}" \
+              --notes "Build APK otomatis untuk SakuPintar. SHA-1 signing: ${SHA1}"
+          fi
