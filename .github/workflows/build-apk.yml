@@ -86,10 +86,18 @@ jobs:
           APK_NAME="SakuPintar-${TAG}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           SHA1=$(keytool -list -v -keystore debug.keystore -storepass android 2>/dev/null | grep -m1 "SHA1:" | awk '{print $2}' || echo "N/A")
+          if [ -f app/google-services.json ]; then
+            FIREBASE_STATUS="Terpasang (siap login Google, Firestore, & Gemini AI)"
+          else
+            FIREBASE_STATUS="BELUM TERPASANG — tambahkan secret GOOGLE_SERVICES_JSON di GitHub lalu build ulang"
+          fi
+          NOTES="Build APK otomatis untuk SakuPintar.
+          - Firebase Config: ${FIREBASE_STATUS}
+          - SHA-1 signing: ${SHA1}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK_NAME" --clobber
           else
             gh release create "$TAG" "$APK_NAME" \
               --title "SakuPintar ${TAG}" \
-              --notes "Build APK otomatis untuk SakuPintar. SHA-1 signing: ${SHA1}"
+              --notes "$NOTES"
           fi
