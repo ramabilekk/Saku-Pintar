@@ -128,9 +128,188 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "RecurringTemplate": {
+      "title": "RecurringTemplate",
+      "description": "Reusable recurring monthly bill or expense template for 1-tap logging.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Template title (1..80 chars)."
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Default amount in IDR (positive integer)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["FOOD", "TRANSPORT", "BILLS", "HEALTH", "SHOPPING", "ENTERTAINMENT", "OTHER"],
+          "description": "Expense category key."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["QRIS", "CASH", "TRANSFER", "CARD"],
+          "description": "Default payment method."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional template note (0..200 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "amount",
+        "category",
+        "paymentMethod",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User-customizable profile metadata overriding Google account display name.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Custom display name chosen by the user (1..50 chars)."
+        },
+        "photoBase64": {
+          "type": "string",
+          "description": "Optional compressed JPEG avatar encoded in Base64 (<= 150000 chars); empty string syncs Google photo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SavingsGoal": {
+      "title": "SavingsGoal",
+      "description": "User-tracked savings goal (Celengan Impian) recording target and saved amounts.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "title": {
+          "type": "string",
+          "description": "Goal title (1..60 chars)."
+        },
+        "targetAmount": {
+          "type": "integer",
+          "description": "Target savings goal amount in IDR (positive integer)."
+        },
+        "savedAmount": {
+          "type": "integer",
+          "description": "Recorded saved amount in IDR (>= 0)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["EMERGENCY", "GADGET", "TRAVEL", "VEHICLE", "EDUCATION", "HOME", "OTHER"],
+          "description": "Savings goal category key."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional goal note (0..120 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "targetAmount",
+        "savedAmount",
+        "category",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WalletBalance": {
+      "title": "WalletBalance",
+      "description": "User-tracked balance for a personal payment source (Cash, QRIS, Transfer, Card).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the owner."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["QRIS", "CASH", "TRANSFER", "CARD"],
+          "description": "Payment method key matching document ID."
+        },
+        "balance": {
+          "type": "integer",
+          "description": "Current tracked balance in IDR (>= 0)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on update."
+        }
+      },
+      "required": [
+        "userId",
+        "paymentMethod",
+        "balance",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User-owned profile document storing custom display name."
+    },
     "/users/{userId}/expenses/{expenseId}": {
       "schema": { "$ref": "#/entities/Expense" },
       "description": "User-owned daily expenses subcollection."
@@ -138,6 +317,18 @@
     "/users/{userId}/budgets/{monthKey}": {
       "schema": { "$ref": "#/entities/MonthlyBudget" },
       "description": "User-owned monthly budget plans keyed by YYYY-MM."
+    },
+    "/users/{userId}/recurringTemplates/{templateId}": {
+      "schema": { "$ref": "#/entities/RecurringTemplate" },
+      "description": "User-owned recurring expense templates for 1-tap monthly logging."
+    },
+    "/users/{userId}/savingsGoals/{goalId}": {
+      "schema": { "$ref": "#/entities/SavingsGoal" },
+      "description": "User-owned savings goals (Celengan Impian)."
+    },
+    "/users/{userId}/walletBalances/{methodKey}": {
+      "schema": { "$ref": "#/entities/WalletBalance" },
+      "description": "User-owned tracked wallet balances keyed by PaymentMethod."
     }
   }
 }

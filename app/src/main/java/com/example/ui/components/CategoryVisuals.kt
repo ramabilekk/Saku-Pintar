@@ -34,27 +34,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.theme.CoralDanger
 import com.example.util.Formatters
 import java.time.LocalDate
 import java.time.format.TextStyle
-import java.util.Locale
 
 fun ExpenseCategory.iconVector(): ImageVector = when (this) {
   ExpenseCategory.FOOD -> Icons.Rounded.Restaurant
@@ -87,7 +92,7 @@ fun CategoryIconBadge(
     Box(contentAlignment = Alignment.Center) {
       Icon(
         imageVector = category.iconVector(),
-        contentDescription = category.labelId,
+        contentDescription = stringResource(category.labelRes),
         tint = category.accentColor,
         modifier = Modifier.size(size * 0.52f),
       )
@@ -102,6 +107,10 @@ fun MonthSelectorBar(
   onNextMonth: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val context = LocalContext.current
+  val activeLang by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val locale = activeLang.toLocale()
+
   Surface(
     shape = RoundedCornerShape(50),
     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
@@ -120,12 +129,12 @@ fun MonthSelectorBar(
       ) {
         Icon(
           imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-          contentDescription = "Bulan sebelumnya",
+          contentDescription = stringResource(R.string.prev_month_cd),
           tint = MaterialTheme.colorScheme.onSurface,
         )
       }
       Text(
-        text = Formatters.formatMonthTitle(monthKey),
+        text = Formatters.formatMonthTitle(monthKey, locale),
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,
@@ -139,7 +148,7 @@ fun MonthSelectorBar(
       ) {
         Icon(
           imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-          contentDescription = "Bulan berikutnya",
+          contentDescription = stringResource(R.string.next_month_cd),
           tint = MaterialTheme.colorScheme.onSurface,
         )
       }
@@ -154,7 +163,11 @@ fun SevenDaySpendingChart(
   referenceDate: LocalDate = LocalDate.now(),
   modifier: Modifier = Modifier,
 ) {
-  val localeId = Locale.forLanguageTag("id-ID")
+  val context = LocalContext.current
+  val activeLang by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val activeLocale = activeLang.toLocale()
+
   val days = (6 downTo 0).map { offset -> referenceDate.minusDays(offset.toLong()) }
   val totalsByDay = days.map { day ->
     val epoch = day.toEpochDay()
@@ -163,7 +176,7 @@ fun SevenDaySpendingChart(
   val maxAmount = maxOf(
     totalsByDay.maxOrNull() ?: 0L,
     dailySafeLimit,
-    100_000L,
+    activeCurrency.chartMinMax,
   )
 
   val primaryColor = MaterialTheme.colorScheme.primary
@@ -177,7 +190,7 @@ fun SevenDaySpendingChart(
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
-        text = "Pengeluaran 7 Hari Terakhir",
+        text = stringResource(R.string.chart_seven_days_title),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.onSurface,
       )
@@ -190,7 +203,10 @@ fun SevenDaySpendingChart(
           )
           Spacer(modifier = Modifier.width(6.dp))
           Text(
-            text = "Batas ${Formatters.formatRupiahCompact(dailySafeLimit)}",
+            text = stringResource(
+              R.string.chart_limit_badge,
+              Formatters.formatMoneyCompact(dailySafeLimit, activeCurrency, activeLocale),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
@@ -212,7 +228,6 @@ fun SevenDaySpendingChart(
 
       totalsByDay.forEachIndexed { idx, amount ->
         val left = idx * slotWidth + (slotWidth - barWidth) / 2f
-        // Background track bar
         drawRoundRect(
           color = trackColor,
           topLeft = Offset(left, 4.dp.toPx()),
@@ -248,11 +263,12 @@ fun SevenDaySpendingChart(
 
     Spacer(modifier = Modifier.height(6.dp))
 
+    val todayLabel = stringResource(R.string.label_today)
     Row(modifier = Modifier.fillMaxWidth()) {
       days.forEachIndexed { idx, day ->
         val isToday = idx == days.lastIndex
         Text(
-          text = if (isToday) "Hari ini" else day.dayOfWeek.getDisplayName(TextStyle.SHORT, localeId),
+          text = if (isToday) todayLabel else day.dayOfWeek.getDisplayName(TextStyle.SHORT, activeLocale),
           style = MaterialTheme.typography.labelSmall,
           fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
           color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,

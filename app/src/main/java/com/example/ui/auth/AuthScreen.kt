@@ -1,7 +1,9 @@
 package com.example.ui.auth
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,16 +52,24 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.auth.onGoogleSignInClicked
-import com.example.ui.theme.EmeraldBright
+import com.example.i18n.AppCurrency
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
+import com.example.ui.components.LanguagePickerDialog
 import com.example.ui.theme.GoldAccent
+import com.example.ui.theme.SkyPositiveAccent
+import com.example.util.Formatters
 
 @Composable
 fun AuthScreen(
@@ -68,8 +79,13 @@ fun AuthScreen(
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val credentialManager = remember(context) { CredentialManager.create(context) }
+  val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val effectiveLanguage = remember(activeLanguage) { activeLanguage.resolveEffectiveLanguage() }
+
   var isLoading by remember { mutableStateOf(false) }
   var errorMessage by remember { mutableStateOf<String?>(null) }
+  var showLanguageDialog by remember { mutableStateOf(false) }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -90,44 +106,84 @@ fun AuthScreen(
         verticalArrangement = Arrangement.SpaceBetween,
       ) {
         Column {
-          // Brand Header
+          // Brand Header + Language Switcher Pill
           Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
           ) {
-            Surface(
-              shape = RoundedCornerShape(14.dp),
-              color = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(44.dp),
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(10.dp),
+              modifier = Modifier.weight(1f),
             ) {
-              Box(contentAlignment = Alignment.Center) {
-                Icon(
-                  imageVector = Icons.Rounded.AccountBalanceWallet,
+              Surface(
+                shape = RoundedCornerShape(14.dp),
+                shadowElevation = 3.dp,
+                modifier = Modifier.size(48.dp),
+              ) {
+                Image(
+                  painter = painterResource(id = R.drawable.sakupintar_app_icon_1794739414831),
                   contentDescription = stringResource(R.string.app_name),
-                  tint = MaterialTheme.colorScheme.onPrimary,
-                  modifier = Modifier.size(24.dp),
+                  contentScale = ContentScale.Crop,
+                  modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(14.dp)),
+                )
+              }
+              Column {
+                Text(
+                  text = stringResource(R.string.app_name),
+                  style = MaterialTheme.typography.titleLarge,
+                  color = MaterialTheme.colorScheme.onBackground,
+                  fontWeight = FontWeight.Bold,
+                )
+                Text(
+                  text = stringResource(R.string.app_tagline),
+                  style = MaterialTheme.typography.labelMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
               }
             }
-            Column {
-              Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold,
-              )
-              Text(
-                text = "Asisten Keuangan Pribadi",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
+
+            Surface(
+              shape = RoundedCornerShape(50),
+              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+              modifier = Modifier
+                .clickable { showLanguageDialog = true }
+                .testTag("auth_language_button"),
+            ) {
+              Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Language,
+                  contentDescription = stringResource(R.string.language_section_title),
+                  tint = MaterialTheme.colorScheme.primary,
+                  modifier = Modifier.size(18.dp),
+                )
+                Text(
+                  text = effectiveLanguage.shortCode,
+                  style = MaterialTheme.typography.labelLarge,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                )
+                Icon(
+                  imageVector = Icons.Rounded.ExpandMore,
+                  contentDescription = null,
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                  modifier = Modifier.size(16.dp),
+                )
+              }
             }
           }
 
           Spacer(modifier = Modifier.height(24.dp))
 
           // Custom Hero Illustration Card
-          FinanceHeroBanner()
+          FinanceHeroBanner(currency = activeCurrency)
 
           Spacer(modifier = Modifier.height(24.dp))
 
@@ -223,7 +279,7 @@ fun AuthScreen(
               )
               Spacer(modifier = Modifier.width(12.dp))
               Text(
-                text = "Menghubungkan akun...",
+                text = stringResource(R.string.auth_connecting),
                 style = MaterialTheme.typography.labelLarge,
               )
             } else {
@@ -238,12 +294,24 @@ fun AuthScreen(
       }
     }
   }
+
+  if (showLanguageDialog) {
+    LanguagePickerDialog(
+      selectedLanguage = activeLanguage,
+      onLanguageSelected = {},
+      onDismiss = { showLanguageDialog = false },
+    )
+  }
 }
 
 @Composable
-private fun FinanceHeroBanner() {
+private fun FinanceHeroBanner(currency: AppCurrency) {
   val primary = MaterialTheme.colorScheme.primary
   val secondary = MaterialTheme.colorScheme.secondary
+  val sampleDailyLimit = remember(currency) {
+    Formatters.formatMoney((currency.defaultMonthlyIncome * 7L) / 300L, currency)
+  }
+
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -256,19 +324,17 @@ private fun FinanceHeroBanner() {
       ),
   ) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-      // Soft radial highlights
       drawCircle(
         color = Color.White.copy(alpha = 0.08f),
         radius = size.height * 0.7f,
         center = Offset(size.width * 0.88f, size.height * 0.2f),
       )
       drawCircle(
-        color = EmeraldBright.copy(alpha = 0.16f),
+        color = SkyPositiveAccent.copy(alpha = 0.2f),
         radius = size.height * 0.45f,
         center = Offset(size.width * 0.14f, size.height * 0.9f),
       )
 
-      // Stylized ledger bars on the right
       val barBaseY = size.height * 0.78f
       val barWidth = 18.dp.toPx()
       val barGap = 12.dp.toPx()
@@ -285,7 +351,6 @@ private fun FinanceHeroBanner() {
         )
       }
 
-      // Smooth trend line overlay
       val trendPath = Path().apply {
         moveTo(startX - 8.dp.toPx(), barBaseY - size.height * 0.22f)
         cubicTo(
@@ -312,7 +377,7 @@ private fun FinanceHeroBanner() {
         shape = RoundedCornerShape(50),
       ) {
         Text(
-          text = "50 / 30 / 20 • Otomatis",
+          text = stringResource(R.string.auth_hero_badge),
           style = MaterialTheme.typography.labelMedium,
           color = Color.White,
           modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -320,12 +385,12 @@ private fun FinanceHeroBanner() {
       }
       Column {
         Text(
-          text = "Batas Aman Harian",
+          text = stringResource(R.string.auth_hero_limit_label),
           style = MaterialTheme.typography.labelMedium,
           color = Color.White.copy(alpha = 0.85f),
         )
         Text(
-          text = "Rp 185.000 / hari",
+          text = sampleDailyLimit,
           style = MaterialTheme.typography.headlineSmall,
           color = Color.White,
           fontWeight = FontWeight.Bold,

@@ -1,5 +1,8 @@
 package com.example.util
 
+import com.example.i18n.AppCurrency
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -8,33 +11,65 @@ import java.util.Locale
 import kotlin.math.abs
 
 object Formatters {
-  private val indonesianLocale = Locale.forLanguageTag("id-ID")
-  private val numberFormat = NumberFormat.getIntegerInstance(indonesianLocale)
-  private val dayDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy", indonesianLocale)
-  private val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", indonesianLocale)
 
-  private val monthNamesId = listOf(
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-  )
+  fun formatRupiah(amount: Long): String =
+    formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
 
-  fun formatRupiah(amount: Long): String {
-    val prefix = if (amount < 0L) "-Rp " else "Rp "
-    return prefix + numberFormat.format(abs(amount))
+  fun formatMoney(
+    amount: Long,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+  ): String {
+    val nf = NumberFormat.getIntegerInstance(currency.locale)
+    val sign = if (amount < 0L) "-" else ""
+    return "$sign${currency.prefixWithSpace}${nf.format(abs(amount))}"
   }
 
-  fun formatRupiahCompact(amount: Long): String {
+  fun formatRupiahCompact(amount: Long): String =
+    formatMoneyCompact(
+      amount = amount,
+      currency = CurrencyPreferenceManager.currentCurrency,
+      locale = LanguagePreferenceManager.currentLocale(),
+    )
+
+  fun formatMoneyCompact(
+    amount: Long,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+  ): String {
     val absVal = abs(amount)
-    val prefix = if (amount < 0L) "-" else ""
-    return when {
-      absVal >= 1_000_000_000L -> "${prefix}Rp ${String.format(indonesianLocale, "%.1f", absVal / 1_000_000_000.0)} M"
-      absVal >= 1_000_000L -> {
-        val m = absVal / 1_000_000.0
-        val str = if (absVal % 1_000_000L == 0L) "${absVal / 1_000_000L}" else String.format(indonesianLocale, "%.1f", m)
-        "${prefix}Rp $str jt"
+    val sign = if (amount < 0L) "-" else ""
+    val prefix = currency.prefixWithSpace
+    val isIndonesian = locale.language.equals("in", ignoreCase = true) ||
+      locale.language.equals("id", ignoreCase = true)
+
+    return if (currency == AppCurrency.IDR && isIndonesian) {
+      when {
+        absVal >= 1_000_000_000L ->
+          "${sign}${prefix}${String.format(locale, "%.1f", absVal / 1_000_000_000.0)} M"
+        absVal >= 1_000_000L -> {
+          val m = absVal / 1_000_000.0
+          val str = if (absVal % 1_000_000L == 0L) "${absVal / 1_000_000L}" else String.format(locale, "%.1f", m)
+          "${sign}${prefix}$str jt"
+        }
+        absVal >= 1_000L -> "${sign}${prefix}${absVal / 1_000L} rb"
+        else -> "${sign}${prefix}$absVal"
       }
-      absVal >= 1_000L -> "${prefix}Rp ${absVal / 1_000L} rb"
-      else -> "${prefix}Rp $absVal"
+    } else {
+      when {
+        absVal >= 1_000_000_000L ->
+          "${sign}${prefix}${String.format(Locale.US, "%.1f", absVal / 1_000_000_000.0)}B"
+        absVal >= 1_000_000L -> {
+          val m = absVal / 1_000_000.0
+          val str = if (absVal % 1_000_000L == 0L) "${absVal / 1_000_000L}" else String.format(Locale.US, "%.1f", m)
+          "${sign}${prefix}${str}M"
+        }
+        absVal >= 10_000L -> {
+          val k = absVal / 1_000.0
+          val str = if (absVal % 1_000L == 0L) "${absVal / 1_000L}" else String.format(Locale.US, "%.1f", k)
+          "${sign}${prefix}${str}K"
+        }
+        else -> formatMoney(amount, currency)
+      }
     }
   }
 
@@ -46,21 +81,37 @@ object Formatters {
     return ym.plusMonths(deltaMonths).toString()
   }
 
-  fun formatMonthTitle(monthKey: String): String {
+  fun formatMonthTitle(
+    monthKey: String,
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+  ): String {
     val ym = runCatching { YearMonth.parse(monthKey) }.getOrElse { YearMonth.now() }
-    val monthName = monthNamesId.getOrElse(ym.monthValue - 1) { ym.month.name }
-    return "$monthName ${ym.year}"
-  }
-
-  fun formatDateGroupLabel(epochDay: Long, today: LocalDate = LocalDate.now()): String {
-    val date = LocalDate.ofEpochDay(epochDay)
-    return when (date) {
-      today -> "Hari Ini • ${date.format(shortDateFormatter)}"
-      today.minusDays(1) -> "Kemarin • ${date.format(shortDateFormatter)}"
-      else -> date.format(dayDateFormatter)
+    val formatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale)
+    val raw = ym.atDay(1).format(formatter)
+    return raw.replaceFirstChar { ch ->
+      if (ch.isLowerCase()) ch.titlecase(locale) else ch.toString()
     }
   }
 
-  fun formatShortDate(epochDay: Long): String =
-    LocalDate.ofEpochDay(epochDay).format(shortDateFormatter)
+  fun formatDateGroupLabel(
+    epochDay: Long,
+    today: LocalDate = LocalDate.now(),
+    todayLabel: String = "Hari Ini",
+    yesterdayLabel: String = "Kemarin",
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+  ): String {
+    val date = LocalDate.ofEpochDay(epochDay)
+    val shortFmt = DateTimeFormatter.ofPattern("d MMM yyyy", locale)
+    val fullFmt = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy", locale)
+    return when (date) {
+      today -> "$todayLabel • ${date.format(shortFmt)}"
+      today.minusDays(1) -> "$yesterdayLabel • ${date.format(shortFmt)}"
+      else -> date.format(fullFmt)
+    }
+  }
+
+  fun formatShortDate(
+    epochDay: Long,
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+  ): String = LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM yyyy", locale))
 }

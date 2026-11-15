@@ -24,8 +24,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,40 +42,63 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.budget.BudgetPaceStatus
 import com.example.data.model.Expense
+import com.example.i18n.AppCurrency
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.components.AiInsightCard
 import com.example.ui.components.CategoryIconBadge
+import com.example.ui.components.ProfileAvatar
 import com.example.ui.components.SevenDaySpendingChart
 import com.example.ui.theme.CoralDanger
-import com.example.ui.theme.EmeraldBright
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.AiInsightUiState
 import com.example.ui.viewmodel.CategoryProgress
 import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.util.Formatters
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
   data: FinanceDashboardData,
+  displayName: String,
+  customPhotoBase64: String?,
+  googlePhotoUrl: String?,
+  totalSavedAmount: Long,
+  totalWalletBalance: Long,
   aiInsightState: AiInsightUiState,
   onRequestAiInsight: () -> Unit,
+  onOpenProfile: () -> Unit,
+  onOpenExportReport: () -> Unit,
   onNavigateToExpenses: () -> Unit,
   onNavigateToAutoBudget: () -> Unit,
+  onNavigateToSavings: () -> Unit,
   onEditExpense: (Expense) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val context = LocalContext.current
+  val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+
   Box(
     modifier = modifier.fillMaxSize(),
     contentAlignment = Alignment.TopCenter,
@@ -84,12 +110,177 @@ fun DashboardScreen(
       contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+      // 0. Personalized Greeting Header
+      item {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          ProfileAvatar(
+            displayName = displayName,
+            customPhotoBase64 = customPhotoBase64,
+            googlePhotoUrl = googlePhotoUrl,
+            size = 46.dp,
+            modifier = Modifier
+              .clickable(onClick = onOpenProfile)
+              .testTag("dashboard_profile_avatar"),
+          )
+          Column(modifier = Modifier.weight(1f)) {
+            Text(
+              text = stringResource(R.string.dashboard_greeting, displayName),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onBackground,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.testTag("dashboard_greeting_name"),
+            )
+            Text(
+              text = stringResource(R.string.dashboard_subtitle),
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+          TextButton(
+            onClick = onOpenProfile,
+            modifier = Modifier
+              .height(48.dp)
+              .testTag("dashboard_edit_profile_button"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.Edit,
+              contentDescription = stringResource(R.string.action_edit),
+              modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(stringResource(R.string.action_edit))
+          }
+        }
+      }
+
       // 1. Hero Monthly Summary + Daily Safe Limit Card
       item {
         HeroSummaryCard(
           data = data,
+          currency = activeCurrency,
+          locale = activeLocale,
           onSetupBudgetClick = onNavigateToAutoBudget,
         )
+      }
+
+      // 1b. Quick Export Monthly Recap (Excel / PDF / CSV / Share)
+      item {
+        Surface(
+          onClick = onOpenExportReport,
+          shape = RoundedCornerShape(18.dp),
+          color = MaterialTheme.colorScheme.surface,
+          tonalElevation = 1.dp,
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_export_report_button"),
+        ) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = MaterialTheme.colorScheme.primaryContainer,
+              modifier = Modifier.size(40.dp),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Rounded.TableChart,
+                  contentDescription = null,
+                  tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                  modifier = Modifier.size(20.dp),
+                )
+              }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+              Text(
+                text = stringResource(R.string.dashboard_recap_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+              Text(
+                text = stringResource(R.string.dashboard_recap_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+            Icon(
+              imageVector = Icons.Rounded.FileDownload,
+              contentDescription = stringResource(R.string.dashboard_recap_cd),
+              tint = MaterialTheme.colorScheme.primary,
+            )
+          }
+        }
+      }
+
+      // 1c. Savings & Wallet Balances Quick Card
+      item {
+        Surface(
+          onClick = onNavigateToSavings,
+          shape = RoundedCornerShape(18.dp),
+          color = MaterialTheme.colorScheme.surface,
+          tonalElevation = 1.dp,
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_savings_card"),
+        ) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = GoldAccent.copy(alpha = 0.16f),
+              modifier = Modifier.size(40.dp),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Rounded.Savings,
+                  contentDescription = null,
+                  tint = GoldAccent,
+                  modifier = Modifier.size(20.dp),
+                )
+              }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+              Text(
+                text = stringResource(R.string.dashboard_savings_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+              Text(
+                text = stringResource(
+                  R.string.dashboard_savings_subtitle,
+                  Formatters.formatMoneyCompact(totalSavedAmount, activeCurrency, activeLocale),
+                  Formatters.formatMoneyCompact(totalWalletBalance, activeCurrency, activeLocale),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+            Icon(
+              imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+              contentDescription = stringResource(R.string.dashboard_savings_cd),
+              tint = MaterialTheme.colorScheme.primary,
+            )
+          }
+        }
       }
 
       // 2. If no budget exists yet, show prominent Auto-Budget Generator Prompt
@@ -124,7 +315,7 @@ fun DashboardScreen(
         }
       }
 
-      // 4. Category Allocation Breakdown
+      // 5. Category Allocation Breakdown
       item {
         Row(
           modifier = Modifier
@@ -134,7 +325,7 @@ fun DashboardScreen(
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Text(
-            text = "Alokasi Kategori Bulan Ini",
+            text = stringResource(R.string.dashboard_category_allocation),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
           )
@@ -142,7 +333,7 @@ fun DashboardScreen(
             onClick = onNavigateToAutoBudget,
             modifier = Modifier.testTag("edit_budget_link"),
           ) {
-            Text("Atur Otomatis")
+            Text(stringResource(R.string.dashboard_auto_arrange))
           }
         }
       }
@@ -156,7 +347,10 @@ fun DashboardScreen(
             modifier = Modifier.fillMaxWidth(),
           ) {
             Text(
-              text = "Belum ada anggaran kategori atau pengeluaran di bulan ${Formatters.formatMonthTitle(data.monthKey)}.",
+              text = stringResource(
+                R.string.dashboard_empty_categories,
+                Formatters.formatMonthTitle(data.monthKey, activeLocale),
+              ),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.padding(18.dp),
@@ -165,11 +359,15 @@ fun DashboardScreen(
         }
       } else {
         items(activeCategories, key = { it.category.name }) { item ->
-          CategoryProgressRowCard(item = item)
+          CategoryProgressRowCard(
+            item = item,
+            currency = activeCurrency,
+            locale = activeLocale,
+          )
         }
       }
 
-      // 5. Recent Daily Expenses
+      // 6. Recent Daily Expenses
       item {
         Row(
           modifier = Modifier
@@ -179,7 +377,7 @@ fun DashboardScreen(
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Text(
-            text = "Pengeluaran Terbaru",
+            text = stringResource(R.string.dashboard_recent_expenses),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
           )
@@ -187,7 +385,7 @@ fun DashboardScreen(
             onClick = onNavigateToExpenses,
             modifier = Modifier.testTag("see_all_expenses_button"),
           ) {
-            Text("Lihat Semua")
+            Text(stringResource(R.string.dashboard_see_all))
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
               imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
@@ -211,13 +409,13 @@ fun DashboardScreen(
               horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
-                text = "Belum ada pengeluaran tercatat",
+                text = stringResource(R.string.dashboard_empty_expenses_title),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
               )
               Spacer(modifier = Modifier.height(4.dp))
               Text(
-                text = "Ketuk tombol + Catat Pengeluaran di bawah untuk mencatat transaksi harian pertama Anda.",
+                text = stringResource(R.string.dashboard_empty_expenses_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
@@ -228,6 +426,8 @@ fun DashboardScreen(
         items(recent, key = { it.id }) { expense ->
           CompactExpenseRow(
             expense = expense,
+            currency = activeCurrency,
+            locale = activeLocale,
             onClick = { onEditExpense(expense) },
           )
         }
@@ -239,6 +439,8 @@ fun DashboardScreen(
 @Composable
 private fun HeroSummaryCard(
   data: FinanceDashboardData,
+  currency: AppCurrency,
+  locale: Locale,
   onSetupBudgetClick: () -> Unit,
 ) {
   val insight = data.dailyInsight
@@ -256,9 +458,9 @@ private fun HeroSummaryCard(
   )
 
   val (statusLabel, statusColor, statusIcon) = when (insight.paceStatus) {
-    BudgetPaceStatus.SAFE -> Triple("Aman Terkendali", EmeraldBright, Icons.Rounded.Shield)
-    BudgetPaceStatus.CAUTION -> Triple("Mendekati Batas", GoldAccent, Icons.Rounded.WarningAmber)
-    BudgetPaceStatus.OVER -> Triple("Melebihi Anggaran", CoralDanger, Icons.Rounded.WarningAmber)
+    BudgetPaceStatus.SAFE -> Triple(stringResource(R.string.hero_status_safe), SkyPositiveAccent, Icons.Rounded.Shield)
+    BudgetPaceStatus.CAUTION -> Triple(stringResource(R.string.hero_status_caution), GoldAccent, Icons.Rounded.WarningAmber)
+    BudgetPaceStatus.OVER -> Triple(stringResource(R.string.hero_status_over), CoralDanger, Icons.Rounded.WarningAmber)
   }
 
   Box(
@@ -276,16 +478,20 @@ private fun HeroSummaryCard(
       ) {
         Column {
           Text(
-            text = if (budget != null) "Sisa Anggaran Belanja" else "Total Pengeluaran Bulan Ini",
+            text = if (budget != null) {
+              stringResource(R.string.hero_remaining_budget)
+            } else {
+              stringResource(R.string.hero_total_spent_month)
+            },
             style = MaterialTheme.typography.labelLarge,
             color = Color.White.copy(alpha = 0.85f),
           )
           Spacer(modifier = Modifier.height(4.dp))
           Text(
             text = if (budget != null) {
-              Formatters.formatRupiah(insight.remainingBudget)
+              Formatters.formatMoney(insight.remainingBudget, currency)
             } else {
-              Formatters.formatRupiah(insight.totalSpent)
+              Formatters.formatMoney(insight.totalSpent, currency)
             },
             style = MaterialTheme.typography.displaySmall,
             fontFamily = JetBrainsMonoFontFamily,
@@ -338,12 +544,18 @@ private fun HeroSummaryCard(
             horizontalArrangement = Arrangement.SpaceBetween,
           ) {
             Text(
-              text = "Terpakai ${Formatters.formatRupiahCompact(insight.totalSpent)}",
+              text = stringResource(
+                R.string.hero_spent_label,
+                Formatters.formatMoneyCompact(insight.totalSpent, currency, locale),
+              ),
               style = MaterialTheme.typography.labelSmall,
               color = Color.White.copy(alpha = 0.85f),
             )
             Text(
-              text = "Dari ${Formatters.formatRupiahCompact(insight.totalBudget)}",
+              text = stringResource(
+                R.string.hero_of_budget_label,
+                Formatters.formatMoneyCompact(insight.totalBudget, currency, locale),
+              ),
               style = MaterialTheme.typography.labelSmall,
               color = Color.White.copy(alpha = 0.85f),
             )
@@ -362,20 +574,23 @@ private fun HeroSummaryCard(
           ) {
             Column(modifier = Modifier.padding(12.dp)) {
               Text(
-                text = "Batas Aman Harian",
+                text = stringResource(R.string.hero_daily_safe_limit),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.82f),
               )
               Spacer(modifier = Modifier.height(2.dp))
               Text(
-                text = Formatters.formatRupiah(insight.dailySafeLimit),
+                text = Formatters.formatMoney(insight.dailySafeLimit, currency),
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = JetBrainsMonoFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
               )
               Text(
-                text = "Hari ini: ${Formatters.formatRupiahCompact(insight.todaySpent)}",
+                text = stringResource(
+                  R.string.hero_today_spent,
+                  Formatters.formatMoneyCompact(insight.todaySpent, currency, locale),
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.78f),
               )
@@ -397,21 +612,21 @@ private fun HeroSummaryCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                  text = "Target Tabungan",
+                  text = stringResource(R.string.hero_savings_target),
                   style = MaterialTheme.typography.labelSmall,
                   color = Color.White.copy(alpha = 0.82f),
                 )
               }
               Spacer(modifier = Modifier.height(2.dp))
               Text(
-                text = Formatters.formatRupiah(budget.savingsTarget),
+                text = Formatters.formatMoney(budget.savingsTarget, currency),
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = JetBrainsMonoFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
               )
               Text(
-                text = "${budget.savingsPercent}% pendapatan",
+                text = stringResource(R.string.hero_percent_income, budget.savingsPercent),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.78f),
               )
@@ -420,7 +635,10 @@ private fun HeroSummaryCard(
         }
       } else {
         Text(
-          text = "Pengeluaran hari ini: ${Formatters.formatRupiah(insight.todaySpent)}",
+          text = stringResource(
+            R.string.hero_today_spending_line,
+            Formatters.formatMoney(insight.todaySpent, currency),
+          ),
           style = MaterialTheme.typography.bodyMedium,
           color = Color.White.copy(alpha = 0.9f),
         )
@@ -443,7 +661,7 @@ private fun HeroSummaryCard(
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
-            text = "Susun Anggaran Bulan Ini Otomatis",
+            text = stringResource(R.string.hero_setup_budget_cta),
             fontWeight = FontWeight.SemiBold,
           )
         }
@@ -482,20 +700,20 @@ private fun AutoBudgetPromptCard(onClick: () -> Unit) {
       }
       Column(modifier = Modifier.weight(1f)) {
         Text(
-          text = "Anggaran Bulanan Belum Disusun",
+          text = stringResource(R.string.prompt_budget_missing_title),
           style = MaterialTheme.typography.titleSmall,
           color = MaterialTheme.colorScheme.onTertiaryContainer,
           fontWeight = FontWeight.Bold,
         )
         Text(
-          text = "Masukkan pendapatan bulanan untuk membagi batas makan, transport, & tabungan secara otomatis.",
+          text = stringResource(R.string.prompt_budget_missing_body),
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f),
         )
       }
       Icon(
         imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-        contentDescription = "Buka penyusun anggaran",
+        contentDescription = stringResource(R.string.prompt_budget_missing_cd),
         tint = MaterialTheme.colorScheme.onTertiaryContainer,
       )
     }
@@ -503,7 +721,11 @@ private fun AutoBudgetPromptCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun CategoryProgressRowCard(item: CategoryProgress) {
+private fun CategoryProgressRowCard(
+  item: CategoryProgress,
+  currency: AppCurrency,
+  locale: Locale,
+) {
   val isOver = item.allocated > 0L && item.spent > item.allocated
   val progressColor = if (isOver) CoralDanger else item.category.accentColor
   val animatedProgress by animateFloatAsState(
@@ -530,16 +752,19 @@ private fun CategoryProgressRowCard(item: CategoryProgress) {
         CategoryIconBadge(category = item.category, size = 40.dp)
         Column(modifier = Modifier.weight(1f)) {
           Text(
-            text = item.category.labelId,
+            text = stringResource(item.category.labelRes),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface,
           )
           Text(
             text = if (item.allocated > 0L) {
-              if (item.remaining >= 0L) "Sisa ${Formatters.formatRupiah(item.remaining)}"
-              else "Lewat ${Formatters.formatRupiah(-item.remaining)}"
+              if (item.remaining >= 0L) {
+                stringResource(R.string.cat_remaining, Formatters.formatMoney(item.remaining, currency))
+              } else {
+                stringResource(R.string.cat_over, Formatters.formatMoney(-item.remaining, currency))
+              }
             } else {
-              "Belum ada batas anggaran"
+              stringResource(R.string.cat_no_limit)
             },
             style = MaterialTheme.typography.bodySmall,
             color = if (isOver) CoralDanger else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -547,7 +772,7 @@ private fun CategoryProgressRowCard(item: CategoryProgress) {
         }
         Column(horizontalAlignment = Alignment.End) {
           Text(
-            text = Formatters.formatRupiah(item.spent),
+            text = Formatters.formatMoney(item.spent, currency),
             style = MaterialTheme.typography.titleSmall,
             fontFamily = JetBrainsMonoFontFamily,
             fontWeight = FontWeight.Bold,
@@ -555,7 +780,7 @@ private fun CategoryProgressRowCard(item: CategoryProgress) {
           )
           if (item.allocated > 0L) {
             Text(
-              text = "/ ${Formatters.formatRupiahCompact(item.allocated)}",
+              text = "/ ${Formatters.formatMoneyCompact(item.allocated, currency, locale)}",
               style = MaterialTheme.typography.labelSmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -582,6 +807,8 @@ private fun CategoryProgressRowCard(item: CategoryProgress) {
 @Composable
 private fun CompactExpenseRow(
   expense: Expense,
+  currency: AppCurrency,
+  locale: Locale,
   onClick: () -> Unit,
 ) {
   Card(
@@ -608,13 +835,13 @@ private fun CompactExpenseRow(
           overflow = TextOverflow.Ellipsis,
         )
         Text(
-          text = "${Formatters.formatShortDate(expense.dateEpochDay)} • ${expense.paymentMethodEnum.labelId}",
+          text = "${Formatters.formatShortDate(expense.dateEpochDay, locale)} • ${stringResource(expense.paymentMethodEnum.labelRes)}",
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
       Text(
-        text = "-${Formatters.formatRupiah(expense.amount)}",
+        text = "-${Formatters.formatMoney(expense.amount, currency)}",
         style = MaterialTheme.typography.titleSmall,
         fontFamily = JetBrainsMonoFontFamily,
         fontWeight = FontWeight.SemiBold,

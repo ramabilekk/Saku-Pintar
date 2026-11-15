@@ -35,8 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.ui.theme.CoralDanger
-import com.example.ui.theme.EmeraldBright
 import com.example.ui.theme.GoldAccent
+import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.AiInsightUiState
 
 @Composable
@@ -103,7 +103,7 @@ fun AiInsightCard(
               color = MaterialTheme.colorScheme.primary,
             )
             Text(
-              text = "Gemini AI sedang menganalisis pengeluaran & anggaran Anda...",
+              text = stringResource(R.string.ai_insight_loading),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -137,16 +137,16 @@ fun AiInsightCard(
               modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Coba Analisis Ulang")
+            Text(stringResource(R.string.ai_insight_retry))
           }
         }
 
         state is AiInsightUiState.Success && state.monthKey == currentMonthKey -> {
           val insight = state.insight
-          val badgeColor = when (insight.statusLevel.uppercase()) {
-            "BOROS" -> CoralDanger
-            "PERHATIAN" -> GoldAccent
-            else -> EmeraldBright
+          val (badgeColor, statusText) = when (insight.statusLevel.uppercase()) {
+            "BOROS" -> CoralDanger to stringResource(R.string.hero_status_over)
+            "PERHATIAN" -> GoldAccent to stringResource(R.string.hero_status_caution)
+            else -> SkyPositiveAccent to stringResource(R.string.hero_status_safe)
           }
 
           Surface(
@@ -154,7 +154,7 @@ fun AiInsightCard(
             color = badgeColor.copy(alpha = 0.14f),
           ) {
             Text(
-              text = "Status AI: ${insight.statusLevel}",
+              text = stringResource(R.string.ai_insight_status_badge, statusText),
               style = MaterialTheme.typography.labelSmall,
               fontWeight = FontWeight.Bold,
               color = badgeColor,
@@ -201,7 +201,7 @@ fun AiInsightCard(
 
           Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-              text = "Rekomendasi Langkah Hemat",
+              text = stringResource(R.string.ai_insight_tips_title),
               style = MaterialTheme.typography.labelLarge,
               color = MaterialTheme.colorScheme.onSurface,
             )

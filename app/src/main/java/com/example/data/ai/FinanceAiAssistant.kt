@@ -1,11 +1,16 @@
 package com.example.data.ai
 
+import android.graphics.Bitmap
 import android.util.Log
 import com.example.data.budget.DailyBudgetInsight
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
 import com.example.data.model.PaymentMethod
+import com.example.i18n.AppCurrency
+import com.example.i18n.AppLanguage
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.util.Formatters
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
@@ -39,33 +44,33 @@ class FinanceAiAssistant {
 
   private val insightSchema = Schema.obj(
     mapOf(
-      "headline" to Schema.string("Judul singkat 1 kalimat dalam Bahasa Indonesia"),
+      "headline" to Schema.string("Short 1-sentence financial summary headline in the requested target language"),
       "statusLevel" to Schema.enumeration(
         values = listOf("AMAN", "PERHATIAN", "BOROS"),
-        description = "Status kesehatan pengeluaran bulan ini",
+        description = "Monthly spending health status: AMAN (on track), PERHATIAN (near limit), BOROS (over budget)",
       ),
-      "summary" to Schema.string("Ringkasan analisis keuangan 2-3 kalimat dalam Bahasa Indonesia"),
-      "topCategoryHighlight" to Schema.string("Sorotan kategori pengeluaran terbesar atau yang perlu diawasi"),
+      "summary" to Schema.string("2-3 sentence financial analysis summary in the requested target language"),
+      "topCategoryHighlight" to Schema.string("Highlight of the highest or most notable spending category in the requested target language"),
       "actionTips" to Schema.array(
-        items = Schema.string("Saran praktis dan spesifik dalam Bahasa Indonesia"),
-        description = "Tepat 3 saran penghematan atau pengelolaan anggaran yang realistis",
+        items = Schema.string("Practical, concrete saving tip in the requested target language"),
+        description = "Exactly 3 realistic saving or budgeting recommendations in the requested target language",
       ),
     ),
   )
 
   private val expenseParserSchema = Schema.obj(
     mapOf(
-      "title" to Schema.string("Nama pengeluaran yang ringkas dan jelas dalam Bahasa Indonesia"),
-      "amount" to Schema.integer("Total nominal pengeluaran dalam Rupiah (bilangan bulat positif, contoh: 35000)"),
+      "title" to Schema.string("Concise, clear expense name in the user's language"),
+      "amount" to Schema.integer("Total expense amount in the active currency (positive whole integer, e.g., 35000 or 25)"),
       "category" to Schema.enumeration(
         values = ExpenseCategory.entries.map { it.name },
-        description = "Kategori pengeluaran yang paling sesuai",
+        description = "Best matching expense category",
       ),
       "paymentMethod" to Schema.enumeration(
         values = PaymentMethod.entries.map { it.name },
-        description = "Metode pembayaran yang terdeteksi (default QRIS jika tidak disebut)",
+        description = "Detected payment method (default QRIS if unspecified)",
       ),
-      "note" to Schema.string("Catatan detail singkat jika ada rincian tambahan, atau string kosong"),
+      "note" to Schema.string("Brief additional details if present, or empty string"),
     ),
   )
 
@@ -79,9 +84,11 @@ class FinanceAiAssistant {
       },
       systemInstruction = content {
         text(
-          "Anda adalah penasihat keuangan pribadi SakuPintar berbahasa Indonesia yang ramah, objektif, dan praktis. " +
-            "Analisis data pengeluaran dan anggaran bulanan pengguna menggunakan mata uang Rupiah (Rp). " +
-            "Berikan saran yang konkret berdasarkan angka nyata yang diberikan tanpa mengarang angka baru."
+          "You are SakuPintar's friendly, objective, practical personal finance advisor. " +
+            "Always respond in the EXACT target language specified in the user prompt. " +
+            "Analyze the user's monthly spending and budget data using the specified currency. " +
+            "Give concrete, helpful recommendations based solely on the real numbers provided without inventing figures. " +
+            "Keep statusLevel strictly one of AMAN, PERHATIAN, or BOROS."
         )
       },
     )
@@ -97,10 +104,11 @@ class FinanceAiAssistant {
       },
       systemInstruction = content {
         text(
-          "Ekstrak satu transaksi pengeluaran dari kalimat Bahasa Indonesia pengguna. " +
-            "Konversi singkatan nominal Indonesia seperti 'rb'/'ribu' (* 1000) dan 'jt'/'juta' (* 1000000). " +
-            "Jika pengguna menyebut beberapa item dalam satu transaksi (misal 'soto 28rb dan es teh 7rb'), jumlahkan totalnya (35000) dan rangkum di judul/catatan. " +
-            "Pilih kategori yang paling tepat dari daftar enum dan metode pembayaran dari enum (default QRIS bila tidak disebutkan)."
+          "Extract a single expense transaction from the user's text or receipt image in ANY language. " +
+            "Convert shorthand amounts cleanly (e.g. Indonesian 'rb'/'ribu' * 1000, 'jt'/'juta' * 1000000; English 'k' * 1000; Chinese '万' * 10000). " +
+            "Round decimal currency amounts to the nearest whole integer if needed, or preserve whole units for currencies like IDR/JPY/KRW. " +
+            "If multiple items are mentioned in one transaction, sum the total amount and summarize items in title/note. " +
+            "Pick the best matching category enum and paymentMethod enum (default QRIS if unclear). Keep title and note in the requested target language."
         )
       },
     )
@@ -111,39 +119,46 @@ class FinanceAiAssistant {
     expenses: List<Expense>,
     budget: MonthlyBudget?,
     dailyInsight: DailyBudgetInsight,
+    language: AppLanguage = LanguagePreferenceManager.currentLanguage,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
   ): AiFinancialInsight {
+    val locale = language.toLocale()
+    val targetLangName = language.aiLanguageInstructionName()
+
     val categoryTotals = ExpenseCategory.entries.mapNotNull { cat ->
       val spent = expenses.filter { it.categoryEnum == cat }.sumOf { it.amount }
       val allocated = budget?.limitFor(cat) ?: 0L
       if (spent > 0L || allocated > 0L) {
-        "- ${cat.labelId} (${cat.name}): Terpakai ${Formatters.formatRupiah(spent)}, Batas ${if (allocated > 0L) Formatters.formatRupiah(allocated) else "Belum diatur"}"
+        "- ${cat.name}: Spent ${Formatters.formatMoney(spent, currency)}, Limit ${if (allocated > 0L) Formatters.formatMoney(allocated, currency) else "Not set"}"
       } else {
         null
       }
-    }.joinToString("\n").ifBlank { "- Belum ada transaksi kategori tercatat." }
+    }.joinToString("\n").ifBlank { "- No category transactions recorded yet." }
 
     val recentItems = expenses.take(8).joinToString("\n") { item ->
-      "- ${item.title}: ${Formatters.formatRupiah(item.amount)} (${item.categoryEnum.labelId}, ${Formatters.formatShortDate(item.dateEpochDay)})"
-    }.ifBlank { "- Belum ada transaksi." }
+      "- ${item.title}: ${Formatters.formatMoney(item.amount, currency)} (${item.categoryEnum.name}, ${Formatters.formatShortDate(item.dateEpochDay, locale)})"
+    }.ifBlank { "- No transactions yet." }
 
     val prompt = buildString {
-      appendLine("Analisis keuangan pribadi untuk bulan ${Formatters.formatMonthTitle(monthKey)} ($monthKey):")
-      appendLine("- Total pengeluaran bulan ini: ${Formatters.formatRupiah(dailyInsight.totalSpent)} (${expenses.size} transaksi)")
+      appendLine("TARGET RESPONSE LANGUAGE: $targetLangName")
+      appendLine("ACTIVE CURRENCY: ${currency.code} (${currency.symbol})")
+      appendLine("Analyze personal finances for ${Formatters.formatMonthTitle(monthKey, locale)} ($monthKey):")
+      appendLine("- Total spent this month: ${Formatters.formatMoney(dailyInsight.totalSpent, currency)} (${expenses.size} transactions)")
       if (budget != null) {
-        appendLine("- Pendapatan bulanan: ${Formatters.formatRupiah(budget.monthlyIncome)}")
-        appendLine("- Total anggaran belanja: ${Formatters.formatRupiah(dailyInsight.totalBudget)}")
-        appendLine("- Target tabungan: ${Formatters.formatRupiah(budget.savingsTarget)} (${budget.savingsPercent}%)")
-        appendLine("- Sisa anggaran bulan ini: ${Formatters.formatRupiah(dailyInsight.remainingBudget)}")
-        appendLine("- Batas aman harian tersisa: ${Formatters.formatRupiah(dailyInsight.dailySafeLimit)} (${dailyInsight.daysRemaining} hari tersisa)")
+        appendLine("- Monthly income: ${Formatters.formatMoney(budget.monthlyIncome, currency)}")
+        appendLine("- Total spend budget: ${Formatters.formatMoney(dailyInsight.totalBudget, currency)}")
+        appendLine("- Savings target: ${Formatters.formatMoney(budget.savingsTarget, currency)} (${budget.savingsPercent}%)")
+        appendLine("- Remaining budget this month: ${Formatters.formatMoney(dailyInsight.remainingBudget, currency)}")
+        appendLine("- Daily safe spending limit: ${Formatters.formatMoney(dailyInsight.dailySafeLimit, currency)} (${dailyInsight.daysRemaining} days left)")
       } else {
-        appendLine("- Anggaran bulanan: Belum disusun.")
+        appendLine("- Monthly budget: Not configured yet.")
       }
-      appendLine("- Pengeluaran hari ini: ${Formatters.formatRupiah(dailyInsight.todaySpent)}")
+      appendLine("- Spent today: ${Formatters.formatMoney(dailyInsight.todaySpent, currency)}")
       appendLine()
-      appendLine("Rincian per kategori:")
+      appendLine("Category breakdown:")
       appendLine(categoryTotals)
       appendLine()
-      appendLine("Transaksi terbaru:")
+      appendLine("Recent transactions:")
       appendLine(recentItems)
     }
 
@@ -152,7 +167,7 @@ class FinanceAiAssistant {
         insightModel.generateContent(prompt)
       }
       val raw = response.text?.trim()
-        ?: throw FinanceAiException("Gemini AI tidak mengembalikan teks analisis.")
+        ?: throw FinanceAiException("Gemini AI returned empty analysis.")
       val json = JSONObject(raw)
       val tipsArray = json.optJSONArray("actionTips")
       val tips = buildList {
@@ -164,39 +179,45 @@ class FinanceAiAssistant {
         }
       }
       AiFinancialInsight(
-        headline = json.optString("headline").ifBlank { "Ringkasan Keuangan Bulan Ini" },
+        headline = json.optString("headline").ifBlank { "Monthly Finance Summary" },
         statusLevel = json.optString("statusLevel").ifBlank { "AMAN" },
-        summary = json.optString("summary").ifBlank { "Analisis berhasil dibuat untuk bulan ini." },
-        topCategoryHighlight = json.optString("topCategoryHighlight").ifBlank { "Pantau kategori pengeluaran terbesar Anda." },
-        actionTips = tips.ifEmpty { listOf("Catat setiap transaksi harian agar kontrol anggaran tetap akurat.") },
+        summary = json.optString("summary").ifBlank { "Analysis generated for this month." },
+        topCategoryHighlight = json.optString("topCategoryHighlight").ifBlank { "Monitor your highest spending category." },
+        actionTips = tips.ifEmpty { listOf("Record every daily expense to keep your budget on track.") },
       )
     } catch (e: TimeoutCancellationException) {
       Log.w(TAG, "AI insight timed out", e)
-      throw FinanceAiException("Analisis AI melebihi batas waktu. Pastikan koneksi internet stabil lalu coba lagi.", e)
+      throw FinanceAiException("AI analysis timed out. Please check your connection and try again.", e)
     } catch (e: CancellationException) {
       throw e
     } catch (e: FinanceAiException) {
       throw e
     } catch (e: Exception) {
       Log.e(TAG, "AI insight failed", e)
-      throw FinanceAiException("Gagal menghubungi Gemini AI: ${e.localizedMessage ?: "Terjadi kesalahan"}", e)
+      throw FinanceAiException("Failed to reach Gemini AI: ${e.localizedMessage ?: "Error"}", e)
     }
   }
 
-  suspend fun parseNaturalExpense(rawInput: String): AiParsedExpense {
+  suspend fun parseNaturalExpense(
+    rawInput: String,
+    language: AppLanguage = LanguagePreferenceManager.currentLanguage,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+  ): AiParsedExpense {
     val trimmed = rawInput.trim()
     if (trimmed.isEmpty()) {
-      throw FinanceAiException("Tuliskan deskripsi pengeluaran terlebih dahulu.")
+      throw FinanceAiException("Enter an expense description first.")
     }
 
+    val targetLangName = language.aiLanguageInstructionName()
     return try {
       val response = withTimeout(AI_TIMEOUT_MS) {
         expenseParserModel.generateContent(
-          "Teks transaksi pengguna: \"$trimmed\""
+          "Target language for title/note: $targetLangName. Active currency: ${currency.code} (${currency.symbol}).\n" +
+            "User transaction text: \"$trimmed\""
         )
       }
       val raw = response.text?.trim()
-        ?: throw FinanceAiException("Gemini AI tidak mengembalikan hasil pembacaan.")
+        ?: throw FinanceAiException("Gemini AI did not return a parsed result.")
       val json = JSONObject(raw)
       val title = json.optString("title").trim()
       val amount = json.optLong("amount", 0L)
@@ -205,7 +226,7 @@ class FinanceAiAssistant {
       val note = json.optString("note").trim()
 
       if (title.isEmpty() || amount <= 0L) {
-        throw FinanceAiException("Nominal atau nama pengeluaran tidak terbaca. Contoh: \"Kopi susu 25rb QRIS\".")
+        throw FinanceAiException("Could not detect title or amount from your text.")
       }
 
       AiParsedExpense(
@@ -217,14 +238,67 @@ class FinanceAiAssistant {
       )
     } catch (e: TimeoutCancellationException) {
       Log.w(TAG, "AI expense parse timed out", e)
-      throw FinanceAiException("Pembacaan AI melebihi batas waktu. Coba lagi sebentar.", e)
+      throw FinanceAiException("AI parsing timed out. Please try again.", e)
     } catch (e: CancellationException) {
       throw e
     } catch (e: FinanceAiException) {
       throw e
     } catch (e: Exception) {
       Log.e(TAG, "AI expense parse failed", e)
-      throw FinanceAiException("Gagal memproses teks dengan Gemini AI: ${e.localizedMessage ?: "Terjadi kesalahan"}", e)
+      throw FinanceAiException("Failed to process text with Gemini AI: ${e.localizedMessage ?: "Error"}", e)
+    }
+  }
+
+  suspend fun parseReceiptImage(
+    bitmap: Bitmap,
+    language: AppLanguage = LanguagePreferenceManager.currentLanguage,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+  ): AiParsedExpense {
+    val targetLangName = language.aiLanguageInstructionName()
+    return try {
+      val response = withTimeout(AI_TIMEOUT_MS) {
+        expenseParserModel.generateContent(
+          content {
+            image(bitmap)
+            text(
+              "Read this shopping receipt or payment proof image. " +
+                "Target language for note/title: $targetLangName. Expected currency: ${currency.code} (${currency.symbol}). " +
+                "Extract the merchant/store name as title, final total paid as integer amount, " +
+                "best matching expense category, payment method (QRIS/TRANSFER/CASH/CARD), and a brief item summary as note."
+            )
+          }
+        )
+      }
+      val raw = response.text?.trim()
+        ?: throw FinanceAiException("Gemini AI did not return a receipt result.")
+      val json = JSONObject(raw)
+      val title = json.optString("title").trim()
+      val amount = json.optLong("amount", 0L)
+      val category = ExpenseCategory.fromKey(json.optString("category"))
+      val paymentMethod = PaymentMethod.fromKey(json.optString("paymentMethod"))
+      val note = json.optString("note").trim()
+
+      if (title.isEmpty() || amount <= 0L) {
+        throw FinanceAiException("Could not read merchant name or total clearly from receipt image. Try a clearer photo.")
+      }
+
+      AiParsedExpense(
+        title = title.take(80),
+        amount = amount,
+        category = category,
+        paymentMethod = paymentMethod,
+        note = note.take(200),
+      )
+    } catch (e: TimeoutCancellationException) {
+      Log.w(TAG, "AI receipt scan timed out", e)
+      throw FinanceAiException("AI receipt scan timed out. Please try again.", e)
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: FinanceAiException) {
+      throw e
+    } catch (e: Exception) {
+      Log.e(TAG, "AI receipt scan failed", e)
+      throw FinanceAiException("Failed to scan receipt with Gemini AI: ${e.localizedMessage ?: "Error"}", e)
     }
   }
 

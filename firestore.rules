@@ -91,6 +91,75 @@ service cloud.firestore {
              data.updatedAt <= request.time;
     }
 
+    function isValidRecurringTemplate(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 80 &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 10000000000 &&
+             data.category in ['FOOD', 'TRANSPORT', 'BILLS', 'HEALTH', 'SHOPPING', 'ENTERTAINMENT', 'OTHER'] &&
+             data.paymentMethod in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 200)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.displayName is string &&
+             data.displayName.size() >= 1 &&
+             data.displayName.size() <= 50 &&
+             (!('photoBase64' in data) || (data.photoBase64 is string && data.photoBase64.size() <= 150000)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidSavingsGoal(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 60 &&
+             data.targetAmount is int &&
+             data.targetAmount > 0 &&
+             data.targetAmount <= 100000000000 &&
+             data.savedAmount is int &&
+             data.savedAmount >= 0 &&
+             data.savedAmount <= 100000000000 &&
+             data.category in ['EMERGENCY', 'GADGET', 'TRAVEL', 'VEHICLE', 'EDUCATION', 'HOME', 'OTHER'] &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 120)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidWalletBalance(data, userId, methodKey) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+             data.paymentMethod == methodKey &&
+             data.balance is int &&
+             data.balance >= 0 &&
+             data.balance <= 100000000000 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
     match /users/{userId}/expenses/{expenseId} {
       allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
 
@@ -140,6 +209,105 @@ service cloud.firestore {
                        incoming().diff(existing()).affectedKeys().hasOnly(['monthlyIncome', 'strategy', 'savingsTarget', 'needsPercent', 'wantsPercent', 'savingsPercent', 'categoryBudgets', 'updatedAt']);
 
       allow delete: if isSignedIn() && isValidId(userId) && isValidMonthKey(monthKey) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/recurringTemplates/{templateId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(templateId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(templateId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'amount', 'category', 'paymentMethod', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'amount', 'category', 'paymentMethod', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidRecurringTemplate(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(templateId) &&
+                       request.auth.uid == userId &&
+                       isValidRecurringTemplate(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'category', 'paymentMethod', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(templateId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow list: if false;
+
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'photoBase64', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoBase64', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/savingsGoals/{goalId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(goalId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(goalId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'targetAmount', 'savedAmount', 'category', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'targetAmount', 'savedAmount', 'category', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidSavingsGoal(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(goalId) &&
+                       request.auth.uid == userId &&
+                       isValidSavingsGoal(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'targetAmount', 'savedAmount', 'category', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(goalId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/walletBalances/{methodKey} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'paymentMethod', 'balance', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'paymentMethod', 'balance', 'createdAt', 'updatedAt']) &&
+                       isValidWalletBalance(incoming(), userId, methodKey);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+                       request.auth.uid == userId &&
+                       isValidWalletBalance(incoming(), userId, methodKey) &&
+                       incoming().userId == existing().userId &&
+                       incoming().paymentMethod == existing().paymentMethod &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] && request.auth.uid == userId;
     }
   }
 }

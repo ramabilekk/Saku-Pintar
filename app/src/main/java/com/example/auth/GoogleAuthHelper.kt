@@ -8,6 +8,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.example.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -89,7 +90,7 @@ fun onGoogleSignInClicked(
 ) {
   val clientId = resolveDefaultWebClientId(context)
   if (clientId == null) {
-    onAuthError("Konfigurasi Google Sign-In tidak ditemukan. Pastikan google-services.json terpasang saat build.")
+    onAuthError(context.getString(R.string.auth_error_missing_config))
     return
   }
 
@@ -109,14 +110,14 @@ fun onGoogleSignInClicked(
         Firebase.auth.signInWithCredential(authCredential).await()
         onAuthSuccess()
       } else {
-        onAuthError("Jenis kredensial tidak dikenali.")
+        onAuthError(context.getString(R.string.auth_error_unknown_credential))
       }
     } catch (e: GetCredentialCancellationException) {
       Log.w("Auth", "Google Sign-In cancelled or dismissed: ${e.message}", e)
       onAuthCancelled()
     } catch (e: Exception) {
       Log.e("Auth", "Google Sign-In failed", e)
-      onAuthError(e.localizedMessage ?: "Gagal masuk dengan Google. Coba lagi.")
+      onAuthError(e.localizedMessage ?: context.getString(R.string.auth_error_signin_failed))
     }
   }
 }

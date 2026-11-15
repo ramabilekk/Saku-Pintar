@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -50,15 +55,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.viewmodel.AiExpenseParseState
 import com.example.util.Formatters
@@ -72,6 +81,7 @@ fun ExpenseEditorSheet(
   existingExpense: Expense?,
   aiParseState: AiExpenseParseState,
   onParseWithAi: (String) -> Unit,
+  onScanReceiptUri: (Uri) -> Unit,
   onClearAiParse: () -> Unit,
   onDismiss: () -> Unit,
   onSave: (
@@ -83,6 +93,11 @@ fun ExpenseEditorSheet(
     note: String,
   ) -> Unit,
 ) {
+  val context = LocalContext.current
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeLocale = activeLanguage.toLocale()
+
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val today = remember { LocalDate.now() }
 
@@ -103,6 +118,14 @@ fun ExpenseEditorSheet(
   var aiPromptText by remember(existingExpense) { mutableStateOf("") }
   var showDatePicker by remember { mutableStateOf(false) }
   var validationError by remember { mutableStateOf<String?>(null) }
+
+  val receiptPickerLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.PickVisualMedia(),
+  ) { uri ->
+    if (uri != null) {
+      onScanReceiptUri(uri)
+    }
+  }
 
   LaunchedEffect(aiParseState) {
     if (aiParseState is AiExpenseParseState.Success) {
@@ -134,7 +157,11 @@ fun ExpenseEditorSheet(
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       Text(
-        text = if (existingExpense == null) "Catat Pengeluaran Harian" else "Ubah Pengeluaran",
+        text = if (existingExpense == null) {
+          stringResource(R.string.editor_new_title)
+        } else {
+          stringResource(R.string.editor_edit_title)
+        },
         style = MaterialTheme.typography.headlineSmall,
         color = MaterialTheme.colorScheme.onSurface,
       )
@@ -201,7 +228,7 @@ fun ExpenseEditorSheet(
                   strokeWidth = 2.dp,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Membaca dengan Gemini AI...")
+                Text(stringResource(R.string.ai_quick_fill_loading))
               } else {
                 Icon(
                   imageVector = Icons.Rounded.AutoAwesome,
@@ -211,6 +238,28 @@ fun ExpenseEditorSheet(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.ai_quick_fill_action))
               }
+            }
+            OutlinedButton(
+              onClick = {
+                if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
+                receiptPickerLauncher.launch(
+                  PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+              },
+              enabled = aiParseState !is AiExpenseParseState.Loading,
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("ai_scan_receipt_button"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.DocumentScanner,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+              )
+              Spacer(modifier = Modifier.width(8.dp))
+              Text(stringResource(R.string.ai_scan_receipt_action))
             }
           }
         }
@@ -225,15 +274,15 @@ fun ExpenseEditorSheet(
             amountText = digits
             validationError = null
           },
-          label = { Text("Nominal (Rp)") },
+          label = { Text(stringResource(R.string.editor_amount_label, activeCurrency.symbol)) },
           prefix = {
             Text(
-              text = "Rp ",
+              text = activeCurrency.prefixWithSpace,
               fontFamily = JetBrainsMonoFontFamily,
               fontWeight = FontWeight.Bold,
             )
           },
-          placeholder = { Text("35000") },
+          placeholder = { Text(activeCurrency.budgetStepAmount.toString()) },
           singleLine = true,
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           shape = RoundedCornerShape(14.dp),
@@ -245,7 +294,10 @@ fun ExpenseEditorSheet(
         val currentAmount = amountText.toLongOrNull() ?: 0L
         if (currentAmount > 0L) {
           Text(
-            text = "Terbaca: ${Formatters.formatRupiah(currentAmount)}",
+            text = stringResource(
+              R.string.editor_parsed_preview,
+              Formatters.formatMoney(currentAmount, activeCurrency),
+            ),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             fontFamily = JetBrainsMonoFontFamily,
@@ -258,7 +310,7 @@ fun ExpenseEditorSheet(
             .horizontalScroll(rememberScrollState()),
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          listOf(15_000L to "+15rb", 25_000L to "+25rb", 50_000L to "+50rb", 100_000L to "+100rb").forEach { (delta, label) ->
+          activeCurrency.expenseQuickDeltas.forEach { (delta, label) ->
             SuggestionChip(
               onClick = {
                 val next = (amountText.toLongOrNull() ?: 0L) + delta
@@ -279,8 +331,8 @@ fun ExpenseEditorSheet(
             title = it.take(80)
             validationError = null
           },
-          label = { Text("Nama Pengeluaran") },
-          placeholder = { Text("Contoh: Makan siang, Bensin, Kopi") },
+          label = { Text(stringResource(R.string.editor_name_label)) },
+          placeholder = { Text(stringResource(R.string.editor_name_hint)) },
           singleLine = true,
           shape = RoundedCornerShape(14.dp),
           modifier = Modifier
@@ -288,19 +340,20 @@ fun ExpenseEditorSheet(
             .testTag("expense_title_input"),
         )
 
+        val presetOptions = listOf(
+          stringResource(R.string.preset_lunch) to ExpenseCategory.FOOD,
+          stringResource(R.string.preset_coffee) to ExpenseCategory.FOOD,
+          stringResource(R.string.preset_transport) to ExpenseCategory.TRANSPORT,
+          stringResource(R.string.preset_groceries) to ExpenseCategory.SHOPPING,
+          stringResource(R.string.preset_utilities) to ExpenseCategory.BILLS,
+        )
         Row(
           modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          listOf(
-            "Makan Siang" to ExpenseCategory.FOOD,
-            "Kopi" to ExpenseCategory.FOOD,
-            "Transport / Ojek" to ExpenseCategory.TRANSPORT,
-            "Belanja Harian" to ExpenseCategory.SHOPPING,
-            "Listrik & Air" to ExpenseCategory.BILLS,
-          ).forEach { (preset, cat) ->
+          presetOptions.forEach { (preset, cat) ->
             SuggestionChip(
               onClick = {
                 title = preset
@@ -316,7 +369,7 @@ fun ExpenseEditorSheet(
       // Category Selector
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-          text = "Kategori",
+          text = stringResource(R.string.label_category),
           style = MaterialTheme.typography.titleSmall,
           color = MaterialTheme.colorScheme.onSurface,
         )
@@ -329,7 +382,7 @@ fun ExpenseEditorSheet(
             FilterChip(
               selected = selected,
               onClick = { selectedCategory = category },
-              label = { Text(category.labelId) },
+              label = { Text(stringResource(category.labelRes)) },
               leadingIcon = {
                 Icon(
                   imageVector = category.iconVector(),
@@ -351,7 +404,7 @@ fun ExpenseEditorSheet(
       // Date Selector
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-          text = "Tanggal",
+          text = stringResource(R.string.label_date),
           style = MaterialTheme.typography.titleSmall,
           color = MaterialTheme.colorScheme.onSurface,
         )
@@ -365,12 +418,12 @@ fun ExpenseEditorSheet(
           FilterChip(
             selected = selectedEpochDay == todayEpoch,
             onClick = { selectedEpochDay = todayEpoch },
-            label = { Text("Hari Ini") },
+            label = { Text(stringResource(R.string.label_today)) },
           )
           FilterChip(
             selected = selectedEpochDay == yesterdayEpoch,
             onClick = { selectedEpochDay = yesterdayEpoch },
-            label = { Text("Kemarin") },
+            label = { Text(stringResource(R.string.label_yesterday)) },
           )
           Surface(
             shape = RoundedCornerShape(10.dp),
@@ -388,12 +441,12 @@ fun ExpenseEditorSheet(
             ) {
               Icon(
                 imageVector = Icons.Rounded.CalendarMonth,
-                contentDescription = "Pilih tanggal",
+                contentDescription = stringResource(R.string.label_date),
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary,
               )
               Text(
-                text = Formatters.formatShortDate(selectedEpochDay),
+                text = Formatters.formatShortDate(selectedEpochDay, activeLocale),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
               )
@@ -405,7 +458,7 @@ fun ExpenseEditorSheet(
       // Payment Method
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-          text = "Metode Pembayaran",
+          text = stringResource(R.string.label_payment_method),
           style = MaterialTheme.typography.titleSmall,
           color = MaterialTheme.colorScheme.onSurface,
         )
@@ -419,7 +472,7 @@ fun ExpenseEditorSheet(
             FilterChip(
               selected = selectedMethod == method,
               onClick = { selectedMethod = method },
-              label = { Text(method.labelId) },
+              label = { Text(stringResource(method.labelRes)) },
               leadingIcon = {
                 Icon(
                   imageVector = method.iconVector(),
@@ -436,8 +489,8 @@ fun ExpenseEditorSheet(
       OutlinedTextField(
         value = note,
         onValueChange = { note = it.take(200) },
-        label = { Text("Catatan (Opsional)") },
-        placeholder = { Text("Detail tambahan...") },
+        label = { Text(stringResource(R.string.label_optional_note)) },
+        placeholder = { Text(stringResource(R.string.label_additional_details)) },
         maxLines = 2,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -462,14 +515,14 @@ fun ExpenseEditorSheet(
             .weight(1f)
             .height(52.dp),
         ) {
-          Text("Batal")
+          Text(stringResource(R.string.action_cancel))
         }
         Button(
           onClick = {
             val parsedAmount = amountText.toLongOrNull() ?: 0L
             when {
-              parsedAmount <= 0L -> validationError = "Masukkan nominal lebih dari Rp 0."
-              title.isBlank() -> validationError = "Masukkan nama pengeluaran."
+              parsedAmount <= 0L -> validationError = context.getString(R.string.editor_error_amount)
+              title.isBlank() -> validationError = context.getString(R.string.editor_error_title)
               else -> onSave(title.trim(), parsedAmount, selectedCategory, selectedMethod, selectedEpochDay, note.trim())
             }
           },
@@ -485,7 +538,13 @@ fun ExpenseEditorSheet(
             modifier = Modifier.size(18.dp),
           )
           Spacer(modifier = Modifier.width(8.dp))
-          Text(if (existingExpense == null) "Simpan" else "Perbarui")
+          Text(
+            if (existingExpense == null) {
+              stringResource(R.string.action_save)
+            } else {
+              stringResource(R.string.action_update)
+            }
+          )
         }
       }
     }
@@ -509,12 +568,12 @@ fun ExpenseEditorSheet(
             showDatePicker = false
           }
         ) {
-          Text("Pilih")
+          Text(stringResource(R.string.action_select))
         }
       },
       dismissButton = {
         TextButton(onClick = { showDatePicker = false }) {
-          Text("Batal")
+          Text(stringResource(R.string.action_cancel))
         }
       },
     ) {

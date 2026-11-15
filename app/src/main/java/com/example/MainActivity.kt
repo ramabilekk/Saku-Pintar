@@ -1,9 +1,13 @@
 package com.example
 
+import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,36 +17,101 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ai.configureAppCheck
 import com.example.auth.attemptAutoSignIn
 import com.example.auth.authStateFlow
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.MainAppScaffold
 import com.example.ui.auth.AuthScreen
+import com.example.ui.components.ForceUpdateScreen
+import com.example.ui.components.UpdateCheckingSplash
+import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.SakuPintarTheme
+import com.example.ui.theme.ThemePreferenceManager
+import com.example.update.AppUpdateChecker
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+  override fun attachBaseContext(newBase: Context) {
+    super.attachBaseContext(LanguagePreferenceManager.localizedContext(newBase))
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     configureAppCheck(this, intent)
     enableEdgeToEdge()
     setContent {
-      SakuPintarTheme {
-        AppRoot()
+      val themeMode by ThemePreferenceManager.observeThemeMode(applicationContext)
+        .collectAsStateWithLifecycle()
+      val activeLanguage by LanguagePreferenceManager.observeLanguage(applicationContext)
+        .collectAsStateWithLifecycle()
+      // Keep CurrencyPreferenceManager initialized at app startup
+      CurrencyPreferenceManager.observeCurrency(applicationContext).collectAsStateWithLifecycle()
+
+      val localizedContext = remember(this, activeLanguage) {
+        LanguagePreferenceManager.localizedContext(this, activeLanguage)
+      }
+      val isRtl = remember(activeLanguage) {
+        LanguagePreferenceManager.isRtl(activeLanguage)
+      }
+
+      val systemDark = isSystemInDarkTheme()
+      val useDarkTheme = when (themeMode) {
+        AppThemeMode.SYSTEM -> systemDark
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+      }
+
+      DisposableEffect(useDarkTheme) {
+        enableEdgeToEdge(
+          statusBarStyle = SystemBarStyle.auto(
+            Color.TRANSPARENT,
+            Color.TRANSPARENT,
+          ) { useDarkTheme },
+          navigationBarStyle = SystemBarStyle.auto(
+            Color.TRANSPARENT,
+            Color.TRANSPARENT,
+          ) { useDarkTheme },
+        )
+        onDispose {}
+      }
+
+      CompositionLocalProvider(
+        LocalContext provides localizedContext,
+        LocalConfiguration provides localizedContext.resources.configuration,
+        LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+      ) {
+        SakuPintarTheme(darkTheme = useDarkTheme) {
+          AppRoot()
+        }
       }
     }
   }
@@ -51,6 +120,62 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AppRoot() {
   val context = LocalContext.current
+  val lifecycleOwner = LocalLifecycleOwner.current
+  val coroutineScope = rememberCoroutineScope()
+
+  var requiredUpdate by remember {
+    mutableStateOf(AppUpdateChecker.getCachedRequiredUpdate(context))
+  }
+  var isInitialUpdateCheckPending by remember {
+    mutableStateOf(BuildConfig.IS_GITHUB_RELEASE_BUILD && requiredUpdate == null)
+  }
+  var isRecheckingUpdate by remember { mutableStateOf(false) }
+
+  LaunchedEffect(Unit) {
+    if (BuildConfig.IS_GITHUB_RELEASE_BUILD) {
+      requiredUpdate = AppUpdateChecker.checkForUpdate(context)
+    }
+    isInitialUpdateCheckPending = false
+  }
+
+  DisposableEffect(lifecycleOwner) {
+    val observer = LifecycleEventObserver { _, event ->
+      if (event == Lifecycle.Event.ON_RESUME && BuildConfig.IS_GITHUB_RELEASE_BUILD) {
+        coroutineScope.launch {
+          requiredUpdate = AppUpdateChecker.checkForUpdate(context)
+          isInitialUpdateCheckPending = false
+        }
+      }
+    }
+    lifecycleOwner.lifecycle.addObserver(observer)
+    onDispose {
+      lifecycleOwner.lifecycle.removeObserver(observer)
+    }
+  }
+
+  if (isInitialUpdateCheckPending) {
+    UpdateCheckingSplash()
+    return
+  }
+
+  val activeUpdate = requiredUpdate
+  if (activeUpdate != null) {
+    ForceUpdateScreen(
+      updateInfo = activeUpdate,
+      isRechecking = isRecheckingUpdate,
+      onRecheck = {
+        if (!isRecheckingUpdate) {
+          isRecheckingUpdate = true
+          coroutineScope.launch {
+            requiredUpdate = AppUpdateChecker.checkForUpdate(context)
+            isRecheckingUpdate = false
+          }
+        }
+      },
+    )
+    return
+  }
+
   val isFirebaseReady = remember(context) {
     FirebaseApp.getApps(context).isNotEmpty() || FirebaseApp.initializeApp(context) != null
   }
@@ -70,14 +195,14 @@ private fun AppRoot() {
           verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
           Text(
-            text = "Konfigurasi Firebase Belum Terpasang",
+            text = stringResource(R.string.firebase_missing_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
           )
           Text(
-            text = "APK ini dibangun tanpa file google-services.json. Tambahkan secret GOOGLE_SERVICES_JSON di GitHub Actions lalu build ulang APK.",
+            text = stringResource(R.string.firebase_missing_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,

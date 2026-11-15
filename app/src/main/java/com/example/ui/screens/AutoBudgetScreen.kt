@@ -34,9 +34,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
@@ -51,14 +52,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.budget.BudgetAutoComposer
 import com.example.data.model.BudgetStrategy
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
+import com.example.i18n.AppCurrency
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.components.CategoryIconBadge
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -74,10 +82,15 @@ fun AutoBudgetScreen(
   onSaveBudget: (MonthlyBudget) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val context = LocalContext.current
+  val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+
   val existingBudget = data.budget
-  var incomeText by remember(data.monthKey, existingBudget?.monthlyIncome) {
+  var incomeText by remember(data.monthKey, existingBudget?.monthlyIncome, activeCurrency) {
     mutableStateOf(
-      (existingBudget?.monthlyIncome?.takeIf { it > 0L } ?: 8_000_000L).toString()
+      (existingBudget?.monthlyIncome?.takeIf { it > 0L } ?: activeCurrency.defaultMonthlyIncome).toString()
     )
   }
   var selectedStrategy by remember(data.monthKey, existingBudget?.strategy) {
@@ -97,26 +110,27 @@ fun AutoBudgetScreen(
         monthlyIncome = parsedIncome,
         strategy = selectedStrategy,
         historicalExpenses = data.allHistoricalExpenses,
+        roundingUnit = activeCurrency.roundingUnit,
       )
     )
   }
 
-  // Recompute automatically whenever income or strategy is changed by the user
-  fun regenerateAutoDraft(income: Long, strategy: BudgetStrategy) {
+  fun regenerateAutoDraft(income: Long, strategy: BudgetStrategy, currency: AppCurrency = activeCurrency) {
     composedDraft = BudgetAutoComposer.composeBudget(
       userId = currentUserId,
       monthKey = data.monthKey,
       monthlyIncome = income,
       strategy = strategy,
       historicalExpenses = data.allHistoricalExpenses,
+      roundingUnit = currency.roundingUnit,
     )
   }
 
-  LaunchedEffect(existingBudget) {
+  LaunchedEffect(existingBudget, activeCurrency) {
     if (existingBudget != null) {
       composedDraft = existingBudget
     } else {
-      regenerateAutoDraft(parsedIncome, selectedStrategy)
+      regenerateAutoDraft(parsedIncome, selectedStrategy, activeCurrency)
     }
   }
 
@@ -168,12 +182,15 @@ fun AutoBudgetScreen(
               }
               Column {
                 Text(
-                  text = "Penyusun Anggaran Otomatis",
+                  text = stringResource(R.string.budget_builder_title),
                   style = MaterialTheme.typography.titleMedium,
                   color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                  text = "Bulan ${Formatters.formatMonthTitle(data.monthKey)}",
+                  text = stringResource(
+                    R.string.budget_month_subtitle,
+                    Formatters.formatMonthTitle(data.monthKey, activeLocale),
+                  ),
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -187,10 +204,12 @@ fun AutoBudgetScreen(
                 incomeText = digits
                 regenerateAutoDraft(digits.toLongOrNull() ?: 0L, selectedStrategy)
               },
-              label = { Text("Pendapatan Bulanan (Rp)") },
+              label = {
+                Text(stringResource(R.string.budget_income_label, activeCurrency.prefixWithSpace.trim()))
+              },
               prefix = {
                 Text(
-                  text = "Rp ",
+                  text = activeCurrency.prefixWithSpace,
                   fontFamily = JetBrainsMonoFontFamily,
                   fontWeight = FontWeight.Bold,
                 )
@@ -209,18 +228,18 @@ fun AutoBudgetScreen(
                 .horizontalScroll(rememberScrollState()),
               horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-              listOf(
-                5_000_000L to "5 jt",
-                8_000_000L to "8 jt",
-                10_000_000L to "10 jt",
-                15_000_000L to "15 jt",
-              ).forEach { (preset, label) ->
+              activeCurrency.incomePresets.forEach { (preset, label) ->
+                val chipLabel = if (activeCurrency == AppCurrency.IDR) {
+                  "${activeCurrency.prefixWithSpace}$label"
+                } else {
+                  label
+                }
                 SuggestionChip(
                   onClick = {
                     incomeText = preset.toString()
                     regenerateAutoDraft(preset, selectedStrategy)
                   },
-                  label = { Text("Rp $label", fontFamily = JetBrainsMonoFontFamily) },
+                  label = { Text(chipLabel, fontFamily = JetBrainsMonoFontFamily) },
                 )
               }
             }
@@ -232,7 +251,7 @@ fun AutoBudgetScreen(
       item {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Text(
-            text = "Pilih Strategi Alokasi Otomatis",
+            text = stringResource(R.string.budget_strategy_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
           )
@@ -269,7 +288,7 @@ fun AutoBudgetScreen(
               ) {
                 Column(modifier = Modifier.weight(1f)) {
                   Text(
-                    text = strategy.titleId,
+                    text = stringResource(strategy.titleRes),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -277,9 +296,9 @@ fun AutoBudgetScreen(
                   Spacer(modifier = Modifier.height(2.dp))
                   Text(
                     text = if (strategy == BudgetStrategy.ADAPTIVE_HISTORY && data.allHistoricalExpenses.isEmpty()) {
-                      "Belum ada riwayat — akan memakai rasio seimbang otomatis."
+                      stringResource(R.string.budget_adaptive_no_history)
                     } else {
-                      strategy.subtitleId
+                      stringResource(strategy.subtitleRes)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -288,7 +307,7 @@ fun AutoBudgetScreen(
                 if (selected) {
                   Icon(
                     imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Dipilih",
+                    contentDescription = stringResource(R.string.action_select),
                     tint = MaterialTheme.colorScheme.primary,
                   )
                 }
@@ -316,12 +335,12 @@ fun AutoBudgetScreen(
             ) {
               Column {
                 Text(
-                  text = "Alokasi Belanja Bulanan",
+                  text = stringResource(R.string.budget_shopping_allocation),
                   style = MaterialTheme.typography.labelMedium,
                   color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                 )
                 Text(
-                  text = Formatters.formatRupiah(spendableTotal),
+                  text = Formatters.formatMoney(spendableTotal, activeCurrency),
                   style = MaterialTheme.typography.headlineSmall,
                   fontFamily = JetBrainsMonoFontFamily,
                   fontWeight = FontWeight.Bold,
@@ -345,12 +364,12 @@ fun AutoBudgetScreen(
                   Spacer(modifier = Modifier.width(6.dp))
                   Column {
                     Text(
-                      text = "Tabungan",
+                      text = stringResource(R.string.budget_savings_label),
                       style = MaterialTheme.typography.labelSmall,
                       color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                     )
                     Text(
-                      text = Formatters.formatRupiahCompact(savingsAmount),
+                      text = Formatters.formatMoneyCompact(savingsAmount, activeCurrency, activeLocale),
                       style = MaterialTheme.typography.labelLarge,
                       fontFamily = JetBrainsMonoFontFamily,
                       fontWeight = FontWeight.Bold,
@@ -407,7 +426,11 @@ fun AutoBudgetScreen(
             }
 
             Text(
-              text = "Estimasi Batas Harian: ${Formatters.formatRupiah(estimatedDailyLimit)} / hari ($daysInMonth hari)",
+              text = stringResource(
+                R.string.budget_daily_estimate,
+                Formatters.formatMoney(estimatedDailyLimit, activeCurrency),
+                daysInMonth,
+              ),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
             )
@@ -415,20 +438,31 @@ fun AutoBudgetScreen(
         }
       }
 
-      // 4. Category Breakdown with +/- 50rb Fine-Tuning
+      // 4. Category Breakdown with currency-aware fine-tuning steps
       item {
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically,
         ) {
-          Text(
-            text = "Rincian Otomatis per Kategori",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-          )
+          Column(modifier = Modifier.weight(1f)) {
+            Text(
+              text = stringResource(R.string.budget_breakdown_title),
+              style = MaterialTheme.typography.titleMedium,
+              color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+              text = stringResource(
+                R.string.budget_breakdown_subtitle,
+                Formatters.formatMoney(activeCurrency.budgetStepAmount, activeCurrency),
+              ),
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
           TextButton(
             onClick = { regenerateAutoDraft(parsedIncome, selectedStrategy) },
+            modifier = Modifier.height(48.dp),
           ) {
             Icon(
               imageVector = Icons.Rounded.Refresh,
@@ -436,7 +470,7 @@ fun AutoBudgetScreen(
               modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Reset Otomatis")
+            Text(stringResource(R.string.budget_reset_auto))
           }
         }
       }
@@ -446,8 +480,9 @@ fun AutoBudgetScreen(
         CategoryBudgetAdjustCard(
           category = category,
           amount = currentLimit,
-          onDelta = { delta ->
-            val nextAmount = (currentLimit + delta).coerceAtLeast(0L)
+          currency = activeCurrency,
+          onAmountChange = { rawAmount ->
+            val nextAmount = rawAmount.coerceAtLeast(0L)
             val updatedMap = composedDraft.categoryBudgets.toMutableMap().apply {
               put(category.name, nextAmount)
             }
@@ -500,7 +535,7 @@ fun AutoBudgetScreen(
               strokeWidth = 2.5.dp,
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Menyimpan...")
+            Text(stringResource(R.string.action_saving))
           } else {
             Icon(
               imageVector = Icons.Rounded.AutoAwesome,
@@ -509,7 +544,7 @@ fun AutoBudgetScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              text = "Terapkan Anggaran Bulan Ini",
+              text = stringResource(R.string.budget_apply_button),
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.SemiBold,
             )
@@ -524,60 +559,131 @@ fun AutoBudgetScreen(
 private fun CategoryBudgetAdjustCard(
   category: ExpenseCategory,
   amount: Long,
-  onDelta: (Long) -> Unit,
+  currency: AppCurrency,
+  onAmountChange: (Long) -> Unit,
 ) {
+  val categoryLabel = stringResource(category.labelRes)
+  val stepAmount = currency.budgetStepAmount
+  val stepLabel = currency.budgetStepCompactLabel
+
   Card(
     shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     modifier = Modifier.fillMaxWidth(),
   ) {
-    Row(
+    Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 12.dp, vertical = 10.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(10.dp),
+        .padding(horizontal = 14.dp, vertical = 12.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-      CategoryIconBadge(category = category, size = 38.dp)
-      Column(modifier = Modifier.weight(1f)) {
-        Text(
-          text = category.labelId,
-          style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-          text = category.group.labelId,
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(
-          onClick = { onDelta(-50_000L) },
-          modifier = Modifier.size(48.dp),
-        ) {
-          Icon(
-            imageVector = Icons.Rounded.Remove,
-            contentDescription = "Kurangi anggaran ${category.labelId}",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+      ) {
+        CategoryIconBadge(category = category, size = 38.dp)
+        Column(modifier = Modifier.weight(1f)) {
+          Text(
+            text = categoryLabel,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+          )
+          Text(
+            text = stringResource(category.group.labelRes),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
         }
         Text(
-          text = Formatters.formatRupiahCompact(amount),
+          text = Formatters.formatMoney(amount, currency),
           style = MaterialTheme.typography.titleSmall,
           fontFamily = JetBrainsMonoFontFamily,
           fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurface,
+          color = MaterialTheme.colorScheme.primary,
         )
-        IconButton(
-          onClick = { onDelta(50_000L) },
-          modifier = Modifier.size(48.dp),
+      }
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        OutlinedTextField(
+          value = if (amount > 0L) amount.toString() else "",
+          onValueChange = { raw ->
+            val digits = raw.filter { it.isDigit() }.take(11)
+            onAmountChange(digits.toLongOrNull() ?: 0L)
+          },
+          prefix = {
+            Text(
+              text = currency.prefixWithSpace,
+              fontFamily = JetBrainsMonoFontFamily,
+              fontWeight = FontWeight.SemiBold,
+            )
+          },
+          placeholder = {
+            Text(
+              text = "0",
+              fontFamily = JetBrainsMonoFontFamily,
+            )
+          },
+          singleLine = true,
+          textStyle = MaterialTheme.typography.bodyMedium.copy(
+            fontFamily = JetBrainsMonoFontFamily,
+            fontWeight = FontWeight.SemiBold,
+          ),
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          shape = RoundedCornerShape(12.dp),
+          modifier = Modifier
+            .weight(1f)
+            .testTag("budget_input_${category.name}"),
+        )
+
+        OutlinedButton(
+          onClick = { onAmountChange((amount - stepAmount).coerceAtLeast(0L)) },
+          enabled = amount > 0L,
+          shape = RoundedCornerShape(12.dp),
+          contentPadding = PaddingValues(horizontal = 10.dp),
+          modifier = Modifier
+            .height(52.dp)
+            .testTag("budget_minus_${category.name}"),
+        ) {
+          Icon(
+            imageVector = Icons.Rounded.Remove,
+            contentDescription = "- $categoryLabel $stepLabel",
+            modifier = Modifier.size(16.dp),
+          )
+          Spacer(modifier = Modifier.width(2.dp))
+          Text(
+            text = stepLabel,
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = JetBrainsMonoFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+          )
+        }
+
+        FilledTonalButton(
+          onClick = { onAmountChange(amount + stepAmount) },
+          shape = RoundedCornerShape(12.dp),
+          contentPadding = PaddingValues(horizontal = 10.dp),
+          modifier = Modifier
+            .height(52.dp)
+            .testTag("budget_plus_${category.name}"),
         ) {
           Icon(
             imageVector = Icons.Rounded.Add,
-            contentDescription = "Tambah anggaran ${category.labelId}",
-            tint = MaterialTheme.colorScheme.primary,
+            contentDescription = "+ $categoryLabel $stepLabel",
+            modifier = Modifier.size(16.dp),
+          )
+          Spacer(modifier = Modifier.width(2.dp))
+          Text(
+            text = stepLabel,
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = JetBrainsMonoFontFamily,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
           )
         }
       }

@@ -1,23 +1,32 @@
 package com.example.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.R
 import com.example.data.ai.AiFinancialInsight
 import com.example.data.ai.AiParsedExpense
 import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
 import com.example.data.budget.DailyBudgetInsight
-import com.example.data.model.BudgetStrategy
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
 import com.example.data.model.PaymentMethod
+import com.example.data.model.RecurringTemplate
+import com.example.data.model.UserProfile
 import com.example.data.repository.FinanceRepository
+import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.util.Formatters
+import com.example.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +73,7 @@ data class FinanceDashboardData(
   val expenses: List<Expense>,
   val filteredExpenses: List<Expense>,
   val allHistoricalExpenses: List<Expense>,
+  val recurringTemplates: List<RecurringTemplate>,
   val budget: MonthlyBudget?,
   val dailyInsight: DailyBudgetInsight,
   val categoryBreakdown: List<CategoryProgress>,
@@ -75,7 +85,16 @@ class FinanceViewModel(
   private val repository: FinanceRepository,
   private val currentUserId: String,
   private val aiAssistant: FinanceAiAssistant = FinanceAiAssistant(),
+  private val appContext: Context? = null,
 ) : ViewModel() {
+
+  private fun localizedCtx(): Context? =
+    appContext?.let { LanguagePreferenceManager.localizedContext(it) }
+
+  private fun str(@StringRes resId: Int, fallback: String, vararg args: Any): String {
+    val ctx = localizedCtx() ?: return if (args.isEmpty()) fallback else String.format(fallback, *args)
+    return if (args.isEmpty()) ctx.getString(resId) else ctx.getString(resId, *args)
+  }
 
   private val _selectedMonthKey = MutableStateFlow(Formatters.currentMonthKey())
   val selectedMonthKey: StateFlow<String> = _selectedMonthKey.asStateFlow()
@@ -94,6 +113,21 @@ class FinanceViewModel(
   private val _aiParseState = MutableStateFlow<AiExpenseParseState>(AiExpenseParseState.Idle)
   val aiParseState: StateFlow<AiExpenseParseState> = _aiParseState.asStateFlow()
 
+  val userProfile: StateFlow<UserProfile?> = repository.observeUserProfile(currentUserId)
+    .catch { error ->
+      val firestoreError = generateSequence(error) { it.cause }
+        .filterIsInstance<FirebaseFirestoreException>()
+        .firstOrNull()
+      if (firestoreError == null && error is CancellationException) throw error
+      Log.w(TAG, "Error observing user profile", firestoreError ?: error)
+      emit(null)
+    }
+    .stateIn(
+      scope = viewModelScope,
+      started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+      initialValue = null,
+    )
+
   @OptIn(ExperimentalCoroutinesApi::class)
   private val monthExpensesFlow = _selectedMonthKey.flatMapLatest { monthKey ->
     repository.observeExpensesForMonth(currentUserId, monthKey)
@@ -105,18 +139,37 @@ class FinanceViewModel(
   }
 
   private val allExpensesFlow = repository.observeAllExpenses(currentUserId)
+  private val recurringTemplatesFlow = repository.observeRecurringTemplates(currentUserId)
 
   private val filterFlow = combine(_selectedCategoryFilter, _searchQuery) { cat, query ->
     cat to query
   }
 
-  val uiState: StateFlow<UiState<FinanceDashboardData>> = combine(
+  private val baseFinanceFlow = combine(
     _selectedMonthKey,
     monthExpensesFlow,
     monthBudgetFlow,
     allExpensesFlow,
+    recurringTemplatesFlow,
+  ) { monthKey, expenses, budget, allExpenses, templates ->
+    FinanceBundle(
+      monthKey = monthKey,
+      expenses = expenses,
+      budget = budget,
+      allExpenses = allExpenses,
+      recurringTemplates = templates,
+    )
+  }
+
+  val uiState: StateFlow<UiState<FinanceDashboardData>> = combine(
+    baseFinanceFlow,
     filterFlow,
-  ) { monthKey, expenses, budget, allExpenses, (catFilter, query) ->
+  ) { bundle, (catFilter, query) ->
+    val monthKey = bundle.monthKey
+    val expenses = bundle.expenses
+    val budget = bundle.budget
+    val allExpenses = bundle.allExpenses
+
     val insight = BudgetAutoComposer.calculateDailyInsight(
       budget = budget,
       monthExpenses = expenses,
@@ -134,13 +187,16 @@ class FinanceViewModel(
       )
     }.sortedByDescending { maxOf(it.spent, it.allocated) }
 
+    val ctx = localizedCtx()
     val trimmedQuery = query.trim().lowercase()
     val filtered = expenses.filter { item ->
       val matchesCategory = catFilter == null || item.categoryEnum == catFilter
+      val localizedCategory = item.categoryEnum.label(ctx).lowercase()
       val matchesQuery = trimmedQuery.isEmpty() ||
         item.title.lowercase().contains(trimmedQuery) ||
         item.note.lowercase().contains(trimmedQuery) ||
-        item.categoryEnum.labelId.lowercase().contains(trimmedQuery)
+        item.categoryEnum.labelId.lowercase().contains(trimmedQuery) ||
+        localizedCategory.contains(trimmedQuery)
       matchesCategory && matchesQuery
     }
 
@@ -149,6 +205,7 @@ class FinanceViewModel(
       expenses = expenses,
       filteredExpenses = filtered,
       allHistoricalExpenses = allExpenses,
+      recurringTemplates = bundle.recurringTemplates,
       budget = budget,
       dailyInsight = insight,
       categoryBreakdown = breakdown,
@@ -164,13 +221,21 @@ class FinanceViewModel(
       if (firestoreError == null && error is CancellationException) throw error
       val rootError = firestoreError ?: error
       Log.w(TAG, "Error observing finance data", rootError)
-      emit(UiState.Error(rootError.localizedMessage ?: "Gagal memuat data keuangan."))
+      emit(UiState.Error(rootError.localizedMessage ?: str(R.string.connection_error_title, "Connection issue")))
     }
     .stateIn(
       scope = viewModelScope,
       started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
       initialValue = UiState.Loading,
     )
+
+  private data class FinanceBundle(
+    val monthKey: String,
+    val expenses: List<Expense>,
+    val budget: MonthlyBudget?,
+    val allExpenses: List<Expense>,
+    val recurringTemplates: List<RecurringTemplate>,
+  )
 
   fun shiftMonth(deltaMonths: Long) {
     _selectedMonthKey.value = Formatters.shiftMonthKey(_selectedMonthKey.value, deltaMonths)
@@ -194,10 +259,10 @@ class FinanceViewModel(
     note: String,
   ) {
     if (amount <= 0L || title.isBlank()) {
-      _actionStatus.value = "Nama pengeluaran dan nominal harus diisi."
+      _actionStatus.value = str(R.string.vm_expense_validation, "Expense name and amount are required.")
       return
     }
-    val date = java.time.LocalDate.ofEpochDay(dateEpochDay)
+    val date = LocalDate.ofEpochDay(dateEpochDay)
     val expenseMonthKey = java.time.YearMonth.from(date).toString()
 
     viewModelScope.launch {
@@ -213,23 +278,32 @@ class FinanceViewModel(
           note = note,
         )
         _selectedMonthKey.value = expenseMonthKey
-        _actionStatus.value = "Pengeluaran tercatat!"
+        _actionStatus.value = str(R.string.vm_expense_added, "Expense recorded!")
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _actionStatus.value = "Gagal menyimpan pengeluaran: ${e.localizedMessage ?: "Terjadi kesalahan"}"
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to save expense: %1\$s", err)
       } finally {
         _isSaving.value = false
       }
     }
   }
 
-  fun updateExpense(existing: Expense, title: String, amount: Long, category: ExpenseCategory, paymentMethod: PaymentMethod, dateEpochDay: Long, note: String) {
+  fun updateExpense(
+    existing: Expense,
+    title: String,
+    amount: Long,
+    category: ExpenseCategory,
+    paymentMethod: PaymentMethod,
+    dateEpochDay: Long,
+    note: String,
+  ) {
     if (amount <= 0L || title.isBlank()) {
-      _actionStatus.value = "Nama pengeluaran dan nominal harus diisi."
+      _actionStatus.value = str(R.string.vm_expense_validation, "Expense name and amount are required.")
       return
     }
-    val date = java.time.LocalDate.ofEpochDay(dateEpochDay)
+    val date = LocalDate.ofEpochDay(dateEpochDay)
     val expenseMonthKey = java.time.YearMonth.from(date).toString()
 
     viewModelScope.launch {
@@ -247,11 +321,12 @@ class FinanceViewModel(
           )
         )
         _selectedMonthKey.value = expenseMonthKey
-        _actionStatus.value = "Catatan diperbarui."
+        _actionStatus.value = str(R.string.vm_expense_updated, "Record updated.")
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _actionStatus.value = "Gagal memperbarui catatan: ${e.localizedMessage ?: "Terjadi kesalahan"}"
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to update record: %1\$s", err)
       } finally {
         _isSaving.value = false
       }
@@ -262,11 +337,12 @@ class FinanceViewModel(
     viewModelScope.launch {
       try {
         repository.deleteExpense(expenseId)
-        _actionStatus.value = "Pengeluaran dihapus."
+        _actionStatus.value = str(R.string.vm_expense_deleted, "Expense deleted.")
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _actionStatus.value = "Gagal menghapus: ${e.localizedMessage ?: "Terjadi kesalahan"}"
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_delete_failed, "Failed to delete: %1\$s", err)
       }
     }
   }
@@ -276,11 +352,12 @@ class FinanceViewModel(
       _isSaving.value = true
       try {
         repository.saveMonthlyBudget(budget.copy(userId = currentUserId, monthKey = _selectedMonthKey.value))
-        _actionStatus.value = "Anggaran bulanan otomatis diterapkan!"
+        _actionStatus.value = str(R.string.vm_budget_saved, "Monthly budget applied!")
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _actionStatus.value = "Gagal menyimpan anggaran: ${e.localizedMessage ?: "Terjadi kesalahan"}"
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_budget_save_failed, "Failed to save budget: %1\$s", err)
       } finally {
         _isSaving.value = false
       }
@@ -298,6 +375,8 @@ class FinanceViewModel(
           expenses = dashboard.expenses,
           budget = dashboard.budget,
           dailyInsight = dashboard.dailyInsight,
+          language = LanguagePreferenceManager.currentLanguage,
+          currency = CurrencyPreferenceManager.currentCurrency,
         )
         _aiInsightState.value = AiInsightUiState.Success(
           insight = insight,
@@ -307,7 +386,7 @@ class FinanceViewModel(
         throw e
       } catch (e: Exception) {
         _aiInsightState.value = AiInsightUiState.Error(
-          e.localizedMessage ?: "Gagal menganalisis keuangan dengan Gemini AI.",
+          e.localizedMessage ?: str(R.string.error_generic, "Failed to analyze finances with Gemini AI."),
         )
       }
     }
@@ -317,16 +396,161 @@ class FinanceViewModel(
     viewModelScope.launch {
       _aiParseState.value = AiExpenseParseState.Loading
       try {
-        val parsed = aiAssistant.parseNaturalExpense(rawInput)
+        val parsed = aiAssistant.parseNaturalExpense(
+          rawInput = rawInput,
+          language = LanguagePreferenceManager.currentLanguage,
+          currency = CurrencyPreferenceManager.currentCurrency,
+        )
         _aiParseState.value = AiExpenseParseState.Success(parsed)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
         _aiParseState.value = AiExpenseParseState.Error(
-          e.localizedMessage ?: "Gagal membaca deskripsi pengeluaran.",
+          e.localizedMessage ?: str(R.string.error_generic, "Failed to parse expense text."),
         )
       }
     }
+  }
+
+  fun parseReceiptUriWithAi(appContext: Context, uri: Uri) {
+    viewModelScope.launch {
+      _aiParseState.value = AiExpenseParseState.Loading
+      try {
+        val bitmap = ImageUtils.decodeScaledBitmap(appContext, uri)
+        val parsed = aiAssistant.parseReceiptImage(
+          bitmap = bitmap,
+          language = LanguagePreferenceManager.currentLanguage,
+          currency = CurrencyPreferenceManager.currentCurrency,
+        )
+        _aiParseState.value = AiExpenseParseState.Success(parsed)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _aiParseState.value = AiExpenseParseState.Error(
+          e.localizedMessage ?: str(R.string.error_generic, "Failed to scan receipt photo."),
+        )
+      }
+    }
+  }
+
+  fun addRecurringTemplate(
+    title: String,
+    amount: Long,
+    category: ExpenseCategory,
+    paymentMethod: PaymentMethod,
+    note: String,
+  ) {
+    if (amount <= 0L || title.isBlank()) {
+      _actionStatus.value = str(R.string.vm_expense_validation, "Name and amount are required.")
+      return
+    }
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.addRecurringTemplate(
+          title = title,
+          amount = amount,
+          category = category.name,
+          paymentMethod = paymentMethod.name,
+          note = note,
+        )
+        _actionStatus.value = str(R.string.vm_recurring_added, "Recurring template added!")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to save template: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun logRecurringTemplate(template: RecurringTemplate) {
+    val today = LocalDate.now()
+    addExpense(
+      title = template.title,
+      amount = template.amount,
+      category = template.categoryEnum,
+      paymentMethod = template.paymentMethodEnum,
+      dateEpochDay = today.toEpochDay(),
+      note = template.note.ifBlank { str(R.string.recurring_section_title, "Recurring Expense") },
+    )
+  }
+
+  fun deleteRecurringTemplate(templateId: String) {
+    viewModelScope.launch {
+      try {
+        repository.deleteRecurringTemplate(templateId)
+        _actionStatus.value = str(R.string.vm_recurring_deleted, "Recurring template deleted.")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_delete_failed, "Failed to delete: %1\$s", err)
+      }
+    }
+  }
+
+  fun saveDisplayName(newName: String) {
+    val cleanName = newName.trim().take(50)
+    if (cleanName.isEmpty()) {
+      _actionStatus.value = str(R.string.vm_profile_name_empty, "Display name cannot be empty.")
+      return
+    }
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.saveDisplayName(cleanName)
+        _actionStatus.value = str(R.string.vm_profile_name_saved, "Display name updated to \"%1\$s\"!", cleanName)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to update name: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun saveProfilePhotoFromUri(appContext: Context, uri: Uri, fallbackDisplayName: String) {
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        val base64 = ImageUtils.encodeAvatarBase64(appContext, uri)
+        repository.saveProfilePhoto(base64, fallbackDisplayName)
+        _actionStatus.value = str(R.string.vm_profile_photo_saved, "Profile photo updated!")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to save photo: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun clearCustomProfilePhoto(fallbackDisplayName: String) {
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.saveProfilePhoto("", fallbackDisplayName)
+        _actionStatus.value = str(R.string.vm_profile_photo_synced, "Profile photo synced with Google account.")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to sync photo: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun showStatusMessage(message: String) {
+    _actionStatus.value = message
   }
 
   fun resetAiExpenseParser() {

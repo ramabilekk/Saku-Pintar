@@ -4,6 +4,8 @@ import android.content.Context
 import com.example.R
 import com.example.data.model.Expense
 import com.example.data.model.MonthlyBudget
+import com.example.data.model.RecurringTemplate
+import com.example.data.model.UserProfile
 import com.example.data.remote.OperationType
 import com.example.data.remote.handleFirestoreError
 import com.google.firebase.Firebase
@@ -220,6 +222,164 @@ class FinanceRepository(
           "updatedAt" to FieldValue.serverTimestamp(),
         )
         docRef.update(updatePayload).await()
+      }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.WRITE, docRef.path, auth)
+      throw e
+    }
+  }
+
+  fun observeRecurringTemplates(userId: String): Flow<List<RecurringTemplate>> {
+    val path = "users/$userId/recurringTemplates"
+    return db.collection("users")
+      .document(userId)
+      .collection("recurringTemplates")
+      .snapshots()
+      .map { snapshot ->
+        snapshot.toObjects(
+          RecurringTemplate::class.java,
+          DocumentSnapshot.ServerTimestampBehavior.ESTIMATE,
+        ).sortedBy { it.title.lowercase() }
+      }
+      .catch { error ->
+        val firestoreError = generateSequence(error) { it.cause }
+          .filterIsInstance<FirebaseFirestoreException>()
+          .firstOrNull()
+        if (firestoreError == null && error is CancellationException) throw error
+        val toLog = firestoreError ?: (error as? Exception)
+        if (toLog != null && auth.currentUser?.uid == userId) {
+          handleFirestoreError(toLog, OperationType.LIST, path, auth)
+        }
+        throw error
+      }
+  }
+
+  suspend fun addRecurringTemplate(
+    title: String,
+    amount: Long,
+    category: String,
+    paymentMethod: String,
+    note: String = "",
+  ): String {
+    val uid = requireUserId()
+    val docRef = db.collection("users").document(uid).collection("recurringTemplates").document()
+    val payload = mapOf(
+      "userId" to uid,
+      "title" to title.trim().take(80),
+      "amount" to amount,
+      "category" to category,
+      "paymentMethod" to paymentMethod,
+      "note" to note.trim().take(200),
+      "createdAt" to FieldValue.serverTimestamp(),
+      "updatedAt" to FieldValue.serverTimestamp(),
+    )
+    try {
+      docRef.set(payload).await()
+      return docRef.id
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.CREATE, docRef.path, auth)
+      throw e
+    }
+  }
+
+  suspend fun deleteRecurringTemplate(templateId: String) {
+    val uid = requireUserId()
+    val docRef = db.collection("users").document(uid).collection("recurringTemplates").document(templateId)
+    try {
+      docRef.delete().await()
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.DELETE, docRef.path, auth)
+      throw e
+    }
+  }
+
+  fun observeUserProfile(userId: String): Flow<UserProfile?> {
+    val docRef = db.collection("users").document(userId)
+    return docRef.snapshots()
+      .map { snapshot ->
+        if (snapshot.exists()) {
+          snapshot.toObject(
+            UserProfile::class.java,
+            DocumentSnapshot.ServerTimestampBehavior.ESTIMATE,
+          )
+        } else {
+          null
+        }
+      }
+      .catch { error ->
+        val firestoreError = generateSequence(error) { it.cause }
+          .filterIsInstance<FirebaseFirestoreException>()
+          .firstOrNull()
+        if (firestoreError == null && error is CancellationException) throw error
+        val toLog = firestoreError ?: (error as? Exception)
+        if (toLog != null && auth.currentUser?.uid == userId) {
+          handleFirestoreError(toLog, OperationType.GET, docRef.path, auth)
+        }
+        throw error
+      }
+  }
+
+  suspend fun saveDisplayName(displayName: String) {
+    val uid = requireUserId()
+    val cleanName = displayName.trim().take(50)
+    require(cleanName.isNotEmpty()) { "Nama profil tidak boleh kosong." }
+    val docRef = db.collection("users").document(uid)
+    try {
+      val existingSnapshot = docRef.get().await()
+      if (!existingSnapshot.exists()) {
+        docRef.set(
+          mapOf(
+            "userId" to uid,
+            "displayName" to cleanName,
+            "createdAt" to FieldValue.serverTimestamp(),
+            "updatedAt" to FieldValue.serverTimestamp(),
+          )
+        ).await()
+      } else {
+        docRef.update(
+          mapOf(
+            "displayName" to cleanName,
+            "updatedAt" to FieldValue.serverTimestamp(),
+          )
+        ).await()
+      }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.WRITE, docRef.path, auth)
+      throw e
+    }
+  }
+
+  suspend fun saveProfilePhoto(photoBase64: String, fallbackDisplayName: String) {
+    val uid = requireUserId()
+    val cleanDisplayName = fallbackDisplayName.trim().take(50).ifEmpty { "Pengguna SakuPintar" }
+    val docRef = db.collection("users").document(uid)
+    try {
+      val existingSnapshot = docRef.get().await()
+      if (!existingSnapshot.exists()) {
+        docRef.set(
+          mapOf(
+            "userId" to uid,
+            "displayName" to cleanDisplayName,
+            "photoBase64" to photoBase64,
+            "createdAt" to FieldValue.serverTimestamp(),
+            "updatedAt" to FieldValue.serverTimestamp(),
+          )
+        ).await()
+      } else {
+        docRef.update(
+          mapOf(
+            "photoBase64" to photoBase64,
+            "updatedAt" to FieldValue.serverTimestamp(),
+          )
+        ).await()
       }
     } catch (e: CancellationException) {
       throw e

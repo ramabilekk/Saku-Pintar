@@ -38,6 +38,7 @@ object BudgetAutoComposer {
     customNeedsPercent: Long? = null,
     customWantsPercent: Long? = null,
     customSavingsPercent: Long? = null,
+    roundingUnit: Long = 10_000L,
   ): MonthlyBudget {
     val sanitizedIncome = monthlyIncome.coerceAtLeast(0L)
     val needsPct = (customNeedsPercent ?: strategy.needsPercent).coerceIn(0L, 100L)
@@ -48,18 +49,20 @@ object BudgetAutoComposer {
     val normalizedWantsPct = if (needsPct + wantsPct + savingsPct == 100L) wantsPct else strategy.wantsPercent
     val normalizedSavingsPct = 100L - normalizedNeedsPct - normalizedWantsPct
 
-    val savingsTarget = roundToTenThousand((sanitizedIncome * normalizedSavingsPct) / 100.0)
+    val safeUnit = roundingUnit.coerceAtLeast(1L)
+    val savingsTarget = roundToUnit((sanitizedIncome * normalizedSavingsPct) / 100.0, safeUnit)
       .coerceAtMost(sanitizedIncome)
     val spendablePool = (sanitizedIncome - savingsTarget).coerceAtLeast(0L)
 
     val categoryBudgets: Map<String, Long> =
       if (strategy == BudgetStrategy.ADAPTIVE_HISTORY && historicalExpenses.isNotEmpty()) {
-        composeAdaptiveCategoryMap(spendablePool, historicalExpenses)
+        composeAdaptiveCategoryMap(spendablePool, historicalExpenses, safeUnit)
       } else {
         composeProportionalCategoryMap(
           spendablePool = spendablePool,
           needsPercent = normalizedNeedsPct,
           wantsPercent = normalizedWantsPct,
+          roundingUnit = safeUnit,
         )
       }
 
@@ -81,12 +84,13 @@ object BudgetAutoComposer {
     spendablePool: Long,
     needsPercent: Long,
     wantsPercent: Long,
+    roundingUnit: Long,
   ): Map<String, Long> {
     if (spendablePool <= 0L) {
       return ExpenseCategory.entries.associate { it.name to 0L }
     }
     val totalSpendPercent = (needsPercent + wantsPercent).coerceAtLeast(1L)
-    val needsPool = roundToTenThousand(spendablePool * (needsPercent.toDouble() / totalSpendPercent))
+    val needsPool = roundToUnit(spendablePool * (needsPercent.toDouble() / totalSpendPercent), roundingUnit)
       .coerceAtMost(spendablePool)
     val wantsPool = (spendablePool - needsPool).coerceAtLeast(0L)
 
@@ -94,8 +98,8 @@ object BudgetAutoComposer {
     val needsCategories = ExpenseCategory.entries.filter { it.group == BudgetGroup.NEEDS }
     val wantsCategories = ExpenseCategory.entries.filter { it.group == BudgetGroup.WANTS }
 
-    allocateGroup(needsPool, needsCategories, result)
-    allocateGroup(wantsPool, wantsCategories, result)
+    allocateGroup(needsPool, needsCategories, result, roundingUnit)
+    allocateGroup(wantsPool, wantsCategories, result, roundingUnit)
     return result
   }
 
@@ -103,6 +107,7 @@ object BudgetAutoComposer {
     pool: Long,
     categories: List<ExpenseCategory>,
     output: MutableMap<String, Long>,
+    roundingUnit: Long,
   ) {
     if (categories.isEmpty()) return
     var allocated = 0L
@@ -110,7 +115,7 @@ object BudgetAutoComposer {
       if (index == categories.lastIndex) {
         output[category.name] = (pool - allocated).coerceAtLeast(0L)
       } else {
-        val share = roundToTenThousand(pool * category.defaultWeight)
+        val share = roundToUnit(pool * category.defaultWeight, roundingUnit)
           .coerceAtMost((pool - allocated).coerceAtLeast(0L))
         output[category.name] = share
         allocated += share
@@ -121,6 +126,7 @@ object BudgetAutoComposer {
   private fun composeAdaptiveCategoryMap(
     spendablePool: Long,
     historicalExpenses: List<Expense>,
+    roundingUnit: Long,
   ): Map<String, Long> {
     if (spendablePool <= 0L) {
       return ExpenseCategory.entries.associate { it.name to 0L }
@@ -147,7 +153,7 @@ object BudgetAutoComposer {
         outputLast(category, spendablePool - allocated, result)
       } else {
         val normalizedWeight = (rawWeights[category] ?: 0.0) / weightSum
-        val amount = roundToTenThousand(spendablePool * normalizedWeight)
+        val amount = roundToUnit(spendablePool * normalizedWeight, roundingUnit)
           .coerceAtMost((spendablePool - allocated).coerceAtLeast(0L))
         result[category.name] = amount
         allocated += amount
@@ -216,8 +222,9 @@ object BudgetAutoComposer {
     )
   }
 
-  private fun roundToTenThousand(value: Double): Long {
+  private fun roundToUnit(value: Double, unit: Long): Long {
     if (value <= 0.0) return 0L
-    return (value / 10_000.0).roundToLong() * 10_000L
+    val u = unit.coerceAtLeast(1L).toDouble()
+    return (value / u).roundToLong() * unit.coerceAtLeast(1L)
   }
 }

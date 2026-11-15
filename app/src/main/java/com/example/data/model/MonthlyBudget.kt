@@ -1,5 +1,7 @@
 package com.example.data.model
 
+import androidx.annotation.StringRes
+import com.example.R
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.Exclude
@@ -9,6 +11,8 @@ import com.google.firebase.firestore.ServerTimestamp
 enum class BudgetStrategy(
   val titleId: String,
   val subtitleId: String,
+  @StringRes val titleRes: Int,
+  @StringRes val subtitleRes: Int,
   val needsPercent: Long,
   val wantsPercent: Long,
   val savingsPercent: Long,
@@ -16,6 +20,8 @@ enum class BudgetStrategy(
   BALANCED_50_30_20(
     titleId = "Seimbang 50 / 30 / 20",
     subtitleId = "50% Kebutuhan, 30% Gaya Hidup, 20% Tabungan",
+    titleRes = R.string.strategy_balanced_title,
+    subtitleRes = R.string.strategy_balanced_sub,
     needsPercent = 50L,
     wantsPercent = 30L,
     savingsPercent = 20L,
@@ -23,6 +29,8 @@ enum class BudgetStrategy(
   FRUGAL_60_10_30(
     titleId = "Hemat Maksimal 60 / 10 / 30",
     subtitleId = "Fokus kebutuhan pokok & 30% tabungan agresif",
+    titleRes = R.string.strategy_frugal_title,
+    subtitleRes = R.string.strategy_frugal_sub,
     needsPercent = 60L,
     wantsPercent = 10L,
     savingsPercent = 30L,
@@ -30,6 +38,8 @@ enum class BudgetStrategy(
   ADAPTIVE_HISTORY(
     titleId = "Adaptif Berbasis Riwayat",
     subtitleId = "Menyesuaikan alokasi dari pola pengeluaran Anda",
+    titleRes = R.string.strategy_adaptive_title,
+    subtitleRes = R.string.strategy_adaptive_sub,
     needsPercent = 50L,
     wantsPercent = 30L,
     savingsPercent = 20L,
@@ -37,6 +47,8 @@ enum class BudgetStrategy(
   CUSTOM(
     titleId = "Kustom Manual",
     subtitleId = "Atur sendiri batas tiap kategori",
+    titleRes = R.string.strategy_custom_title,
+    subtitleRes = R.string.strategy_custom_sub,
     needsPercent = 50L,
     wantsPercent = 30L,
     savingsPercent = 20L,

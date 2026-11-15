@@ -17,8 +17,22 @@ android {
     applicationId = "com.aistudio.sakupintar.qmtxzk"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    val ciRunNumber = (project.findProperty("appVersionCode") as? String)?.toIntOrNull()
+      ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+    versionCode = ciRunNumber ?: 1
+    versionName = if (ciRunNumber != null) "1.0.$ciRunNumber" else "1.0"
+
+    buildConfigField("boolean", "IS_GITHUB_RELEASE_BUILD", (ciRunNumber != null).toString())
+    buildConfigField(
+      "String",
+      "GITHUB_RELEASES_API_URL",
+      "\"https://api.github.com/repos/ramabilekk/Saku-Pintar/releases/latest\""
+    )
+    buildConfigField(
+      "String",
+      "GITHUB_RELEASES_PAGE_URL",
+      "\"https://github.com/ramabilekk/Saku-Pintar/releases/latest\""
+    )
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -106,7 +120,7 @@ dependencies {
   implementation(libs.androidx.navigation.compose)
   // implementation(libs.androidx.room.ktx)
   // implementation(libs.androidx.room.runtime)
-  // implementation(libs.coil.compose)
+  implementation(libs.coil.compose)
   // implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
   implementation(libs.firebase.firestore)
