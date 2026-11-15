@@ -96,6 +96,7 @@ jobs:
           - SHA-1 signing: ${SHA1}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK_NAME" --clobber
+            gh release edit "$TAG" --notes "$NOTES"
           else
             gh release create "$TAG" "$APK_NAME" \
               --title "SakuPintar ${TAG}" \
