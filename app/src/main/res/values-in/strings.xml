@@ -221,6 +221,8 @@
     <string name="wallet_dialog_save">Simpan Saldo</string>
 
     <!-- Profile / Settings -->
+    <string name="profile_group_account">Akun</string>
+    <string name="profile_group_preferences">Preferensi</string>
     <string name="profile_connected_google">Terhubung dengan Google</string>
     <string name="profile_photo_custom_desc">Foto profil kustom aktif &amp; tersinkronisasi ke cloud.</string>
     <string name="profile_photo_google_desc">Foto profil disinkronkan otomatis dari akun Google.</string>
@@ -302,7 +304,7 @@
     <string name="savings_cat_home">Rumah</string>
     <string name="savings_cat_other">Lainnya</string>
     <string name="strategy_balanced_title">Seimbang 50 / 30 / 20</string>
-    <string name="strategy_balanced_sub">50% Kebutuhan, 30% Gaya Hidup, 20% Tabungan</string>
+    <string name="strategy_balanced_sub" formatted="false">50% Kebutuhan, 30% Gaya Hidup, 20% Tabungan</string>
     <string name="strategy_frugal_title">Hemat Maksimal 60 / 10 / 30</string>
     <string name="strategy_frugal_sub">Fokus kebutuhan pokok &amp; 30% tabungan agresif</string>
     <string name="strategy_adaptive_title">Adaptif Berbasis Riwayat</string>

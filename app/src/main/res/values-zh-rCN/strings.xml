@@ -221,6 +221,8 @@
     <string name="wallet_dialog_save">保存余额</string>
 
     <!-- Profile / Settings -->
+    <string name="profile_group_account">账户</string>
+    <string name="profile_group_preferences">偏好设置</string>
     <string name="profile_connected_google">已关联 Google 账号</string>
     <string name="profile_photo_custom_desc">已启用自定义头像并同步至云端。</string>
     <string name="profile_photo_google_desc">头像已自动与 Google 账号同步。</string>
@@ -302,7 +304,7 @@
     <string name="savings_cat_home">家居置业</string>
     <string name="savings_cat_other">其他</string>
     <string name="strategy_balanced_title">均衡 50 / 30 / 20</string>
-    <string name="strategy_balanced_sub">50% 必需品，30% 生活方式，20% 储蓄</string>
+    <string name="strategy_balanced_sub" formatted="false">50% 必需品，30% 生活方式，20% 储蓄</string>
     <string name="strategy_frugal_title">高效储蓄 60 / 10 / 30</string>
     <string name="strategy_frugal_sub">聚焦刚需，强制储蓄 30%</string>
     <string name="strategy_adaptive_title">基于历史自适应</string>

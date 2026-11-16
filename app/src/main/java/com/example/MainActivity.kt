@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -61,7 +62,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   override fun attachBaseContext(newBase: Context) {
-    super.attachBaseContext(LanguagePreferenceManager.localizedContext(newBase))
+    super.attachBaseContext(LanguagePreferenceManager.wrapActivityContext(newBase))
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
       CurrencyPreferenceManager.observeCurrency(applicationContext).collectAsStateWithLifecycle()
 
       val localizedContext = remember(this, activeLanguage) {
-        LanguagePreferenceManager.localizedContext(this, activeLanguage)
+        LanguagePreferenceManager.wrapActivityContext(this, activeLanguage)
       }
       val isRtl = remember(activeLanguage) {
         LanguagePreferenceManager.isRtl(activeLanguage)
@@ -108,6 +109,7 @@ class MainActivity : ComponentActivity() {
         LocalContext provides localizedContext,
         LocalConfiguration provides localizedContext.resources.configuration,
         LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+        LocalActivityResultRegistryOwner provides this@MainActivity,
       ) {
         SakuPintarTheme(darkTheme = useDarkTheme) {
           AppRoot()

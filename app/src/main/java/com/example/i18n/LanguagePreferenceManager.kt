@@ -1,7 +1,10 @@
 package com.example.i18n
 
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import android.view.View
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,7 +134,8 @@ object LanguagePreferenceManager {
 
   fun observeLanguage(context: Context): StateFlow<AppLanguage> {
     if (!initialized) {
-      val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+      val appCtx = context.applicationContext ?: context
+      val prefs = appCtx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
       val saved = prefs.getString(KEY_LANGUAGE, null)
       val resolved = if (saved == null) AppLanguage.SYSTEM else AppLanguage.fromCode(saved)
       _language.value = resolved
@@ -142,7 +146,8 @@ object LanguagePreferenceManager {
   }
 
   fun setLanguage(context: Context, language: AppLanguage) {
-    val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val appCtx = context.applicationContext ?: context
+    val prefs = appCtx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     prefs.edit().putString(KEY_LANGUAGE, language.code).apply()
     initialized = true
     _language.value = language
@@ -155,6 +160,25 @@ object LanguagePreferenceManager {
     config.setLocale(locale)
     config.setLayoutDirection(locale)
     return context.createConfigurationContext(config)
+  }
+
+  /**
+   * Wraps an Activity context in a [ContextWrapper] whose resources and assets use the active
+   * app locale while keeping the underlying Activity as [ContextWrapper.getBaseContext].
+   * This ensures Dialog, ModalBottomSheet, and ActivityResultRegistryOwner lookups succeed.
+   */
+  fun wrapActivityContext(
+    activity: Context,
+    language: AppLanguage = observeLanguage(activity).value,
+  ): Context {
+    val localized = localizedContext(activity, language)
+    return object : ContextWrapper(activity) {
+      override fun getResources(): Resources = localized.resources
+      override fun getAssets(): AssetManager = localized.assets
+      override fun createConfigurationContext(overrideConfiguration: Configuration): Context {
+        return activity.createConfigurationContext(overrideConfiguration)
+      }
+    }
   }
 
   fun isRtl(language: AppLanguage = _language.value): Boolean {

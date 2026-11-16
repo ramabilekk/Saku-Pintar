@@ -221,6 +221,8 @@
     <string name="wallet_dialog_save">Save Balance</string>
 
     <!-- Profile / Settings -->
+    <string name="profile_group_account">Account</string>
+    <string name="profile_group_preferences">Preferences</string>
     <string name="profile_connected_google">Connected with Google</string>
     <string name="profile_photo_custom_desc">Custom profile photo active &amp; synced to cloud.</string>
     <string name="profile_photo_google_desc">Profile photo synced automatically from your Google account.</string>
@@ -302,7 +304,7 @@
     <string name="savings_cat_home">Home</string>
     <string name="savings_cat_other">Other</string>
     <string name="strategy_balanced_title">Balanced 50 / 30 / 20</string>
-    <string name="strategy_balanced_sub">50% Needs, 30% Lifestyle, 20% Savings</string>
+    <string name="strategy_balanced_sub" formatted="false">50% Needs, 30% Lifestyle, 20% Savings</string>
     <string name="strategy_frugal_title">Max Saving 60 / 10 / 30</string>
     <string name="strategy_frugal_sub">Focus essentials &amp; aggressive 30% savings</string>
     <string name="strategy_adaptive_title">History-Adaptive</string>

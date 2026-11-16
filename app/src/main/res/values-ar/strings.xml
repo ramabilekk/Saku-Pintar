@@ -221,6 +221,8 @@
     <string name="wallet_dialog_save">حفظ الرصيد</string>
 
     <!-- Profile / Settings -->
+    <string name="profile_group_account">الحساب</string>
+    <string name="profile_group_preferences">التفضيلات</string>
     <string name="profile_connected_google">مرتبط بحساب Google</string>
     <string name="profile_photo_custom_desc">صورة الملف المخصصة مفعلة ومتزامنة سحابياً.</string>
     <string name="profile_photo_google_desc">تمت مزامنة الصورة تلقائياً من حساب Google.</string>
@@ -302,7 +304,7 @@
     <string name="savings_cat_home">منزل</string>
     <string name="savings_cat_other">أخرى</string>
     <string name="strategy_balanced_title">متوازن 50 / 30 / 20</string>
-    <string name="strategy_balanced_sub">50% احتياجات، 30% رغبات، 20% ادخار</string>
+    <string name="strategy_balanced_sub" formatted="false">50% احتياجات، 30% رغبات، 20% ادخار</string>
     <string name="strategy_frugal_title">توفير مكثف 60 / 10 / 30</string>
     <string name="strategy_frugal_sub">تركيز على الأساسيات وادخار 30%</string>
     <string name="strategy_adaptive_title">تكيفي حسب السجل</string>

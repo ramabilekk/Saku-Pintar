@@ -221,6 +221,8 @@
     <string name="wallet_dialog_save">Enregistrer</string>
 
     <!-- Profile / Settings -->
+    <string name="profile_group_account">Compte</string>
+    <string name="profile_group_preferences">Préférences</string>
     <string name="profile_connected_google">Connecté avec Google</string>
     <string name="profile_photo_custom_desc">Photo personnalisée active et synchronisée.</string>
     <string name="profile_photo_google_desc">Photo synchronisée automatiquement depuis Google.</string>
@@ -302,7 +304,7 @@
     <string name="savings_cat_home">Maison</string>
     <string name="savings_cat_other">Autre</string>
     <string name="strategy_balanced_title">Équilibré 50 / 30 / 20</string>
-    <string name="strategy_balanced_sub">50% Besoins, 30% Envies, 20% Épargne</string>
+    <string name="strategy_balanced_sub" formatted="false">50% Besoins, 30% Envies, 20% Épargne</string>
     <string name="strategy_frugal_title">Épargne max 60 / 10 / 30</string>
     <string name="strategy_frugal_sub">Priorité à l\'essentiel &amp; 30% d\'épargne</string>
     <string name="strategy_adaptive_title">Adaptatif (Historique)</string>
