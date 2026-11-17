@@ -16,57 +16,48 @@ enum class AppLanguage(
   val code: String,
   val nativeName: String,
   val shortCode: String,
-  val isUnOfficial: Boolean,
   val isRtl: Boolean = false,
 ) {
   SYSTEM(
     code = "system",
     nativeName = "Auto",
     shortCode = "AUTO",
-    isUnOfficial = false,
   ),
   INDONESIAN(
     code = "id",
     nativeName = "Bahasa Indonesia",
     shortCode = "ID",
-    isUnOfficial = false,
   ),
   ENGLISH(
     code = "en",
     nativeName = "English",
     shortCode = "EN",
-    isUnOfficial = true,
   ),
   ARABIC(
     code = "ar",
     nativeName = "العربية",
     shortCode = "AR",
-    isUnOfficial = true,
     isRtl = true,
   ),
   CHINESE(
     code = "zh-CN",
     nativeName = "中文 (简体)",
     shortCode = "ZH",
-    isUnOfficial = true,
   ),
   FRENCH(
     code = "fr",
     nativeName = "Français",
     shortCode = "FR",
-    isUnOfficial = true,
   ),
   RUSSIAN(
     code = "ru",
     nativeName = "Русский",
     shortCode = "RU",
-    isUnOfficial = true,
   ),
   SPANISH(
     code = "es",
     nativeName = "Español",
     shortCode = "ES",
-    isUnOfficial = true,
   );
 
   fun resolveEffectiveLanguage(systemLocale: Locale = defaultSystemLocale()): AppLanguage {

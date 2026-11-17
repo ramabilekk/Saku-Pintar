@@ -68,11 +68,17 @@
 
     <!-- Language & Currency -->
     <string name="language_section_title">Langue de l\'application</string>
-    <string name="language_section_subtitle">Indonésien &amp; 6 langues officielles de l\'ONU</string>
+    <string name="language_section_subtitle">Choisissez la langue d\'affichage de l\'application</string>
     <string name="language_picker_title">Choisir la langue</string>
     <string name="language_auto">Auto (Langue de l\'appareil)</string>
-    <string name="language_un_badge">Officielle ONU</string>
     <string name="language_changed_status">Langue modifiée en %1$s.</string>
+    <string name="month_picker_title">Choisir mois et année</string>
+    <string name="month_picker_this_month">Ce mois-ci</string>
+    <string name="calendar_section_title">Calendrier mensuel</string>
+    <string name="calendar_selected_date_filter">Date : %1$s</string>
+    <string name="calendar_clear_filter">Tout afficher</string>
+    <string name="calendar_day_summary_none">Appuyez sur un jour pour filtrer les dépenses</string>
+    <string name="calendar_add_on_date">Ajouter à cette date</string>
     <string name="currency_section_title">Devise</string>
     <string name="currency_section_subtitle">Choisir la devise d\'affichage et de saisie</string>
     <string name="currency_changed_status">Devise modifiée en %1$s.</string>
@@ -240,10 +246,12 @@
     <string name="reminder_subtitle">Notification quotidienne pour ne rien oublier</string>
     <string name="reminder_notification_title">C\'est l\'heure de noter vos dépenses</string>
     <string name="reminder_notification_body">Prenez 10 secondes pour saisir vos achats du jour dans SakuPintar.</string>
-    <string name="reminder_enabled_status">Rappel quotidien activé à %1$02d:00.</string>
+    <string name="reminder_enabled_status">Rappel quotidien activé à %1$s.</string>
     <string name="reminder_disabled_status">Rappel quotidien désactivé.</string>
     <string name="reminder_denied_status">Autorisation de notification refusée. Activez-la dans les Paramètres.</string>
-    <string name="reminder_time_changed">Heure du rappel modifiée à %1$02d:00.</string>
+    <string name="reminder_time_changed">Heure du rappel modifiée à %1$s.</string>
+    <string name="reminder_custom_time_action">Choisir l\'heure</string>
+    <string name="reminder_picker_title">Heure du rappel</string>
     <string name="theme_section_title">Thème de l\'application</string>
     <string name="theme_section_subtitle">Choisissez clair, sombre ou système</string>
     <string name="theme_mode_system">Système</string>
@@ -346,4 +354,24 @@
     <string name="report_banner_title">SakuPintar — Bilan Financier Mensuel</string>
     <string name="report_period_printed">Période : %1$s  •  Imprimé le : %2$s</string>
     <string name="report_page_footer">Page %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">Photo du reçu / facture</string>
+    <string name="receipt_section_subtitle">Joignez la photo de votre ticket ou facture d\'achat</string>
+    <string name="receipt_pick_gallery">Galerie</string>
+    <string name="receipt_take_camera">Caméra</string>
+    <string name="receipt_scan_ai_from_photo">Remplir depuis le reçu (IA)</string>
+    <string name="receipt_attached_badge">Reçu joint</string>
+    <string name="receipt_badge_short">Reçu</string>
+    <string name="receipt_view_full">Voir le reçu</string>
+    <string name="receipt_change_photo">Remplacer</string>
+    <string name="receipt_remove_photo">Retirer</string>
+    <string name="receipt_viewer_title">Reçu / Facture</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">Soutien</string>
+    <string name="profile_support_title">Soutenir SakuPintar</string>
+    <string name="profile_support_subtitle">Aidez au développement via Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">Impossible d\'ouvrir le navigateur. Visitez trakteer.id/ramabilekk/gift.</string>
 </resources>

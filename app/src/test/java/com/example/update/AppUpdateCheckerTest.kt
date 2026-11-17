@@ -32,6 +32,9 @@ class AppUpdateCheckerTest {
     assertFalse(AppUpdateChecker.isRemoteVersionNewer("v1.0.8", 9, "1.0.9"))
     assertFalse(AppUpdateChecker.isRemoteVersionNewer("v1.0.1", 1, "1.0"))
     assertTrue(AppUpdateChecker.isRemoteVersionNewer("v1.0.8", 1, "1.0"))
+    assertTrue(AppUpdateChecker.isRemoteVersionNewer("v2.0.18", 17, "1.0.17"))
+    assertFalse(AppUpdateChecker.isRemoteVersionNewer("v2.0.18", 18, "2.0.18"))
+    assertTrue(AppUpdateChecker.isRemoteVersionNewer("v2.0.19", 18, "2.0.18"))
   }
 
   @Test

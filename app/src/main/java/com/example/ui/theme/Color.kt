@@ -31,6 +31,7 @@ val OnCoralContainer = Color(0xFF7F1D1D)
 
 val SkyPositiveAccent = Color(0xFF0EA5E9)
 val GoldAccent = Color(0xFFF59E0B)
+val EmeraldSafe = Color(0xFF10B981)
 
 // Dark Theme Tokens (Midnight Slate + Luminous Sky Indigo)
 val IndigoDarkPrimary = Color(0xFF60A5FA)

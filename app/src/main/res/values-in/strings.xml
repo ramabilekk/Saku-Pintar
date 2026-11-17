@@ -67,12 +67,18 @@
     <string name="profile_cd">Profil %1$s</string>
 
     <!-- Language & Currency -->
-    <string name="language_section_title">Bahasa Aplikasi</string>
-    <string name="language_section_subtitle">Bahasa Indonesia &amp; 6 Bahasa Resmi PBB</string>
+    <string name="language_section_title">Bahasa</string>
+    <string name="language_section_subtitle">Pilih bahasa tampilan aplikasi</string>
     <string name="language_picker_title">Pilih Bahasa Aplikasi</string>
     <string name="language_auto">Otomatis (Ikuti Perangkat)</string>
-    <string name="language_un_badge">Resmi PBB</string>
     <string name="language_changed_status">Bahasa diubah ke %1$s.</string>
+    <string name="month_picker_title">Pilih Bulan &amp; Tahun</string>
+    <string name="month_picker_this_month">Bulan Ini</string>
+    <string name="calendar_section_title">Kalender Bulanan</string>
+    <string name="calendar_selected_date_filter">Tanggal: %1$s</string>
+    <string name="calendar_clear_filter">Semua</string>
+    <string name="calendar_day_summary_none">Ketuk tanggal untuk melihat pengeluaran hari itu</string>
+    <string name="calendar_add_on_date">Catat di tanggal ini</string>
     <string name="currency_section_title">Mata Uang</string>
     <string name="currency_section_subtitle">Pilih mata uang tampilan &amp; pencatatan</string>
     <string name="currency_changed_status">Mata uang diubah ke %1$s.</string>
@@ -92,7 +98,7 @@
     <string name="dashboard_recent_expenses">Pengeluaran Terbaru</string>
     <string name="dashboard_see_all">Lihat Semua</string>
     <string name="dashboard_empty_expenses_title">Belum ada pengeluaran tercatat</string>
-    <string name="dashboard_empty_expenses_body">Ketuk tombol + Catat di bawah untuk mencatat transaksi harian pertama Anda.</string>
+    <string name="dashboard_empty_expenses_body">Buka menu Harian untuk mencatat transaksi pengeluaran harian Anda.</string>
     <string name="hero_remaining_budget">Sisa Anggaran Belanja</string>
     <string name="hero_total_spent_month">Total Pengeluaran Bulan Ini</string>
     <string name="hero_status_safe">Aman Terkendali</string>
@@ -228,11 +234,15 @@
     <string name="profile_photo_google_desc">Foto profil disinkronkan otomatis dari akun Google.</string>
     <string name="profile_default_desc">Data profil, pengeluaran &amp; anggaran tersinkronisasi aman ke cloud.</string>
     <string name="profile_photo_title">Foto Profil</string>
-    <string name="profile_photo_change">Ganti Foto dari Galeri</string>
-    <string name="profile_photo_pick">Pasang Foto dari Galeri</string>
+    <string name="profile_photo_change">Ganti dari Galeri</string>
+    <string name="profile_photo_pick">Pilih Galeri</string>
+    <string name="profile_photo_camera">Kamera</string>
+    <string name="profile_photo_source_title">Pasang Foto Profil</string>
+    <string name="profile_photo_source_subtitle">Ambil foto baru dengan kamera atau pilih dari galeri</string>
+    <string name="camera_permission_denied">Izin kamera diperlukan untuk mengambil foto profil.</string>
     <string name="profile_photo_use_google">Gunakan Foto Akun Google</string>
     <string name="profile_photo_remove_custom">Hapus Foto Kustom</string>
-    <string name="profile_edit_name_title">Edit Nama Profil</string>
+    <string name="profile_edit_name_title">Edit Profil</string>
     <string name="profile_display_name_label">Nama Tampilan</string>
     <string name="profile_display_name_hint">Masukkan nama panggilan Anda</string>
     <string name="profile_save_name_button">Simpan Nama Profil</string>
@@ -240,11 +250,13 @@
     <string name="reminder_subtitle">Notifikasi harian agar transaksi tidak terlewat</string>
     <string name="reminder_notification_title">Waktunya Catat Pengeluaran Hari Ini</string>
     <string name="reminder_notification_body">Luangkan 10 detik untuk mencatat transaksi hari ini di SakuPintar.</string>
-    <string name="reminder_enabled_status">Pengingat harian aktif pukul %1$02d:00.</string>
+    <string name="reminder_enabled_status">Pengingat harian aktif pukul %1$s.</string>
     <string name="reminder_disabled_status">Pengingat harian dimatikan.</string>
     <string name="reminder_denied_status">Izin notifikasi ditolak. Aktifkan di Pengaturan sistem untuk pengingat.</string>
-    <string name="reminder_time_changed">Waktu pengingat diubah ke %1$02d:00.</string>
-    <string name="theme_section_title">Tampilan Tema</string>
+    <string name="reminder_time_changed">Waktu pengingat diubah ke %1$s.</string>
+    <string name="reminder_custom_time_action">Atur Jam</string>
+    <string name="reminder_picker_title">Pilih Jam Pengingat</string>
+    <string name="theme_section_title">Tema</string>
     <string name="theme_section_subtitle">Pilih mode terang, gelap, atau ikuti tema perangkat</string>
     <string name="theme_mode_system">Ikuti Perangkat</string>
     <string name="theme_mode_light">Terang</string>
@@ -258,13 +270,13 @@
     <string name="export_sheet_title">Ekspor &amp; Bagikan Rekap</string>
     <string name="export_tx_count">%1$d transaksi</string>
     <string name="export_save_section">Simpan File Rekap Bulanan</string>
-    <string name="export_excel_title">Microsoft Excel (.xlsx)</string>
-    <string name="export_excel_subtitle">2 sheet: Ringkasan Bulanan &amp; Rincian Transaksi siap hitung otomatis</string>
-    <string name="export_primary_badge">Utama</string>
+    <string name="export_excel_title">Excel &amp; Google Spreadsheet (.xlsx)</string>
+    <string name="export_excel_subtitle">3 sheet rapi: Ringkasan, Transaksi &amp; Tabel Foto Struk di dalam sel</string>
+    <string name="export_primary_badge">Rekomendasi</string>
     <string name="export_pdf_title">Dokumen PDF (.pdf)</string>
-    <string name="export_pdf_subtitle">Laporan A4 rapi siap cetak, arsip, atau kirim ke keluarga/rekan</string>
-    <string name="export_csv_title">Spreadsheet CSV (.csv)</string>
-    <string name="export_csv_subtitle">Format teks tabel ringan untuk Google Sheets atau impor data</string>
+    <string name="export_pdf_subtitle">Laporan A4 eksekutif dengan thumbnail tabel &amp; galeri foto 2 kolom</string>
+    <string name="export_csv_title">Tabel CSV &amp; Indeks Struk (.csv)</string>
+    <string name="export_csv_subtitle">Format tabel universal lengkap dengan daftar indeks lampiran struk</string>
     <string name="export_share_section">Bagikan Langsung via WhatsApp / Email / Drive</string>
     <string name="export_btn_excel">Excel</string>
     <string name="export_btn_pdf">PDF</string>
@@ -274,6 +286,9 @@
     <string name="export_no_app_file">Tidak ada aplikasi untuk membagikan file %1$s.</string>
     <string name="export_no_app_text">Tidak ada aplikasi untuk membagikan ringkasan.</string>
     <string name="export_subject">Rekap Keuangan SakuPintar - %1$s</string>
+    <string name="export_receipt_preview_title">Rekapan Foto Struk Siap (%1$d foto)</string>
+    <string name="export_receipt_preview_subtitle">Foto struk tertata rapi di dalam sel Excel/Spreadsheet (.xlsx) &amp; galeri grid 2 kolom PDF (.pdf)</string>
+    <string name="report_col_receipt_photo">Foto Struk</string>
 
     <!-- Categories, Methods & Strategies -->
     <string name="group_needs">Kebutuhan Pokok</string>
@@ -346,4 +361,59 @@
     <string name="report_banner_title">SakuPintar — Rekap Keuangan Bulanan</string>
     <string name="report_period_printed">Periode: %1$s  •  Dicetak: %2$s</string>
     <string name="report_page_footer">Halaman %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">Foto Struk / Invoice</string>
+    <string name="receipt_section_subtitle">Simpan foto bukti belanja atau invoice pembayaran</string>
+    <string name="receipt_pick_gallery">Pilih Galeri</string>
+    <string name="receipt_take_camera">Kamera</string>
+    <string name="receipt_scan_ai_from_photo">Isi Otomatis dari Struk (AI)</string>
+    <string name="receipt_attached_badge">Struk Terlampir</string>
+    <string name="receipt_badge_short">Struk</string>
+    <string name="receipt_view_full">Lihat Struk</string>
+    <string name="receipt_change_photo">Ganti</string>
+    <string name="receipt_remove_photo">Hapus</string>
+    <string name="receipt_viewer_title">Bukti Struk / Invoice</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">Dukungan</string>
+    <string name="profile_support_title">Dukung Pengembangan</string>
+    <string name="profile_support_subtitle">Bantu pengembangan aplikasi lewat Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">Tidak dapat membuka browser. Kunjungi trakteer.id/ramabilekk/gift.</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">Bukti Struk</string>
+    <string name="report_sheet_receipts">Lampiran Struk</string>
+    <string name="report_receipt_section_title">Lampiran Foto Struk &amp; Invoice</string>
+    <string name="report_receipt_attached_count">%1$d foto struk terlampir</string>
+    <string name="report_receipt_yes">Terlampir (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">Otomatis dilampirkan ke Rekap PDF &amp; Excel</string>
+
+    <!-- Login Methods (Sign In / Sign Up: Google & Guest) -->
+    <string name="auth_tab_sign_in">Sign In (Masuk)</string>
+    <string name="auth_tab_sign_up">Sign Up (Daftar)</string>
+    <string name="auth_choose_method_sign_in">Pilih metode untuk Masuk (Sign In) ke akun Anda</string>
+    <string name="auth_choose_method_sign_up">Pilih metode untuk Daftar (Sign Up) akun baru</string>
+    <string name="auth_sign_up_google">Daftar dengan Akun Google</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">Akun Guest</string>
+    <string name="auth_or_other_methods">Atau pilih metode lainnya</string>
+    <string name="auth_guest_continue">Masuk sebagai Guest (Pengunjung)</string>
+    <string name="auth_guest_subtitle">Mode pengunjung: Masuk langsung tanpa backup data cloud</string>
+    <string name="guest_visitor_banner">Mode Pengunjung (Guest) • Sesi sementara tanpa backup data</string>
+    <string name="guest_account_display_name">Pengunjung (Guest)</string>
+    <string name="guest_account_badge">Mode Pengunjung (Tanpa Backup Data)</string>
+    <string name="auth_landing_enter_action">Masuk</string>
+    <string name="auth_landing_subtitle">Tekan tombol Masuk untuk memilih Sign In atau Sign Up beserta metode login</string>
+    <string name="auth_method_screen_sign_in_title">Halaman Pilihan Sign In</string>
+    <string name="auth_method_screen_sign_up_title">Halaman Pilihan Sign Up</string>
+    <string name="auth_back_action">Kembali</string>
+    <string name="topbar_expenses_title">Catatan Pengeluaran Harian</string>
+    <string name="topbar_expenses_subtitle">Kelola transaksi harian &amp; pengeluaran rutin</string>
+    <string name="topbar_budget_title">Perencana Anggaran Bulanan</string>
+    <string name="topbar_budget_subtitle">Alokasi pintar 50/30/20 &amp; target batas harian</string>
+    <string name="topbar_savings_title">Celengan &amp; Saldo Dompet</string>
+    <string name="topbar_savings_subtitle">Pantau tabungan impian &amp; sumber dana aktif</string>
 </resources>

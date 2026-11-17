@@ -68,11 +68,17 @@
 
     <!-- Language & Currency -->
     <string name="language_section_title">لغة التطبيق</string>
-    <string name="language_section_subtitle">اللغات الرسمية الست للأمم المتحدة والإندونيسية</string>
+    <string name="language_section_subtitle">اختر لغة عرض التطبيق المفضلة</string>
     <string name="language_picker_title">اختر لغة التطبيق</string>
     <string name="language_auto">تلقائي (لغة الجهاز)</string>
-    <string name="language_un_badge">رسمية بالأمم المتحدة</string>
     <string name="language_changed_status">تم تغيير اللغة إلى %1$s.</string>
+    <string name="month_picker_title">اختر الشهر والسنة</string>
+    <string name="month_picker_this_month">هذا الشهر</string>
+    <string name="calendar_section_title">التقويم الشهري</string>
+    <string name="calendar_selected_date_filter">التاريخ: %1$s</string>
+    <string name="calendar_clear_filter">عرض الكل</string>
+    <string name="calendar_day_summary_none">اضغط على أي يوم لتصفية المصروفات</string>
+    <string name="calendar_add_on_date">سجّل في هذا التاريخ</string>
     <string name="currency_section_title">العملة</string>
     <string name="currency_section_subtitle">اختر عملة العرض والإدخال</string>
     <string name="currency_changed_status">تم تغيير العملة إلى %1$s.</string>
@@ -240,10 +246,12 @@
     <string name="reminder_subtitle">إشعار يومي لعدم نسيان المعاملات</string>
     <string name="reminder_notification_title">حان وقت تسجيل مصروفات اليوم</string>
     <string name="reminder_notification_body">خصص 10 ثوانٍ لتسجيل معاملاتك اليوم في SakuPintar.</string>
-    <string name="reminder_enabled_status">تم تفعيل التذكير اليومي الساعة %1$02d:00.</string>
+    <string name="reminder_enabled_status">تم تفعيل التذكير اليومي الساعة %1$s.</string>
     <string name="reminder_disabled_status">تم إيقاف التذكير اليومي.</string>
     <string name="reminder_denied_status">تم رفض إذن الإشعارات. فعّله من إعدادات النظام.</string>
-    <string name="reminder_time_changed">تم تغيير وقت التذكير إلى %1$02d:00.</string>
+    <string name="reminder_time_changed">تم تغيير وقت التذكير إلى %1$s.</string>
+    <string name="reminder_custom_time_action">تحديد الوقت</string>
+    <string name="reminder_picker_title">اختر وقت التذكير</string>
     <string name="theme_section_title">مظهر التطبيق</string>
     <string name="theme_section_subtitle">اختر الفاتح أو الداكن أو اتبع النظام</string>
     <string name="theme_mode_system">اتبع الجهاز</string>
@@ -346,4 +354,24 @@
     <string name="report_banner_title">SakuPintar — الملخص المالي الشهري</string>
     <string name="report_period_printed">الفترة: %1$s  •  تاريخ الطباعة: %2$s</string>
     <string name="report_page_footer">صفحة %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">صورة الإيصال / الفاتورة</string>
+    <string name="receipt_section_subtitle">أرفق صورة إيصال التسوق أو فاتورة الدفع</string>
+    <string name="receipt_pick_gallery">من المعرض</string>
+    <string name="receipt_take_camera">الكاميرا</string>
+    <string name="receipt_scan_ai_from_photo">ملء تلقائي من الإيصال (AI)</string>
+    <string name="receipt_attached_badge">تم إرفاق الإيصال</string>
+    <string name="receipt_badge_short">إيصال</string>
+    <string name="receipt_view_full">عرض الإيصال</string>
+    <string name="receipt_change_photo">تغيير</string>
+    <string name="receipt_remove_photo">إزالة</string>
+    <string name="receipt_viewer_title">صورة الإيصال / الفاتورة</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">دعم المطور</string>
+    <string name="profile_support_title">ادعم SakuPintar</string>
+    <string name="profile_support_subtitle">ساهم في دعم التطوير المستمر عبر Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">تعذر فتح المتصفح. قم بزيارة trakteer.id/ramabilekk/gift.</string>
 </resources>

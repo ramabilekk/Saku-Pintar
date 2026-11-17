@@ -3,4 +3,7 @@
     <cache-path
         name="shared_reports"
         path="reports/" />
+    <cache-path
+        name="camera_captures"
+        path="camera/" />
 </paths>

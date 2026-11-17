@@ -67,12 +67,18 @@
     <string name="profile_cd">Profile %1$s</string>
 
     <!-- Language & Currency -->
-    <string name="language_section_title">App Language</string>
-    <string name="language_section_subtitle">Indonesian &amp; 6 Official UN Languages</string>
+    <string name="language_section_title">Language</string>
+    <string name="language_section_subtitle">Choose your preferred display language</string>
     <string name="language_picker_title">Choose App Language</string>
     <string name="language_auto">Auto (Device Language)</string>
-    <string name="language_un_badge">UN Official</string>
     <string name="language_changed_status">Language changed to %1$s.</string>
+    <string name="month_picker_title">Choose Month &amp; Year</string>
+    <string name="month_picker_this_month">This Month</string>
+    <string name="calendar_section_title">Monthly Calendar</string>
+    <string name="calendar_selected_date_filter">Date: %1$s</string>
+    <string name="calendar_clear_filter">Show All</string>
+    <string name="calendar_day_summary_none">Tap any date to filter expenses</string>
+    <string name="calendar_add_on_date">Log on this date</string>
     <string name="currency_section_title">Currency</string>
     <string name="currency_section_subtitle">Choose display &amp; input currency</string>
     <string name="currency_changed_status">Currency changed to %1$s.</string>
@@ -92,7 +98,7 @@
     <string name="dashboard_recent_expenses">Recent Expenses</string>
     <string name="dashboard_see_all">See All</string>
     <string name="dashboard_empty_expenses_title">No expenses recorded yet</string>
-    <string name="dashboard_empty_expenses_body">Tap the + Log button below to record your first daily transaction.</string>
+    <string name="dashboard_empty_expenses_body">Open the Daily tab to record your daily transactions.</string>
     <string name="hero_remaining_budget">Remaining Shopping Budget</string>
     <string name="hero_total_spent_month">Total Spending This Month</string>
     <string name="hero_status_safe">Safe &amp; On Track</string>
@@ -228,11 +234,15 @@
     <string name="profile_photo_google_desc">Profile photo synced automatically from your Google account.</string>
     <string name="profile_default_desc">Your profile, expenses &amp; budgets are synced securely to cloud.</string>
     <string name="profile_photo_title">Profile Photo</string>
-    <string name="profile_photo_change">Change Photo from Gallery</string>
-    <string name="profile_photo_pick">Upload Photo from Gallery</string>
+    <string name="profile_photo_change">From Gallery</string>
+    <string name="profile_photo_pick">From Gallery</string>
+    <string name="profile_photo_camera">Camera</string>
+    <string name="profile_photo_source_title">Update Profile Photo</string>
+    <string name="profile_photo_source_subtitle">Take a new photo with camera or choose from gallery</string>
+    <string name="camera_permission_denied">Camera permission is required to take a profile photo.</string>
     <string name="profile_photo_use_google">Use Google Account Photo</string>
     <string name="profile_photo_remove_custom">Remove Custom Photo</string>
-    <string name="profile_edit_name_title">Edit Display Name</string>
+    <string name="profile_edit_name_title">Edit Profile</string>
     <string name="profile_display_name_label">Display Name</string>
     <string name="profile_display_name_hint">Enter your nickname</string>
     <string name="profile_save_name_button">Save Display Name</string>
@@ -240,11 +250,13 @@
     <string name="reminder_subtitle">Daily notification so transactions aren\'t missed</string>
     <string name="reminder_notification_title">Time to Log Today\'s Expenses</string>
     <string name="reminder_notification_body">Take 10 seconds to record today\'s transactions in SakuPintar.</string>
-    <string name="reminder_enabled_status">Daily reminder enabled at %1$02d:00.</string>
+    <string name="reminder_enabled_status">Daily reminder enabled at %1$s.</string>
     <string name="reminder_disabled_status">Daily reminder turned off.</string>
     <string name="reminder_denied_status">Notification permission denied. Enable it in system Settings for reminders.</string>
-    <string name="reminder_time_changed">Reminder time changed to %1$02d:00.</string>
-    <string name="theme_section_title">Theme Appearance</string>
+    <string name="reminder_time_changed">Reminder time changed to %1$s.</string>
+    <string name="reminder_custom_time_action">Set Time</string>
+    <string name="reminder_picker_title">Choose Reminder Time</string>
+    <string name="theme_section_title">Theme</string>
     <string name="theme_section_subtitle">Choose light, dark, or follow device theme</string>
     <string name="theme_mode_system">Follow Device</string>
     <string name="theme_mode_light">Light</string>
@@ -258,13 +270,13 @@
     <string name="export_sheet_title">Export &amp; Share Recap</string>
     <string name="export_tx_count">%1$d transactions</string>
     <string name="export_save_section">Save Monthly Recap File</string>
-    <string name="export_excel_title">Microsoft Excel (.xlsx)</string>
-    <string name="export_excel_subtitle">2 sheets: Monthly Summary &amp; Transaction Ledger with formulas</string>
-    <string name="export_primary_badge">Primary</string>
+    <string name="export_excel_title">Excel &amp; Google Sheets (.xlsx)</string>
+    <string name="export_excel_subtitle">3 neat sheets: Summary, Ledger &amp; Embedded Receipt Photo Table</string>
+    <string name="export_primary_badge">Best for Spreadsheet</string>
     <string name="export_pdf_title">PDF Document (.pdf)</string>
-    <string name="export_pdf_subtitle">Clean A4 report ready to print, archive, or share</string>
-    <string name="export_csv_title">CSV Spreadsheet (.csv)</string>
-    <string name="export_csv_subtitle">Lightweight table format for Google Sheets or data import</string>
+    <string name="export_pdf_subtitle">A4 executive report with inline receipt badges &amp; 2-column photo gallery</string>
+    <string name="export_csv_title">CSV Table &amp; Receipt Index (.csv)</string>
+    <string name="export_csv_subtitle">Universal spreadsheet table with structured receipt attachment index</string>
     <string name="export_share_section">Share Directly via WhatsApp / Email / Drive</string>
     <string name="export_btn_excel">Excel</string>
     <string name="export_btn_pdf">PDF</string>
@@ -274,6 +286,9 @@
     <string name="export_no_app_file">No app found to share %1$s file.</string>
     <string name="export_no_app_text">No app found to share summary.</string>
     <string name="export_subject">SakuPintar Financial Recap - %1$s</string>
+    <string name="export_receipt_preview_title">Receipt Photo Recap Ready (%1$d photos)</string>
+    <string name="export_receipt_preview_subtitle">Photos are neatly framed inside cells in Excel/Spreadsheet (.xlsx) &amp; 2-column grid in PDF (.pdf)</string>
+    <string name="report_col_receipt_photo">Receipt Photo</string>
 
     <!-- Categories, Methods & Strategies -->
     <string name="group_needs">Essential Needs</string>
@@ -346,4 +361,59 @@
     <string name="report_banner_title">SakuPintar — Monthly Financial Recap</string>
     <string name="report_period_printed">Period: %1$s  •  Printed: %2$s</string>
     <string name="report_page_footer">Page %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">Receipt / Invoice Photo</string>
+    <string name="receipt_section_subtitle">Attach your shopping receipt or payment invoice</string>
+    <string name="receipt_pick_gallery">From Gallery</string>
+    <string name="receipt_take_camera">Camera</string>
+    <string name="receipt_scan_ai_from_photo">Auto-Fill from Receipt (AI)</string>
+    <string name="receipt_attached_badge">Receipt Attached</string>
+    <string name="receipt_badge_short">Receipt</string>
+    <string name="receipt_view_full">View Receipt</string>
+    <string name="receipt_change_photo">Replace</string>
+    <string name="receipt_remove_photo">Remove</string>
+    <string name="receipt_viewer_title">Receipt / Invoice</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">Support Developer</string>
+    <string name="profile_support_title">Support SakuPintar</string>
+    <string name="profile_support_subtitle">Help support ongoing updates via Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">Cannot open browser. Visit trakteer.id/ramabilekk/gift.</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">Receipt Proof</string>
+    <string name="report_sheet_receipts">Receipt Photos</string>
+    <string name="report_receipt_section_title">Attached Receipt &amp; Invoice Photos</string>
+    <string name="report_receipt_attached_count">%1$d receipt photos attached</string>
+    <string name="report_receipt_yes">Attached (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">Automatically included in PDF &amp; Excel Recaps</string>
+
+    <!-- Login Methods (Sign In / Sign Up: Google & Guest) -->
+    <string name="auth_tab_sign_in">Sign In</string>
+    <string name="auth_tab_sign_up">Sign Up</string>
+    <string name="auth_choose_method_sign_in">Choose how you want to Sign In</string>
+    <string name="auth_choose_method_sign_up">Choose how you want to Sign Up</string>
+    <string name="auth_sign_up_google">Sign Up with Google</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">Guest Account</string>
+    <string name="auth_or_other_methods">Or choose another method</string>
+    <string name="auth_guest_continue">Continue as Guest (Visitor)</string>
+    <string name="auth_guest_subtitle">Visitor mode: Instant access without cloud data backup</string>
+    <string name="guest_visitor_banner">Visitor Mode (Guest) • Temporary session without data backup</string>
+    <string name="guest_account_display_name">Guest Visitor</string>
+    <string name="guest_account_badge">Visitor Mode (No Data Backup)</string>
+    <string name="auth_landing_enter_action">Masuk</string>
+    <string name="auth_landing_subtitle">Tap Masuk to choose Sign In or Sign Up and your login method</string>
+    <string name="auth_method_screen_sign_in_title">Choose Sign In Method</string>
+    <string name="auth_method_screen_sign_up_title">Choose Sign Up Method</string>
+    <string name="auth_back_action">Back</string>
+    <string name="topbar_expenses_title">Daily Expense Ledger</string>
+    <string name="topbar_expenses_subtitle">Manage daily transactions &amp; recurring bills</string>
+    <string name="topbar_budget_title">Monthly Budget Planner</string>
+    <string name="topbar_budget_subtitle">Smart 50/30/20 allocation &amp; daily safe limits</string>
+    <string name="topbar_savings_title">Savings Goals &amp; Wallets</string>
+    <string name="topbar_savings_subtitle">Track your savings goals &amp; active wallets</string>
 </resources>

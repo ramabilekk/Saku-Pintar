@@ -279,10 +279,10 @@ object AppUpdateChecker {
 
   private fun normalizeTag(versionName: String, versionCode: Int): String {
     val trimmed = versionName.trim()
-    return if ((trimmed.isBlank() || trimmed == "1.0") && versionCode >= 1) {
-      "1.0.$versionCode"
-    } else {
-      trimmed
+    return when {
+      trimmed.isBlank() && versionCode >= 1 -> "2.0.$versionCode"
+      (trimmed == "1.0" || trimmed == "2.0") && versionCode >= 1 -> "$trimmed.$versionCode"
+      else -> trimmed
     }
   }
 

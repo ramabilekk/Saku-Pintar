@@ -24,6 +24,7 @@ object ImageUtils {
     val rawBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       val source = ImageDecoder.createSource(context.contentResolver, uri)
       ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         val size = info.size
         val longest = max(size.width, size.height)
         if (longest > maxDimensionPx) {
@@ -71,10 +72,17 @@ object ImageUtils {
     targetSizePx: Int = 256,
   ): String = withContext(Dispatchers.IO) {
     val decoded = decodeScaledBitmap(context, uri, maxDimensionPx = 512)
-    val softwareBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && decoded.config == Bitmap.Config.HARDWARE) {
-      decoded.copy(Bitmap.Config.ARGB_8888, false)
+    encodeAvatarBitmapBase64(decoded, targetSizePx)
+  }
+
+  fun encodeAvatarBitmapBase64(
+    bitmap: Bitmap,
+    targetSizePx: Int = 256,
+  ): String {
+    val softwareBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bitmap.config == Bitmap.Config.HARDWARE) {
+      bitmap.copy(Bitmap.Config.ARGB_8888, false)
     } else {
-      decoded
+      bitmap
     }
     val squareSize = min(softwareBitmap.width, softwareBitmap.height).coerceAtLeast(1)
     val offsetX = ((softwareBitmap.width - squareSize) / 2).coerceAtLeast(0)
@@ -94,7 +102,7 @@ object ImageUtils {
     }
     val encoded = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
     require(encoded.length <= 145_000) { "Ukuran foto profil terlalu besar." }
-    encoded
+    return encoded
   }
 
   fun decodeAvatarBitmap(base64: String): Bitmap? {
@@ -103,5 +111,57 @@ object ImageUtils {
       val bytes = Base64.decode(base64, Base64.DEFAULT)
       BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }.getOrNull()
+  }
+
+  suspend fun encodeReceiptBase64(
+    context: Context,
+    uri: Uri,
+    maxDimensionPx: Int = 820,
+  ): String = withContext(Dispatchers.IO) {
+    val decoded = decodeScaledBitmap(context, uri, maxDimensionPx = maxDimensionPx)
+    encodeReceiptBitmapBase64(decoded, maxDimensionPx)
+  }
+
+  fun encodeReceiptBitmapBase64(
+    bitmap: Bitmap,
+    maxDimensionPx: Int = 820,
+  ): String {
+    val softwareBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bitmap.config == Bitmap.Config.HARDWARE) {
+      bitmap.copy(Bitmap.Config.ARGB_8888, false)
+    } else {
+      bitmap
+    }
+    val longest = max(softwareBitmap.width, softwareBitmap.height).coerceAtLeast(1)
+    val scaled = if (longest > maxDimensionPx) {
+      val scale = maxDimensionPx.toFloat() / longest.toFloat()
+      Bitmap.createScaledBitmap(
+        softwareBitmap,
+        (softwareBitmap.width * scale).roundToInt().coerceAtLeast(1),
+        (softwareBitmap.height * scale).roundToInt().coerceAtLeast(1),
+        true,
+      )
+    } else {
+      softwareBitmap
+    }
+
+    val output = ByteArrayOutputStream()
+    scaled.compress(Bitmap.CompressFormat.JPEG, 76, output)
+    if (output.size() > 130_000) {
+      output.reset()
+      scaled.compress(Bitmap.CompressFormat.JPEG, 56, output)
+    }
+    if (output.size() > 130_000) {
+      output.reset()
+      val smaller = Bitmap.createScaledBitmap(
+        scaled,
+        (scaled.width * 0.72f).roundToInt().coerceAtLeast(1),
+        (scaled.height * 0.72f).roundToInt().coerceAtLeast(1),
+        true,
+      )
+      smaller.compress(Bitmap.CompressFormat.JPEG, 52, output)
+    }
+    val encoded = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
+    require(encoded.length <= 195_000) { "Ukuran foto struk terlalu besar." }
+    return encoded
   }
 }

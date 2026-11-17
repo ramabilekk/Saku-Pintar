@@ -144,20 +144,6 @@ fun LanguagePickerDialog(
                   fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                   color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (lang.isUnOfficial) {
-                  Spacer(modifier = Modifier.height(2.dp))
-                  Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                  ) {
-                    Text(
-                      text = stringResource(R.string.language_un_badge),
-                      style = MaterialTheme.typography.labelSmall,
-                      color = MaterialTheme.colorScheme.onSecondaryContainer,
-                      modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                  }
-                }
               }
 
               if (isSelected) {

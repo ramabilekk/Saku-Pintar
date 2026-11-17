@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,9 +26,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Savings
@@ -36,6 +42,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -67,9 +74,16 @@ import com.example.data.model.MonthlyBudget
 import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import androidx.compose.ui.graphics.Color
 import com.example.ui.components.CategoryIconBadge
+import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.MonthYearPickerDialog
+import com.example.ui.components.SculptedSurfaceCard
+import com.example.ui.components.rememberTactileFeedback
+import com.example.ui.components.tactileClickable
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.util.Formatters
 import java.time.YearMonth
@@ -80,12 +94,17 @@ fun AutoBudgetScreen(
   currentUserId: String,
   isSaving: Boolean,
   onSaveBudget: (MonthlyBudget) -> Unit,
+  onPreviousMonth: () -> Unit = {},
+  onNextMonth: () -> Unit = {},
+  onSelectMonth: (String) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
+  val tactile = rememberTactileFeedback()
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+  var showMonthPicker by remember { mutableStateOf(false) }
 
   val existingBudget = data.budget
   var incomeText by remember(data.monthKey, existingBudget?.monthlyIncome, activeCurrency) {
@@ -152,11 +171,9 @@ fun AutoBudgetScreen(
     ) {
       // 1. Header & Monthly Income Input
       item {
-        Card(
-          shape = RoundedCornerShape(22.dp),
-          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-          elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-          modifier = Modifier.fillMaxWidth(),
+        SculptedSurfaceCard(
+          accentColor = MaterialTheme.colorScheme.primary,
+          cornerRadius = 22,
         ) {
           Column(
             modifier = Modifier.padding(18.dp),
@@ -164,26 +181,28 @@ fun AutoBudgetScreen(
           ) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(10.dp),
+              horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
               Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                modifier = Modifier.size(38.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                modifier = Modifier.size(42.dp),
               ) {
                 Box(contentAlignment = Alignment.Center) {
                   Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(21.dp),
                   )
                 }
               }
-              Column {
+              Column(modifier = Modifier.weight(1f)) {
                 Text(
                   text = stringResource(R.string.budget_builder_title),
                   style = MaterialTheme.typography.titleMedium,
+                  fontWeight = FontWeight.Bold,
                   color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
@@ -194,6 +213,89 @@ fun AutoBudgetScreen(
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+              }
+            }
+
+            // Integrated Full-Width Calendar / Month Selector Bar inside Budget Builder Card
+            Surface(
+              shape = RoundedCornerShape(16.dp),
+              color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
+              border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+              ),
+              modifier = Modifier.fillMaxWidth(),
+            ) {
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                IconButton(
+                  onClick = {
+                    tactile.tick()
+                    onPreviousMonth()
+                  },
+                  modifier = Modifier
+                    .size(48.dp)
+                    .testTag("prev_month_button"),
+                ) {
+                  Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                    contentDescription = stringResource(R.string.prev_month_cd),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                  )
+                }
+
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(6.dp),
+                  modifier = Modifier
+                    .heightIn(min = 40.dp)
+                    .clip(RoundedCornerShape(50))
+                    .tactileClickable(pressedScale = 0.94f) { showMonthPicker = true }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .testTag("month_picker_button"),
+                ) {
+                  Icon(
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = stringResource(R.string.month_picker_title),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                  )
+                  Text(
+                    text = Formatters.formatMonthTitle(data.monthKey, activeLocale),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                  )
+                  Icon(
+                    imageVector = Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                  )
+                }
+
+                IconButton(
+                  onClick = {
+                    tactile.tick()
+                    onNextMonth()
+                  },
+                  modifier = Modifier
+                    .size(48.dp)
+                    .testTag("next_month_button"),
+                ) {
+                  Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = stringResource(R.string.next_month_cd),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                  )
+                }
               }
             }
 
@@ -317,15 +419,10 @@ fun AutoBudgetScreen(
         }
       }
 
-      // 3. Summary Preview Card (Savings & Daily Target)
+      // 3. 3D-Layered Summary Preview Card (Savings & Daily Target)
       item {
-        Card(
-          shape = RoundedCornerShape(20.dp),
-          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-          modifier = Modifier.fillMaxWidth(),
-        ) {
+        DimensionalVaultCard {
           Column(
-            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
           ) {
             Row(
@@ -333,23 +430,24 @@ fun AutoBudgetScreen(
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically,
             ) {
-              Column {
+              Column(modifier = Modifier.weight(1f)) {
                 Text(
                   text = stringResource(R.string.budget_shopping_allocation),
                   style = MaterialTheme.typography.labelMedium,
-                  color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                  color = Color.White.copy(alpha = 0.84f),
                 )
                 Text(
                   text = Formatters.formatMoney(spendableTotal, activeCurrency),
                   style = MaterialTheme.typography.headlineSmall,
                   fontFamily = JetBrainsMonoFontFamily,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onPrimary,
+                  fontWeight = FontWeight.ExtraBold,
+                  color = Color.White,
                 )
               }
               Surface(
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(14.dp),
+                color = Color.White.copy(alpha = 0.16f),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(0.8.dp, GoldAccent.copy(alpha = 0.45f)),
               ) {
                 Row(
                   modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -366,14 +464,14 @@ fun AutoBudgetScreen(
                     Text(
                       text = stringResource(R.string.budget_savings_label),
                       style = MaterialTheme.typography.labelSmall,
-                      color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                      color = Color.White.copy(alpha = 0.84f),
                     )
                     Text(
                       text = Formatters.formatMoneyCompact(savingsAmount, activeCurrency, activeLocale),
                       style = MaterialTheme.typography.labelLarge,
                       fontFamily = JetBrainsMonoFontFamily,
                       fontWeight = FontWeight.Bold,
-                      color = MaterialTheme.colorScheme.onPrimary,
+                      color = Color(0xFFFDE68A),
                     )
                   }
                 }
@@ -394,7 +492,7 @@ fun AutoBudgetScreen(
                 .fillMaxWidth()
                 .height(10.dp)
                 .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
+                .background(Color.White.copy(alpha = 0.20f)),
             ) {
               val needsW = (needsTotal / totalForBar).coerceIn(0f, 1f)
               val wantsW = (wantsTotal / totalForBar).coerceIn(0f, 1f)
@@ -404,7 +502,7 @@ fun AutoBudgetScreen(
                   modifier = Modifier
                     .weight(needsW)
                     .height(10.dp)
-                    .background(MaterialTheme.colorScheme.onPrimary)
+                    .background(Color.White)
                 )
               }
               if (wantsW > 0f) {
@@ -412,7 +510,7 @@ fun AutoBudgetScreen(
                   modifier = Modifier
                     .weight(wantsW)
                     .height(10.dp)
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .background(SkyPositiveAccent)
                 )
               }
               if (savingsW > 0f) {
@@ -432,7 +530,7 @@ fun AutoBudgetScreen(
                 daysInMonth,
               ),
               style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+              color = Color.White.copy(alpha = 0.90f),
             )
           }
         }
@@ -553,6 +651,18 @@ fun AutoBudgetScreen(
       }
     }
   }
+
+  if (showMonthPicker) {
+    MonthYearPickerDialog(
+      currentMonthKey = data.monthKey,
+      locale = activeLocale,
+      onSelectMonth = { newKey ->
+        onSelectMonth(newKey)
+        showMonthPicker = false
+      },
+      onDismiss = { showMonthPicker = false },
+    )
+  }
 }
 
 @Composable
@@ -566,10 +676,9 @@ private fun CategoryBudgetAdjustCard(
   val stepAmount = currency.budgetStepAmount
   val stepLabel = currency.budgetStepCompactLabel
 
-  Card(
-    shape = RoundedCornerShape(16.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    modifier = Modifier.fillMaxWidth(),
+  SculptedSurfaceCard(
+    accentColor = category.accentColor,
+    cornerRadius = 18,
   ) {
     Column(
       modifier = Modifier

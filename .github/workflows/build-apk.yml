@@ -94,7 +94,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v1.0.${{ github.run_number }}"
+          TAG="v2.0.${{ github.run_number }}"
           APK_NAME="SakuPintar-${TAG}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           SHA1=$(keytool -list -v -keystore debug.keystore -storepass android 2>/dev/null | grep -m1 "SHA1:" | awk '{print $2}' || echo "N/A")
@@ -103,16 +103,16 @@ jobs:
           else
             FIREBASE_STATUS="BELUM TERPASANG — tambahkan secret GOOGLE_SERVICES_JSON di GitHub lalu build ulang"
           fi
-          NOTES="Build APK otomatis untuk SakuPintar (${TAG}).
-          - Versi Aplikasi: ${TAG} (Build ${{ github.run_number }})
+          NOTES="Build APK otomatis untuk SakuPintar v2.0 (${TAG}).
+          - Versi Aplikasi: 2.0 (${TAG} • Build ${{ github.run_number }})
           - Firebase Config: ${FIREBASE_STATUS}
           - SHA-1 signing: ${SHA1}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK_NAME" --clobber
-            gh release edit "$TAG" --notes "$NOTES" --latest
+            gh release edit "$TAG" --title "SakuPintar v2.0 (${TAG})" --notes "$NOTES" --latest
           else
             gh release create "$TAG" "$APK_NAME" \
-              --title "SakuPintar ${TAG}" \
+              --title "SakuPintar v2.0 (${TAG})" \
               --notes "$NOTES" \
               --latest
           fi

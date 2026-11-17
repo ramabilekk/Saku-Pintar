@@ -1,10 +1,9 @@
 package com.example
 
 import android.content.Context
-import android.graphics.Color
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -37,16 +37,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ai.configureAppCheck
-import com.example.auth.attemptAutoSignIn
+import com.example.auth.AccountSecurityOtpManager
 import com.example.auth.authStateFlow
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.ui.LocalAccountScaffold
 import com.example.ui.MainAppScaffold
 import com.example.ui.auth.AuthScreen
 import com.example.ui.components.ForceUpdateScreen
@@ -66,9 +67,9 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     configureAppCheck(this, intent)
-    enableEdgeToEdge()
     setContent {
       val themeMode by ThemePreferenceManager.observeThemeMode(applicationContext)
         .collectAsStateWithLifecycle()
@@ -91,18 +92,10 @@ class MainActivity : ComponentActivity() {
         AppThemeMode.DARK -> true
       }
 
-      DisposableEffect(useDarkTheme) {
-        enableEdgeToEdge(
-          statusBarStyle = SystemBarStyle.auto(
-            Color.TRANSPARENT,
-            Color.TRANSPARENT,
-          ) { useDarkTheme },
-          navigationBarStyle = SystemBarStyle.auto(
-            Color.TRANSPARENT,
-            Color.TRANSPARENT,
-          ) { useDarkTheme },
-        )
-        onDispose {}
+      SideEffect {
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !useDarkTheme
+        insetsController.isAppearanceLightNavigationBars = !useDarkTheme
       }
 
       CompositionLocalProvider(
@@ -116,6 +109,12 @@ class MainActivity : ComponentActivity() {
         }
       }
     }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    configureAppCheck(this, intent)
   }
 }
 
@@ -217,25 +216,25 @@ private fun AppRoot() {
 
   val auth = Firebase.auth
   val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
-  val credentialManager = remember(context) { CredentialManager.create(context) }
-
-  LaunchedEffect(Unit) {
-    if (auth.currentUser == null) {
-      attemptAutoSignIn(
-        context = context,
-        credentialManager = credentialManager,
-        onAuthSuccess = {},
-        onUnauthenticated = {},
-        scope = this,
-      )
-    }
-  }
+  val altSession by AccountSecurityOtpManager.observeAltSession(context).collectAsStateWithLifecycle()
 
   val user = currentUser
   if (user == null) {
-    AuthScreen(
-      onAuthSuccess = {},
-    )
+    val activeAlt = altSession
+    if (activeAlt != null) {
+      key(activeAlt.userId) {
+        LocalAccountScaffold(
+          session = activeAlt,
+          onSignedOut = {
+            AccountSecurityOtpManager.clearAltSession(context)
+          },
+        )
+      }
+    } else {
+      AuthScreen(
+        onAuthSuccess = {},
+      )
+    }
   } else {
     key(user.uid) {
       MainAppScaffold(

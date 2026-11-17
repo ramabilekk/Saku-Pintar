@@ -1,32 +1,48 @@
 package com.example.ui.components
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -42,11 +58,17 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.VolunteerActivism
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -54,16 +76,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,7 +91,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -79,6 +103,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
@@ -89,7 +115,12 @@ import com.example.i18n.LanguagePreferenceManager
 import com.example.notifications.DailyReminderManager
 import com.example.notifications.ReminderSettings
 import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.CoralDanger
+import com.example.ui.theme.GoldAccent
+import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.theme.ThemePreferenceManager
+
+private const val SUPPORT_DONATION_URL = "https://trakteer.id/ramabilekk/gift"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -108,15 +139,17 @@ fun AccountProfileDialog(
   onStatusMessage: (String) -> Unit,
   onSignOut: () -> Unit,
   onDismiss: () -> Unit,
+  onTakePhotoBitmap: (Bitmap) -> Unit = {},
 ) {
   val context = LocalContext.current
-  val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   var draftName by remember(displayName) { mutableStateOf(displayName) }
   var showLanguagePicker by remember { mutableStateOf(false) }
+  var showTimePickerDialog by remember { mutableStateOf(false) }
+  var showPhotoSourceDialog by remember { mutableStateOf(false) }
   var expandNameEditor by remember { mutableStateOf(false) }
   var expandCurrencyPicker by remember { mutableStateOf(false) }
-  var expandThemePicker by remember { mutableStateOf(false) }
 
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
@@ -129,6 +162,48 @@ fun AccountProfileDialog(
     }
   }
 
+  val cameraCaptureLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.TakePicturePreview(),
+  ) { bitmap ->
+    if (bitmap != null) {
+      onTakePhotoBitmap(bitmap)
+    }
+  }
+
+  val cameraPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission(),
+  ) { granted ->
+    if (granted) {
+      runCatching {
+        cameraCaptureLauncher.launch(null)
+      }.onFailure { err ->
+        onStatusMessage(err.localizedMessage ?: context.getString(R.string.error_generic))
+      }
+    } else {
+      onStatusMessage(context.getString(R.string.camera_permission_denied))
+    }
+  }
+
+  fun launchProfileCamera() {
+    val hasCamPermission = ContextCompat.checkSelfPermission(
+      context,
+      Manifest.permission.CAMERA,
+    ) == PackageManager.PERMISSION_GRANTED
+    if (hasCamPermission) {
+      runCatching {
+        cameraCaptureLauncher.launch(null)
+      }.onFailure { err ->
+        onStatusMessage(err.localizedMessage ?: context.getString(R.string.error_generic))
+      }
+    } else {
+      runCatching {
+        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+      }.onFailure { err ->
+        onStatusMessage(err.localizedMessage ?: context.getString(R.string.error_generic))
+      }
+    }
+  }
+
   val notificationPermissionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestPermission(),
   ) { granted ->
@@ -138,7 +213,8 @@ fun AccountProfileDialog(
         reminderSettings.copy(enabled = true),
       )
       onReminderSettingsChange(updated)
-      onStatusMessage(context.getString(R.string.reminder_enabled_status, updated.hour))
+      val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
+      onStatusMessage(context.getString(R.string.reminder_enabled_status, formattedTime))
     } else {
       val updated = DailyReminderManager.updateSettings(
         context,
@@ -152,443 +228,923 @@ fun AccountProfileDialog(
   val hasCustomPhoto = !customPhotoBase64.isNullOrBlank()
   val hasGooglePhoto = !googlePhotoUrl.isNullOrBlank()
 
-  ModalBottomSheet(
+  val drawerShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+
+  Dialog(
     onDismissRequest = onDismiss,
-    sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.surface,
-    tonalElevation = 0.dp,
+    properties = DialogProperties(
+      usePlatformDefaultWidth = false,
+      decorFitsSystemWindows = false,
+    ),
   ) {
+    val tactile = rememberTactileFeedback()
+    val drawerScrimAlpha by animateFloatAsState(
+      targetValue = if (isDarkTheme) 0.62f else 0.44f,
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_scrim_alpha",
+    )
+    val drawerBorderTop by animateColorAsState(
+      targetValue = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.55f else 0.32f),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_border_top",
+    )
+    val drawerBorderMid by animateColorAsState(
+      targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = if (isDarkTheme) 0.35f else 0.20f),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_border_mid",
+    )
+    val headerGradStart by animateColorAsState(
+      targetValue = if (isDarkTheme) Color(0xFF1E3A8A).copy(alpha = 0.85f) else Color(0xFF1D4ED8),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_header_grad_start",
+    )
+    val headerGradMid by animateColorAsState(
+      targetValue = if (isDarkTheme) Color(0xFF312E81).copy(alpha = 0.78f) else Color(0xFF4338CA),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_header_grad_mid",
+    )
+    val headerGradEnd by animateColorAsState(
+      targetValue = if (isDarkTheme) Color(0xFF0F172A).copy(alpha = 0.92f) else Color(0xFF1E1B4B),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_header_grad_end",
+    )
+    val headerDividerColor by animateColorAsState(
+      targetValue = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.35f else 0.20f),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_header_divider",
+    )
+    val expandedSectionBgColor by animateColorAsState(
+      targetValue = MaterialTheme.colorScheme.surfaceVariant.copy(
+        alpha = if (isDarkTheme) 0.32f else 0.45f,
+      ),
+      animationSpec = tween(420, easing = FastOutSlowInEasing),
+      label = "drawer_expanded_section_bg",
+    )
+
     Box(
-      modifier = Modifier.fillMaxWidth(),
-      contentAlignment = Alignment.TopCenter,
+      modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black.copy(alpha = drawerScrimAlpha))
+        .clickable(
+          interactionSource = remember { MutableInteractionSource() },
+          indication = null,
+          onClick = onDismiss,
+        ),
     ) {
-      Column(
+      // Right-anchored slide-over drawer panel right at the profile button side
+      Surface(
+        shape = drawerShape,
+        color = MaterialTheme.colorScheme.background,
+        tonalElevation = 8.dp,
+        shadowElevation = 20.dp,
         modifier = Modifier
-          .widthIn(max = 520.dp)
-          .fillMaxWidth()
-          .verticalScroll(rememberScrollState())
-          .padding(horizontal = 20.dp)
-          .navigationBarsPadding()
-          .padding(bottom = 24.dp),
-      ) {
-        // Minimalist Profile Identity Header
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 20.dp),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-          Box(contentAlignment = Alignment.BottomEnd) {
-            ProfileAvatar(
-              displayName = displayName,
-              customPhotoBase64 = customPhotoBase64,
-              googlePhotoUrl = googlePhotoUrl,
-              size = 60.dp,
-            )
-            Surface(
-              onClick = {
-                if (!isSavingProfile) {
-                  photoPickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                  )
-                }
-              },
-              shape = CircleShape,
-              color = MaterialTheme.colorScheme.surfaceContainerHigh,
-              border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.surface,
+          .align(Alignment.CenterEnd)
+          .fillMaxHeight()
+          .fillMaxWidth(0.86f)
+          .widthIn(min = 290.dp, max = 390.dp)
+          .clip(drawerShape)
+          .border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+              colors = listOf(
+                drawerBorderTop,
+                drawerBorderMid,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
               ),
-              modifier = Modifier.size(24.dp),
-            ) {
-              Box(contentAlignment = Alignment.Center) {
-                Icon(
-                  imageVector = Icons.Outlined.PhotoCamera,
-                  contentDescription = stringResource(R.string.profile_photo_title),
-                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                  modifier = Modifier.size(13.dp),
-                )
-              }
-            }
-          }
+            ),
+            shape = drawerShape,
+          )
+          .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = {},
+          )
+          .testTag("profile_right_drawer"),
+      ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+          // Match Login & Dashboard multi-layered atmospheric backdrop
+          AppAmbientBackdrop()
 
           Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-          ) {
-            Text(
-              text = displayName,
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.SemiBold,
-              color = MaterialTheme.colorScheme.onSurface,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-              text = email ?: stringResource(R.string.profile_connected_google),
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-              text = when {
-                hasCustomPhoto -> stringResource(R.string.profile_photo_custom_desc)
-                hasGooglePhoto -> stringResource(R.string.profile_photo_google_desc)
-                else -> stringResource(R.string.profile_default_desc)
-              },
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
-              maxLines = 2,
-              overflow = TextOverflow.Ellipsis,
-            )
-          }
-
-          IconButton(
-            onClick = onDismiss,
             modifier = Modifier
-              .size(48.dp)
-              .testTag("profile_close_button"),
+              .fillMaxSize()
+              .verticalScroll(rememberScrollState())
+              .navigationBarsPadding(),
           ) {
-            Icon(
-              imageVector = Icons.Rounded.Close,
-              contentDescription = stringResource(R.string.action_close),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(20.dp),
+            // Top Dimensional Profile Identity Header
+            Box(
+              modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                  Brush.linearGradient(
+                    colors = listOf(headerGradStart, headerGradMid, headerGradEnd),
+                    start = Offset(0f, 0f),
+                    end = Offset(700f, 420f),
+                  )
+                ),
+            ) {
+              Canvas(modifier = Modifier.matchParentSize()) {
+                if (size.width <= 1f || size.height <= 1f) return@Canvas
+                val r1 = (size.height * 0.85f).coerceAtLeast(1f)
+                drawCircle(
+                  brush = Brush.radialGradient(
+                    colors = listOf(
+                      SkyPositiveAccent.copy(alpha = 0.26f),
+                      Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.88f, size.height * 0.22f),
+                    radius = r1,
+                  ),
+                  radius = r1,
+                  center = Offset(size.width * 0.88f, size.height * 0.22f),
+                )
+                val r2 = (size.height * 0.65f).coerceAtLeast(1f)
+                drawCircle(
+                  brush = Brush.radialGradient(
+                    colors = listOf(
+                      GoldAccent.copy(alpha = 0.18f),
+                      Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.15f, size.height * 0.90f),
+                    radius = r2,
+                  ),
+                  radius = r2,
+                  center = Offset(size.width * 0.15f, size.height * 0.90f),
+                )
+              }
+
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .statusBarsPadding()
+                  .padding(start = 18.dp, end = 10.dp, top = 18.dp, bottom = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+              ) {
+                // Avatar with quick camera/gallery badge
+                Box(contentAlignment = Alignment.BottomEnd) {
+                  Surface(
+                    onClick = {
+                      if (!isSavingProfile) {
+                        showPhotoSourceDialog = true
+                      }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.14f),
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f)),
+                    modifier = Modifier.padding(2.dp),
+                  ) {
+                    Box(modifier = Modifier.padding(3.dp)) {
+                      ProfileAvatar(
+                        displayName = displayName,
+                        customPhotoBase64 = customPhotoBase64,
+                        googlePhotoUrl = googlePhotoUrl,
+                        size = 54.dp,
+                      )
+                    }
+                  }
+                  Surface(
+                    onClick = {
+                      if (!isSavingProfile) {
+                        showPhotoSourceDialog = true
+                      }
+                    },
+                    shape = CircleShape,
+                    color = Color(0xFF2563EB),
+                    border = BorderStroke(1.5.dp, Color.White),
+                    modifier = Modifier
+                      .size(24.dp)
+                      .testTag("pick_profile_photo_button"),
+                  ) {
+                    Box(contentAlignment = Alignment.Center) {
+                      Icon(
+                        imageVector = Icons.Outlined.PhotoCamera,
+                        contentDescription = stringResource(R.string.profile_photo_title),
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp),
+                      )
+                    }
+                  }
+                }
+
+                Column(
+                  modifier = Modifier.weight(1f),
+                  verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                  Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                  )
+                  Text(
+                    text = email ?: stringResource(R.string.profile_connected_google),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.80f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                  )
+                }
+
+                IconButton(
+                  onClick = onDismiss,
+                  modifier = Modifier
+                    .size(48.dp)
+                    .testTag("profile_close_button"),
+                ) {
+                  Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                    modifier = Modifier.size(36.dp),
+                  ) {
+                    Box(contentAlignment = Alignment.Center) {
+                      Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.action_close),
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                      )
+                    }
+                  }
+                }
+              }
+            }
+
+            DrawerFullBleedDivider(
+              color = headerDividerColor,
+              thickness = 1.dp,
             )
-          }
-        }
 
-        // Section 1: Account
-        ProfileGroupHeader(title = stringResource(R.string.profile_group_account))
-        ProfileGroupCard {
-          ProfileSettingRow(
-            icon = Icons.Outlined.Edit,
-            title = stringResource(R.string.profile_edit_name_title),
-            trailingValue = displayName,
-            trailingIcon = if (expandNameEditor) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-            onClick = { expandNameEditor = !expandNameEditor },
-            modifier = Modifier.testTag("profile_name_row"),
-          )
+            // =========================================================================
+            // COLUMN 1: EDIT PROFIL (Name + Gallery & Camera Photo Upload)
+            // =========================================================================
+            DrawerColumnRow(
+              icon = Icons.Outlined.Edit,
+              badgeColors = listOf(Color(0xFF2563EB), Color(0xFF4F46E5)),
+              title = stringResource(R.string.profile_edit_name_title),
+              subtitle = displayName,
+              trailingIcon = if (expandNameEditor) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+              onClick = { expandNameEditor = !expandNameEditor },
+              modifier = Modifier.testTag("profile_name_row"),
+            )
 
-          AnimatedVisibility(
-            visible = expandNameEditor,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-          ) {
+            AnimatedVisibility(
+              visible = expandNameEditor,
+              enter = expandVertically() + fadeIn(),
+              exit = shrinkVertically() + fadeOut(),
+            ) {
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .background(expandedSectionBgColor)
+                  .padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+              ) {
+                OutlinedTextField(
+                  value = draftName,
+                  onValueChange = { draftName = it.take(50) },
+                  label = { Text(stringResource(R.string.profile_display_name_label)) },
+                  placeholder = { Text(stringResource(R.string.profile_display_name_hint)) },
+                  singleLine = true,
+                  shape = RoundedCornerShape(14.dp),
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("profile_name_input"),
+                )
+
+                val trimmedDraft = draftName.trim()
+                FilledTonalButton(
+                  onClick = {
+                    onSaveDisplayName(trimmedDraft)
+                    expandNameEditor = false
+                  },
+                  enabled = !isSavingProfile && trimmedDraft.isNotEmpty() && trimmedDraft != displayName,
+                  shape = RoundedCornerShape(12.dp),
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("save_profile_name_button"),
+                ) {
+                  Icon(
+                    imageVector = Icons.Rounded.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                  )
+                  Spacer(modifier = Modifier.width(6.dp))
+                  Text(
+                    if (isSavingProfile) {
+                      stringResource(R.string.action_saving)
+                    } else {
+                      stringResource(R.string.profile_save_name_button)
+                    }
+                  )
+                }
+
+                // Side-by-side Gallery & Camera Profile Photo Upload Buttons
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                  OutlinedButton(
+                    onClick = {
+                      if (!isSavingProfile) {
+                        photoPickerLauncher.launch(
+                          PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                      }
+                    },
+                    enabled = !isSavingProfile,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                      .weight(1f)
+                      .height(48.dp)
+                      .testTag("edit_profile_gallery_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Outlined.PhotoLibrary,
+                      contentDescription = null,
+                      modifier = Modifier.size(17.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                      text = if (hasCustomPhoto) {
+                        stringResource(R.string.profile_photo_change)
+                      } else {
+                        stringResource(R.string.profile_photo_pick)
+                      },
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                  }
+
+                  FilledTonalButton(
+                    onClick = {
+                      if (!isSavingProfile) {
+                        launchProfileCamera()
+                      }
+                    },
+                    enabled = !isSavingProfile,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                      .weight(1f)
+                      .height(48.dp)
+                      .testTag("take_profile_photo_camera_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Outlined.PhotoCamera,
+                      contentDescription = null,
+                      modifier = Modifier.size(17.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                      text = stringResource(R.string.profile_photo_camera),
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                  }
+                }
+
+                if (hasCustomPhoto) {
+                  TextButton(
+                    onClick = onSyncGooglePhoto,
+                    enabled = !isSavingProfile,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .height(48.dp)
+                      .testTag("sync_google_photo_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Outlined.Sync,
+                      contentDescription = null,
+                      modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                      if (hasGooglePhoto) {
+                        stringResource(R.string.profile_photo_use_google)
+                      } else {
+                        stringResource(R.string.profile_photo_remove_custom)
+                      }
+                    )
+                  }
+                }
+              }
+            }
+
+            DrawerFullBleedDivider()
+
+            // =========================================================================
+            // COLUMN 2: BAHASA
+            // =========================================================================
+            val languageValue = if (activeLanguage == AppLanguage.SYSTEM) {
+              "${stringResource(R.string.language_auto)} (${activeLanguage.resolveEffectiveLanguage().shortCode})"
+            } else {
+              activeLanguage.nativeName
+            }
+            DrawerColumnRow(
+              icon = Icons.Outlined.Language,
+              badgeColors = listOf(Color(0xFF0284C7), Color(0xFF06B6D4)),
+              title = stringResource(R.string.language_section_title),
+              subtitle = languageValue,
+              trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+              onClick = { showLanguagePicker = true },
+              modifier = Modifier.testTag("profile_language_button"),
+            )
+
+            DrawerFullBleedDivider()
+
+            // =========================================================================
+            // COLUMN 3: MATA UANG
+            // =========================================================================
+            DrawerColumnRow(
+              icon = Icons.Outlined.AttachMoney,
+              badgeColors = listOf(Color(0xFF059669), Color(0xFF10B981)),
+              title = stringResource(R.string.currency_section_title),
+              subtitle = activeCurrency.displayName,
+              trailingIcon = if (expandCurrencyPicker) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+              onClick = { expandCurrencyPicker = !expandCurrencyPicker },
+              modifier = Modifier.testTag("profile_currency_button"),
+            )
+
+            AnimatedVisibility(
+              visible = expandCurrencyPicker,
+              enter = expandVertically() + fadeIn(),
+              exit = shrinkVertically() + fadeOut(),
+            ) {
+              FlowRow(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .background(expandedSectionBgColor)
+                  .padding(horizontal = 18.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+              ) {
+                AppCurrency.entries.forEach { currency ->
+                  FilterChip(
+                    selected = activeCurrency == currency,
+                    onClick = {
+                      CurrencyPreferenceManager.setCurrency(context, currency)
+                      onStatusMessage(context.getString(R.string.currency_changed_status, currency.displayName))
+                      expandCurrencyPicker = false
+                    },
+                    label = { Text(currency.displayName) },
+                    modifier = Modifier.testTag("currency_chip_${currency.code}"),
+                  )
+                }
+              }
+            }
+
+            DrawerFullBleedDivider()
+
+            // =========================================================================
+            // COLUMN 4: TEMA
+            // =========================================================================
+            Row(
+              modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .clickable {
+                  tactile.tick()
+                  val nextMode = if (themeMode == AppThemeMode.DARK) {
+                    AppThemeMode.LIGHT
+                  } else {
+                    AppThemeMode.DARK
+                  }
+                  ThemePreferenceManager.setThemeMode(context, nextMode)
+                  val nextLabel = context.getString(nextMode.labelRes)
+                  onStatusMessage(context.getString(R.string.theme_changed_status, nextLabel))
+                }
+                .padding(horizontal = 18.dp, vertical = 12.dp)
+                .testTag("profile_theme_button"),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+              SculptedDrawerBadge(
+                icon = Icons.Outlined.Palette,
+                gradientColors = listOf(Color(0xFFD97706), Color(0xFFF59E0B)),
+              )
+              Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+              ) {
+                Text(
+                  text = stringResource(R.string.theme_section_title),
+                  style = MaterialTheme.typography.titleMedium,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+                AnimatedContent(
+                  targetState = isDarkTheme,
+                  transitionSpec = {
+                    fadeIn(tween(220)) togetherWith fadeOut(tween(180))
+                  },
+                  label = "drawer_theme_mode_label",
+                ) { dark ->
+                  Text(
+                    text = stringResource(
+                      if (dark) R.string.theme_mode_dark else R.string.theme_mode_light
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                  )
+                }
+              }
+              ThemeLogoToggle(
+                themeMode = themeMode,
+                onSelectThemeMode = { mode ->
+                  ThemePreferenceManager.setThemeMode(context, mode)
+                  val modeLabel = context.getString(mode.labelRes)
+                  onStatusMessage(context.getString(R.string.theme_changed_status, modeLabel))
+                },
+                lightButtonTag = "theme_mode_LIGHT",
+                darkButtonTag = "theme_mode_DARK",
+              )
+            }
+
+            DrawerFullBleedDivider()
+
+            // =========================================================================
+            // COLUMN 5: REMINDER / PENGINGAT HARIAN
+            // =========================================================================
+            Column(modifier = Modifier.fillMaxWidth()) {
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .heightIn(min = 72.dp)
+                  .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+              ) {
+                SculptedDrawerBadge(
+                  icon = Icons.Outlined.Notifications,
+                  gradientColors = listOf(Color(0xFF7C3AED), Color(0xFF9333EA)),
+                )
+                Column(
+                  modifier = Modifier.weight(1f),
+                  verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                  Text(
+                    text = stringResource(R.string.reminder_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                  )
+                  Text(
+                    text = if (reminderSettings.enabled) {
+                      "%02d:%02d".format(reminderSettings.hour, reminderSettings.minute)
+                    } else {
+                      stringResource(R.string.reminder_subtitle)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                  )
+                }
+                Switch(
+                  checked = reminderSettings.enabled,
+                  onCheckedChange = { enable ->
+                    if (enable) {
+                      val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(
+                          context,
+                          Manifest.permission.POST_NOTIFICATIONS,
+                        ) != PackageManager.PERMISSION_GRANTED
+                      if (needsPermission) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                      } else {
+                        val updated = DailyReminderManager.updateSettings(
+                          context,
+                          reminderSettings.copy(enabled = true),
+                        )
+                        onReminderSettingsChange(updated)
+                        val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
+                        onStatusMessage(context.getString(R.string.reminder_enabled_status, formattedTime))
+                      }
+                    } else {
+                      val updated = DailyReminderManager.updateSettings(
+                        context,
+                        reminderSettings.copy(enabled = false),
+                      )
+                      onReminderSettingsChange(updated)
+                      onStatusMessage(context.getString(R.string.reminder_disabled_status))
+                    }
+                  },
+                  modifier = Modifier
+                    .scale(0.9f)
+                    .testTag("reminder_toggle_switch"),
+                )
+              }
+
+              AnimatedVisibility(
+                visible = reminderSettings.enabled,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+              ) {
+                FlowRow(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .background(expandedSectionBgColor)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                  val isCustomTime = reminderSettings.minute != 0 ||
+                    reminderSettings.hour !in listOf(19, 20, 21)
+                  val formattedCurrentTime = "%02d:%02d".format(reminderSettings.hour, reminderSettings.minute)
+                  FilterChip(
+                    selected = isCustomTime,
+                    onClick = { showTimePickerDialog = true },
+                    leadingIcon = {
+                      Icon(
+                        imageVector = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                      )
+                    },
+                    label = {
+                      Text(
+                        if (isCustomTime) {
+                          formattedCurrentTime
+                        } else {
+                          stringResource(R.string.reminder_custom_time_action)
+                        }
+                      )
+                    },
+                    modifier = Modifier.testTag("reminder_custom_time_button"),
+                  )
+                  listOf(19, 20, 21).forEach { hourOption ->
+                    FilterChip(
+                      selected = reminderSettings.hour == hourOption && reminderSettings.minute == 0,
+                      onClick = {
+                        val updated = DailyReminderManager.updateSettings(
+                          context,
+                          reminderSettings.copy(hour = hourOption, minute = 0),
+                        )
+                        onReminderSettingsChange(updated)
+                        val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
+                        onStatusMessage(context.getString(R.string.reminder_time_changed, formattedTime))
+                      },
+                      label = { Text("%02d:00".format(hourOption)) },
+                      modifier = Modifier.testTag("reminder_hour_$hourOption"),
+                    )
+                  }
+                }
+              }
+            }
+
+            DrawerFullBleedDivider()
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Footer: Support & Sign Out inside sculpted container
             Column(
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
-              verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+              verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-              OutlinedTextField(
-                value = draftName,
-                onValueChange = { draftName = it.take(50) },
-                label = { Text(stringResource(R.string.profile_display_name_label)) },
-                placeholder = { Text(stringResource(R.string.profile_display_name_hint)) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .testTag("profile_name_input"),
-              )
-              val trimmedDraft = draftName.trim()
-              FilledTonalButton(
-                onClick = {
-                  onSaveDisplayName(trimmedDraft)
-                  expandNameEditor = false
-                },
-                enabled = !isSavingProfile && trimmedDraft.isNotEmpty() && trimmedDraft != displayName,
-                shape = RoundedCornerShape(12.dp),
+              SculptedSurfaceCard(
+                accentColor = CoralDanger,
+                cornerRadius = 18,
+              ) {
+                Row(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                  SculptedDrawerBadge(
+                    icon = Icons.Rounded.VolunteerActivism,
+                    gradientColors = listOf(Color(0xFFE11D48), Color(0xFFF43F5E)),
+                    sizeDp = 38,
+                  )
+                  Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                  ) {
+                    Text(
+                      text = stringResource(R.string.profile_support_title),
+                      style = MaterialTheme.typography.bodyMedium,
+                      fontWeight = FontWeight.Bold,
+                      color = MaterialTheme.colorScheme.onSurface,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                      text = stringResource(R.string.profile_support_subtitle),
+                      style = MaterialTheme.typography.labelSmall,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      maxLines = 2,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                  }
+                  FilledTonalButton(
+                    onClick = {
+                      runCatching {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_DONATION_URL)).apply {
+                          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                      }.onFailure {
+                        onStatusMessage(context.getString(R.string.profile_support_browser_error))
+                      }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier
+                      .height(48.dp)
+                      .testTag("profile_support_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Favorite,
+                      contentDescription = null,
+                      tint = CoralDanger,
+                      modifier = Modifier.size(15.dp),
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                      text = stringResource(R.string.profile_support_button),
+                      fontWeight = FontWeight.SemiBold,
+                      maxLines = 1,
+                    )
+                  }
+                }
+              }
+
+              TextButton(
+                onClick = onSignOut,
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                   .fillMaxWidth()
                   .height(48.dp)
-                  .testTag("save_profile_name_button"),
+                  .testTag("sign_out_button"),
               ) {
                 Icon(
-                  imageVector = Icons.Rounded.Save,
+                  imageVector = Icons.AutoMirrored.Rounded.Logout,
                   contentDescription = null,
+                  tint = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
                   modifier = Modifier.size(18.dp),
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                  if (isSavingProfile) {
-                    stringResource(R.string.action_saving)
-                  } else {
-                    stringResource(R.string.profile_save_name_button)
-                  }
+                  text = stringResource(R.string.action_sign_out),
+                  color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                  style = MaterialTheme.typography.labelLarge,
+                  fontWeight = FontWeight.SemiBold,
                 )
               }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
           }
+        }
+      }
+    }
+  }
 
-          ProfileSubtleDivider()
-
-          ProfileSettingRow(
-            icon = Icons.Outlined.PhotoCamera,
-            title = if (hasCustomPhoto) {
-              stringResource(R.string.profile_photo_change)
-            } else {
-              stringResource(R.string.profile_photo_pick)
-            },
-            trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-            enabled = !isSavingProfile,
+  // Quick Profile Photo Source Chooser Dialog (Camera vs Gallery)
+  if (showPhotoSourceDialog) {
+    AlertDialog(
+      onDismissRequest = { showPhotoSourceDialog = false },
+      title = {
+        Text(
+          text = stringResource(R.string.profile_photo_source_title),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold,
+        )
+      },
+      text = {
+        Column(
+          modifier = Modifier.fillMaxWidth(),
+          verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+          Text(
+            text = stringResource(R.string.profile_photo_source_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          FilledTonalButton(
             onClick = {
+              showPhotoSourceDialog = false
+              launchProfileCamera()
+            },
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(48.dp)
+              .testTag("photo_source_camera_button"),
+          ) {
+            Icon(
+              imageVector = Icons.Outlined.PhotoCamera,
+              contentDescription = null,
+              modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+              text = stringResource(R.string.profile_photo_camera),
+              fontWeight = FontWeight.SemiBold,
+            )
+          }
+          OutlinedButton(
+            onClick = {
+              showPhotoSourceDialog = false
               photoPickerLauncher.launch(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
               )
             },
-            modifier = Modifier.testTag("pick_profile_photo_button"),
-          )
-
-          if (hasCustomPhoto) {
-            ProfileSubtleDivider()
-            ProfileSettingRow(
-              icon = Icons.Outlined.Sync,
-              title = if (hasGooglePhoto) {
-                stringResource(R.string.profile_photo_use_google)
-              } else {
-                stringResource(R.string.profile_photo_remove_custom)
-              },
-              trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-              enabled = !isSavingProfile,
-              onClick = onSyncGooglePhoto,
-              modifier = Modifier.testTag("sync_google_photo_button"),
-            )
-          }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Section 2: Preferences
-        ProfileGroupHeader(title = stringResource(R.string.profile_group_preferences))
-        ProfileGroupCard {
-          val languageValue = if (activeLanguage == AppLanguage.SYSTEM) {
-            "${stringResource(R.string.language_auto)} (${activeLanguage.resolveEffectiveLanguage().shortCode})"
-          } else {
-            activeLanguage.nativeName
-          }
-          ProfileSettingRow(
-            icon = Icons.Outlined.Language,
-            title = stringResource(R.string.language_section_title),
-            trailingValue = languageValue,
-            trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-            onClick = { showLanguagePicker = true },
-            modifier = Modifier.testTag("profile_language_button"),
-          )
-
-          ProfileSubtleDivider()
-
-          ProfileSettingRow(
-            icon = Icons.Outlined.AttachMoney,
-            title = stringResource(R.string.currency_section_title),
-            trailingValue = activeCurrency.displayName,
-            trailingIcon = if (expandCurrencyPicker) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-            onClick = { expandCurrencyPicker = !expandCurrencyPicker },
-            modifier = Modifier.testTag("profile_currency_button"),
-          )
-
-          AnimatedVisibility(
-            visible = expandCurrencyPicker,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-          ) {
-            FlowRow(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-              verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-              AppCurrency.entries.forEach { currency ->
-                FilterChip(
-                  selected = activeCurrency == currency,
-                  onClick = {
-                    CurrencyPreferenceManager.setCurrency(context, currency)
-                    onStatusMessage(context.getString(R.string.currency_changed_status, currency.displayName))
-                    expandCurrencyPicker = false
-                  },
-                  label = { Text(currency.displayName) },
-                  modifier = Modifier.testTag("currency_chip_${currency.code}"),
-                )
-              }
-            }
-          }
-
-          ProfileSubtleDivider()
-
-          ProfileSettingRow(
-            icon = Icons.Outlined.Palette,
-            title = stringResource(R.string.theme_section_title),
-            trailingValue = stringResource(themeMode.labelRes),
-            trailingIcon = if (expandThemePicker) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-            onClick = { expandThemePicker = !expandThemePicker },
-            modifier = Modifier.testTag("profile_theme_button"),
-          )
-
-          AnimatedVisibility(
-            visible = expandThemePicker,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-          ) {
-            SingleChoiceSegmentedButtonRow(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
-            ) {
-              AppThemeMode.entries.forEachIndexed { index, mode ->
-                val modeLabel = stringResource(mode.labelRes)
-                SegmentedButton(
-                  selected = themeMode == mode,
-                  onClick = {
-                    ThemePreferenceManager.setThemeMode(context, mode)
-                    onStatusMessage(context.getString(R.string.theme_changed_status, modeLabel))
-                  },
-                  shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = AppThemeMode.entries.size,
-                  ),
-                  modifier = Modifier.testTag("theme_mode_${mode.name}"),
-                ) {
-                  Text(
-                    text = modeLabel,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.labelMedium,
-                  )
-                }
-              }
-            }
-          }
-
-          ProfileSubtleDivider()
-
-          // Daily Reminder Switch Row
-          Row(
+            shape = RoundedCornerShape(14.dp),
             modifier = Modifier
               .fillMaxWidth()
-              .heightIn(min = 54.dp)
-              .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+              .height(48.dp)
+              .testTag("photo_source_gallery_button"),
           ) {
             Icon(
-              imageVector = Icons.Outlined.Notifications,
+              imageVector = Icons.Outlined.PhotoLibrary,
               contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(20.dp),
+              modifier = Modifier.size(18.dp),
             )
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(R.string.reminder_title),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-              )
-              Text(
-                text = if (reminderSettings.enabled) {
-                  "%02d:00".format(reminderSettings.hour)
-                } else {
-                  stringResource(R.string.reminder_subtitle)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-              )
-            }
-            Switch(
-              checked = reminderSettings.enabled,
-              onCheckedChange = { enable ->
-                if (enable) {
-                  val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(
-                      context,
-                      Manifest.permission.POST_NOTIFICATIONS,
-                    ) != PackageManager.PERMISSION_GRANTED
-                  if (needsPermission) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                  } else {
-                    val updated = DailyReminderManager.updateSettings(
-                      context,
-                      reminderSettings.copy(enabled = true),
-                    )
-                    onReminderSettingsChange(updated)
-                    onStatusMessage(context.getString(R.string.reminder_enabled_status, updated.hour))
-                  }
-                } else {
-                  val updated = DailyReminderManager.updateSettings(
-                    context,
-                    reminderSettings.copy(enabled = false),
-                  )
-                  onReminderSettingsChange(updated)
-                  onStatusMessage(context.getString(R.string.reminder_disabled_status))
-                }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+              text = if (hasCustomPhoto) {
+                stringResource(R.string.profile_photo_change)
+              } else {
+                stringResource(R.string.profile_photo_pick)
               },
-              modifier = Modifier
-                .scale(0.9f)
-                .testTag("reminder_toggle_switch"),
+              fontWeight = FontWeight.SemiBold,
             )
           }
-
-          AnimatedVisibility(
-            visible = reminderSettings.enabled,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-          ) {
-            Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 48.dp, end = 16.dp, bottom = 12.dp),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-              listOf(19, 20, 21).forEach { hourOption ->
-                FilterChip(
-                  selected = reminderSettings.hour == hourOption,
-                  onClick = {
-                    val updated = DailyReminderManager.updateSettings(
-                      context,
-                      reminderSettings.copy(hour = hourOption, minute = 0),
-                    )
-                    onReminderSettingsChange(updated)
-                    onStatusMessage(context.getString(R.string.reminder_time_changed, hourOption))
-                  },
-                  label = { Text("%02d:00".format(hourOption)) },
-                  modifier = Modifier.testTag("reminder_hour_$hourOption"),
-                )
-              }
-            }
-          }
         }
+      },
+      confirmButton = {},
+      dismissButton = {
+        TextButton(onClick = { showPhotoSourceDialog = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
 
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Subtle Sign Out Footer
-        TextButton(
-          onClick = onSignOut,
-          shape = RoundedCornerShape(14.dp),
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .testTag("sign_out_button"),
+  if (showTimePickerDialog) {
+    val timePickerState = rememberTimePickerState(
+      initialHour = reminderSettings.hour,
+      initialMinute = reminderSettings.minute,
+      is24Hour = true,
+    )
+    AlertDialog(
+      onDismissRequest = { showTimePickerDialog = false },
+      title = {
+        Text(
+          text = stringResource(R.string.reminder_picker_title),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+        )
+      },
+      text = {
+        Box(
+          modifier = Modifier.fillMaxWidth(),
+          contentAlignment = Alignment.Center,
         ) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Rounded.Logout,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
-            modifier = Modifier.size(18.dp),
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(
-            text = stringResource(R.string.action_sign_out),
-            color = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.labelLarge,
-          )
+          TimePicker(state = timePickerState)
         }
-      }
-    }
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            val updated = DailyReminderManager.updateSettings(
+              context,
+              reminderSettings.copy(
+                hour = timePickerState.hour,
+                minute = timePickerState.minute,
+              ),
+            )
+            onReminderSettingsChange(updated)
+            val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
+            onStatusMessage(context.getString(R.string.reminder_time_changed, formattedTime))
+            showTimePickerDialog = false
+          },
+          modifier = Modifier.testTag("reminder_time_confirm_button"),
+        ) {
+          Text(stringResource(R.string.action_save))
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { showTimePickerDialog = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
   }
 
   if (showLanguagePicker) {
@@ -609,95 +1165,113 @@ fun AccountProfileDialog(
 }
 
 @Composable
-private fun ProfileGroupHeader(title: String) {
-  Text(
-    text = title,
-    style = MaterialTheme.typography.labelMedium,
-    fontWeight = FontWeight.SemiBold,
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
-    modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
-  )
-}
-
-@Composable
-private fun ProfileGroupCard(
-  content: @Composable () -> Unit,
+private fun SculptedDrawerBadge(
+  icon: ImageVector,
+  gradientColors: List<Color>,
+  sizeDp: Int = 44,
 ) {
+  val shape = RoundedCornerShape(14.dp)
   Surface(
-    shape = RoundedCornerShape(18.dp),
-    color = MaterialTheme.colorScheme.surfaceContainerLow,
-    border = BorderStroke(
-      width = 0.5.dp,
-      color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-    ),
-    modifier = Modifier.fillMaxWidth(),
+    shape = shape,
+    color = Color.Transparent,
+    shadowElevation = 4.dp,
+    modifier = Modifier.size(sizeDp.dp),
   ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-      content()
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(
+          Brush.linearGradient(
+            colors = gradientColors,
+            start = Offset(0f, 0f),
+            end = Offset(120f, 120f),
+          )
+        )
+        .border(
+          width = 1.dp,
+          brush = Brush.linearGradient(
+            colors = listOf(
+              Color.White.copy(alpha = 0.45f),
+              Color.White.copy(alpha = 0.10f),
+            )
+          ),
+          shape = shape,
+        ),
+      contentAlignment = Alignment.Center,
+    ) {
+      Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = Color.White,
+        modifier = Modifier.size((sizeDp * 0.5f).dp),
+      )
     }
   }
 }
 
 @Composable
-private fun ProfileSubtleDivider() {
-  HorizontalDivider(
-    thickness = 0.5.dp,
-    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-    modifier = Modifier.padding(horizontal = 16.dp),
-  )
-}
-
-@Composable
-private fun ProfileSettingRow(
+private fun DrawerColumnRow(
   icon: ImageVector,
+  badgeColors: List<Color>,
   title: String,
+  subtitle: String,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  trailingValue: String? = null,
   trailingIcon: ImageVector? = null,
   enabled: Boolean = true,
 ) {
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .heightIn(min = 52.dp)
+      .heightIn(min = 72.dp)
       .clickable(enabled = enabled, onClick = onClick)
-      .padding(horizontal = 16.dp, vertical = 12.dp),
+      .padding(horizontal = 18.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    horizontalArrangement = Arrangement.spacedBy(14.dp),
   ) {
-    Icon(
-      imageVector = icon,
-      contentDescription = null,
-      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.size(20.dp),
+    SculptedDrawerBadge(
+      icon = icon,
+      gradientColors = badgeColors,
     )
-    Text(
-      text = title,
-      style = MaterialTheme.typography.bodyMedium,
-      fontWeight = FontWeight.Medium,
-      color = MaterialTheme.colorScheme.onSurface,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
+    Column(
       modifier = Modifier.weight(1f),
-    )
-    if (!trailingValue.isNullOrBlank()) {
+      verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
       Text(
-        text = trailingValue,
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+      Text(
+        text = subtitle,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.widthIn(max = 150.dp),
       )
     }
     if (trailingIcon != null) {
       Icon(
         imageVector = trailingIcon,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        modifier = Modifier.size(18.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+        modifier = Modifier.size(20.dp),
       )
     }
   }
+}
+
+@Composable
+private fun DrawerFullBleedDivider(
+  color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+  thickness: androidx.compose.ui.unit.Dp = 0.8.dp,
+) {
+  HorizontalDivider(
+    thickness = thickness,
+    color = color,
+    modifier = Modifier.fillMaxWidth(),
+  )
 }

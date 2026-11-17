@@ -35,6 +35,7 @@ class FinanceRepositoryRuleTest : FirestoreEmulatorTestBase() {
         dateEpochDay = LocalDate.of(2026, 11, 13).toEpochDay(),
         monthKey = monthKey,
         note = "Kopi susu",
+        receiptPhotoBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
       )
     }
     assertTrue(expenseId.isNotBlank())
@@ -45,10 +46,11 @@ class FinanceRepositoryRuleTest : FirestoreEmulatorTestBase() {
     val created = expenses.first { it.id == expenseId }
     assertEquals(uniqueTitle, created.title)
     assertEquals(28_000L, created.amount)
+    assertTrue(created.hasReceiptPhoto)
     assertNotNull(created.createdAt)
 
     withTimeout(DEFAULT_TIMEOUT_MS) {
-      repo.updateExpense(created.copy(amount = 35_000L, title = "$uniqueTitle-Edited"))
+      repo.updateExpense(created.copy(amount = 35_000L, title = "$uniqueTitle-Edited", receiptPhotoBase64 = ""))
     }
 
     val updatedList = withTimeout(FLOW_TIMEOUT_MS) {
@@ -56,7 +58,9 @@ class FinanceRepositoryRuleTest : FirestoreEmulatorTestBase() {
         list.any { it.id == expenseId && it.amount == 35_000L }
       }
     }
-    assertEquals("$uniqueTitle-Edited", updatedList.first { it.id == expenseId }.title)
+    val updatedExpense = updatedList.first { it.id == expenseId }
+    assertEquals("$uniqueTitle-Edited", updatedExpense.title)
+    assertEquals("", updatedExpense.receiptPhotoBase64)
 
     withTimeout(DEFAULT_TIMEOUT_MS) {
       repo.deleteExpense(expenseId)

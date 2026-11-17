@@ -43,6 +43,7 @@ service cloud.firestore {
              data.dateEpochDay <= 100000 &&
              isValidMonthKey(data.monthKey) &&
              (!('note' in data) || (data.note is string && data.note.size() <= 200)) &&
+             (!('receiptPhotoBase64' in data) || (data.receiptPhotoBase64 is string && data.receiptPhotoBase64.size() <= 200000)) &&
              data.createdAt is timestamp &&
              data.createdAt <= request.time &&
              data.updatedAt is timestamp &&
@@ -170,7 +171,7 @@ service cloud.firestore {
                        isValidId(expenseId) &&
                        request.auth.uid == userId &&
                        incoming().keys().hasAll(['userId', 'title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'createdAt', 'updatedAt']) &&
-                       incoming().keys().hasOnly(['userId', 'title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'receiptPhotoBase64', 'createdAt', 'updatedAt']) &&
                        isValidExpense(incoming(), userId);
 
       allow update: if isSignedIn() &&
@@ -180,7 +181,7 @@ service cloud.firestore {
                        isValidExpense(incoming(), userId) &&
                        incoming().userId == existing().userId &&
                        incoming().createdAt == existing().createdAt &&
-                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'updatedAt']);
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'category', 'paymentMethod', 'dateEpochDay', 'monthKey', 'note', 'receiptPhotoBase64', 'updatedAt']);
 
       allow delete: if isSignedIn() && isValidId(userId) && isValidId(expenseId) && request.auth.uid == userId;
     }

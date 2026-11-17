@@ -15,6 +15,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.budget.BudgetPaceStatus
 import com.example.data.budget.DailyBudgetInsight
@@ -95,9 +96,12 @@ class ModalLocalizationCrashTest {
     composeRule.waitForIdle()
     composeRule.onNodeWithTag("profile_language_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("pick_profile_photo_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("profile_support_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("profile_name_row").performScrollTo().performClick()
     composeRule.waitForIdle()
     composeRule.onNodeWithTag("profile_name_input").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("take_profile_photo_camera_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("edit_profile_gallery_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("profile_currency_button").performScrollTo().performClick()
     composeRule.waitForIdle()
     composeRule.onNodeWithTag("currency_chip_USD").performScrollTo().assertIsDisplayed()
@@ -129,9 +133,10 @@ class ModalLocalizationCrashTest {
               aiParseState = AiExpenseParseState.Idle,
               onParseWithAi = {},
               onScanReceiptUri = {},
+              onScanReceiptBase64 = {},
               onClearAiParse = {},
               onDismiss = {},
-              onSave = { _, _, _, _, _, _ -> },
+              onSave = { _, _, _, _, _, _, _ -> },
             )
           }
         }
@@ -142,7 +147,62 @@ class ModalLocalizationCrashTest {
     composeRule.onNodeWithTag("ai_scan_receipt_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("expense_amount_input").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("expense_title_input").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("receipt_photo_section").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("attach_receipt_gallery_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("attach_receipt_camera_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("save_expense_button").performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
+  fun expenseEditorSheetDisplaysReceiptPreviewAndControlsWhenReceiptAttached() {
+    val sampleBitmap = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888)
+    sampleBitmap.eraseColor(android.graphics.Color.BLUE)
+    val base64Photo = com.example.util.ImageUtils.encodeReceiptBitmapBase64(sampleBitmap)!!
+
+    composeRule.activity.runOnUiThread {
+      composeRule.activity.setContent {
+        val localizedContext = LanguagePreferenceManager.wrapActivityContext(
+          composeRule.activity,
+          AppLanguage.INDONESIAN,
+        )
+        CompositionLocalProvider(
+          LocalContext provides localizedContext,
+          LocalConfiguration provides localizedContext.resources.configuration,
+          LocalLayoutDirection provides LayoutDirection.Ltr,
+          LocalActivityResultRegistryOwner provides composeRule.activity,
+        ) {
+          SakuPintarTheme {
+            ExpenseEditorSheet(
+              existingExpense = com.example.data.model.Expense(
+                id = "exp_receipt_1",
+                userId = "u1",
+                title = "Belanja Bulanan",
+                amount = 150_000L,
+                category = "GROCERIES",
+                paymentMethod = "QRIS",
+                dateEpochDay = 20000L,
+                monthKey = "2026-11",
+                note = "Minimarket",
+                receiptPhotoBase64 = base64Photo,
+              ),
+              aiParseState = AiExpenseParseState.Idle,
+              onParseWithAi = {},
+              onScanReceiptUri = {},
+              onScanReceiptBase64 = {},
+              onClearAiParse = {},
+              onDismiss = {},
+              onSave = { _, _, _, _, _, _, _ -> },
+            )
+          }
+        }
+      }
+    }
+
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("receipt_photo_preview_card").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("view_receipt_fullscreen_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("scan_attached_receipt_ai_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("remove_receipt_photo_button").performScrollTo().assertIsDisplayed()
   }
 
   @Test
@@ -196,4 +256,176 @@ class ModalLocalizationCrashTest {
     composeRule.onNodeWithTag("export_option_pdf").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("export_option_csv").performScrollTo().assertIsDisplayed()
   }
+
+  @Test
+  fun accountProfileDialogAllowsCustomReminderTimeSelection() {
+    var updatedSettings = ReminderSettings(enabled = true, hour = 14, minute = 35)
+    composeRule.activity.runOnUiThread {
+      composeRule.activity.setContent {
+        val localizedContext = LanguagePreferenceManager.wrapActivityContext(
+          composeRule.activity,
+          AppLanguage.INDONESIAN,
+        )
+        CompositionLocalProvider(
+          LocalContext provides localizedContext,
+          LocalConfiguration provides localizedContext.resources.configuration,
+          LocalLayoutDirection provides LayoutDirection.Ltr,
+          LocalActivityResultRegistryOwner provides composeRule.activity,
+        ) {
+          SakuPintarTheme {
+            AccountProfileDialog(
+              displayName = "Budi",
+              email = "budi@example.com",
+              customPhotoBase64 = null,
+              googlePhotoUrl = null,
+              isSavingProfile = false,
+              themeMode = AppThemeMode.SYSTEM,
+              reminderSettings = updatedSettings,
+              onReminderSettingsChange = { updatedSettings = it },
+              onSaveDisplayName = {},
+              onPickPhotoUri = {},
+              onSyncGooglePhoto = {},
+              onStatusMessage = {},
+              onSignOut = {},
+              onDismiss = {},
+            )
+          }
+        }
+      }
+    }
+
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("reminder_custom_time_button").performScrollTo().performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("reminder_time_confirm_button").assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(updatedSettings.enabled)
+    assertTrue(updatedSettings.hour == 14 && updatedSettings.minute == 35)
+  }
+
+  @Test
+  fun monthlyCalendarCardFiltersDatesAndOpensMonthYearPicker() {
+    var selectedEpoch: Long? = null
+    var selectedMonthKey: String? = null
+    var addedEpoch: Long? = null
+
+    composeRule.activity.runOnUiThread {
+      composeRule.activity.setContent {
+        val localizedContext = LanguagePreferenceManager.wrapActivityContext(
+          composeRule.activity,
+          AppLanguage.INDONESIAN,
+        )
+        CompositionLocalProvider(
+          LocalContext provides localizedContext,
+          LocalConfiguration provides localizedContext.resources.configuration,
+          LocalLayoutDirection provides LayoutDirection.Ltr,
+          LocalActivityResultRegistryOwner provides composeRule.activity,
+        ) {
+          SakuPintarTheme {
+            var dayState: Long? = null
+            val currentDay = androidx.compose.runtime.remember {
+              androidx.compose.runtime.mutableStateOf<Long?>(null)
+            }
+            dayState = currentDay.value
+            com.example.ui.components.MonthlyCalendarCard(
+              monthKey = "2026-11",
+              expenses = emptyList(),
+              dailySafeLimit = 100_000L,
+              selectedEpochDay = dayState,
+              currency = AppCurrency.IDR,
+              locale = AppLanguage.INDONESIAN.toLocale(),
+              onSelectEpochDay = {
+                currentDay.value = it
+                selectedEpoch = it
+              },
+              onPreviousMonth = {},
+              onNextMonth = {},
+              onSelectMonth = { selectedMonthKey = it },
+              onAddExpenseOnDate = { addedEpoch = it },
+            )
+          }
+        }
+      }
+    }
+
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("monthly_calendar_card").assertIsDisplayed()
+    composeRule.onNodeWithTag("calendar_day_15").performClick()
+    composeRule.waitForIdle()
+    assertTrue(selectedEpoch == java.time.LocalDate.of(2026, 11, 15).toEpochDay())
+
+    composeRule.onNodeWithTag("calendar_add_on_date_button").assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(addedEpoch == java.time.LocalDate.of(2026, 11, 15).toEpochDay())
+
+    composeRule.onNodeWithTag("clear_calendar_date_filter").assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(selectedEpoch == null)
+
+    composeRule.onNodeWithTag("calendar_month_title_button").performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("month_grid_item_6").assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(selectedMonthKey == "2026-06")
+  }
+
+  @Test
+  fun authScreenDisplaysThemeToggleAndSwitchesBetweenLightAndDarkIcons() {
+    com.example.ui.theme.ThemePreferenceManager.setThemeMode(
+      composeRule.activity,
+      AppThemeMode.LIGHT,
+    )
+
+    composeRule.activity.runOnUiThread {
+      composeRule.activity.setContent {
+        val localizedContext = LanguagePreferenceManager.wrapActivityContext(
+          composeRule.activity,
+          AppLanguage.INDONESIAN,
+        )
+        CompositionLocalProvider(
+          LocalContext provides localizedContext,
+          LocalConfiguration provides localizedContext.resources.configuration,
+          LocalLayoutDirection provides LayoutDirection.Ltr,
+          LocalActivityResultRegistryOwner provides composeRule.activity,
+        ) {
+          SakuPintarTheme {
+            com.example.ui.auth.AuthScreen(onAuthSuccess = {})
+          }
+        }
+      }
+    }
+
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("auth_theme_toggle").assertIsDisplayed()
+    composeRule.onNodeWithTag("auth_theme_light_button").assertIsDisplayed()
+    composeRule.onNodeWithTag("auth_theme_dark_button").assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(
+      com.example.ui.theme.ThemePreferenceManager.observeThemeMode(composeRule.activity).value ==
+        AppThemeMode.DARK
+    )
+
+    composeRule.onNodeWithTag("auth_theme_light_button").performClick()
+    composeRule.waitForIdle()
+    assertTrue(
+      com.example.ui.theme.ThemePreferenceManager.observeThemeMode(composeRule.activity).value ==
+        AppThemeMode.LIGHT
+    )
+    composeRule.onNodeWithTag("auth_landing_enter_button").performScrollTo().assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("auth_mode_sign_in_tab").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("auth_mode_sign_up_tab").performScrollTo().assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("google_sign_in_button").performScrollTo().assertIsDisplayed()
+    composeRule.onNodeWithTag("auth_mode_sign_in_tab").performScrollTo().performClick()
+    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("auth_guest_method_button").performScrollTo().assertIsDisplayed().performClick()
+    composeRule.waitForIdle()
+    assertTrue(
+      com.example.auth.AccountSecurityOtpManager.observeAltSession(composeRule.activity).value?.method ==
+        com.example.auth.AuthMethodType.GUEST
+    )
+    com.example.auth.AccountSecurityOtpManager.clearAltSession(composeRule.activity)
+  }
 }
+

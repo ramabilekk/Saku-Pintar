@@ -1,5 +1,24 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,11 +48,13 @@ import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
@@ -52,6 +73,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -59,6 +82,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -79,10 +103,13 @@ import com.example.data.repository.FinanceRepository
 import com.example.data.repository.SavingsRepository
 import com.example.notifications.DailyReminderManager
 import com.example.ui.components.AccountProfileDialog
+import com.example.ui.components.AppAmbientBackdrop
 import com.example.ui.components.ExpenseEditorSheet
 import com.example.ui.components.ExportReportSheet
 import com.example.ui.components.MonthSelectorBar
 import com.example.ui.components.ProfileAvatar
+import com.example.ui.components.rememberTactileFeedback
+import com.example.ui.components.tactilePressScale
 import com.example.ui.screens.AutoBudgetScreen
 import com.example.ui.screens.DailyExpensesScreen
 import com.example.ui.screens.DashboardScreen
@@ -99,6 +126,16 @@ const val ROUTE_DASHBOARD = "dashboard"
 const val ROUTE_EXPENSES = "expenses"
 const val ROUTE_BUDGET = "budget"
 const val ROUTE_SAVINGS = "savings"
+
+internal fun navRouteOrder(route: String?): Int = when (route) {
+  ROUTE_DASHBOARD -> 0
+  ROUTE_EXPENSES -> 1
+  ROUTE_SAVINGS -> 2
+  ROUTE_BUDGET -> 3
+  else -> 0
+}
+
+private val PageSlideEasing = CubicBezierEasing(0.22f, 1.0f, 0.36f, 1.0f)
 
 private data class NavTab(
   val route: String,
@@ -212,6 +249,7 @@ fun MainAppScaffold(
   val snackbarHostState = remember { SnackbarHostState() }
   var showExpenseSheet by remember { mutableStateOf(false) }
   var editingExpense by remember { mutableStateOf<Expense?>(null) }
+  var prefillEpochDay by remember { mutableStateOf<Long?>(null) }
   var showAccountDialog by remember { mutableStateOf(false) }
   var showExportSheet by remember { mutableStateOf(false) }
 
@@ -237,7 +275,10 @@ fun MainAppScaffold(
     }
   }
 
+  val tactile = rememberTactileFeedback()
+
   fun navigateToTab(route: String) {
+    tactile.navigation()
     navController.navigate(route) {
       popUpTo(navController.graph.findStartDestination().id) {
         saveState = true
@@ -260,17 +301,37 @@ fun MainAppScaffold(
           navTabs.forEach { tab ->
             val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
             val label = stringResource(tab.labelRes)
+            val railInteractionSource = remember { MutableInteractionSource() }
+            val iconScale by animateFloatAsState(
+              targetValue = if (selected) 1.12f else 1.0f,
+              animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+              ),
+              label = "rail_icon_scale_${tab.route}",
+            )
             NavigationRailItem(
               selected = selected,
               onClick = { navigateToTab(tab.route) },
+              interactionSource = railInteractionSource,
               icon = {
                 Icon(
                   imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
                   contentDescription = label,
+                  modifier = Modifier.graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                  },
                 )
               },
               label = { Text(label) },
-              modifier = Modifier.testTag(tab.testTag),
+              modifier = Modifier
+                .tactilePressScale(
+                  interactionSource = railInteractionSource,
+                  pressedScale = 0.92f,
+                  enablePressHaptic = false,
+                )
+                .testTag(tab.testTag),
             )
           }
         }
@@ -284,77 +345,307 @@ fun MainAppScaffold(
         topBar = {
           TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-              containerColor = MaterialTheme.colorScheme.background,
+              containerColor = Color.Transparent,
               titleContentColor = MaterialTheme.colorScheme.onBackground,
             ),
             title = {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-              ) {
-                Text(
-                  text = stringResource(R.string.app_name),
-                  style = MaterialTheme.typography.titleLarge,
-                  fontWeight = FontWeight.Bold,
-                )
+              AnimatedContent(
+                targetState = currentRoute ?: ROUTE_DASHBOARD,
+                transitionSpec = {
+                  val forward = navRouteOrder(targetState) >= navRouteOrder(initialState)
+                  (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
+                    slideInHorizontally(tween(340, easing = PageSlideEasing)) { fullWidth ->
+                      if (forward) fullWidth / 4 else -fullWidth / 4
+                    })
+                    .togetherWith(
+                      fadeOut(tween(180, easing = FastOutSlowInEasing)) +
+                        slideOutHorizontally(tween(300, easing = PageSlideEasing)) { fullWidth ->
+                          if (forward) -fullWidth / 5 else fullWidth / 5
+                        }
+                    )
+                },
+                label = "topbar_header_anim",
+              ) { route ->
+                when (route) {
+                  ROUTE_EXPENSES -> {
+                    Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                      Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                        modifier = Modifier.size(38.dp),
+                      ) {
+                        Box(contentAlignment = Alignment.Center) {
+                          Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                          )
+                        }
+                      }
+                      Column {
+                        Text(
+                          text = stringResource(R.string.topbar_expenses_title),
+                          style = MaterialTheme.typography.titleMedium,
+                          fontWeight = FontWeight.ExtraBold,
+                          color = MaterialTheme.colorScheme.onBackground,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                          text = stringResource(R.string.topbar_expenses_subtitle),
+                          style = MaterialTheme.typography.labelSmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      }
+                    }
+                  }
+                  ROUTE_BUDGET -> {
+                    Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                      Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
+                        modifier = Modifier.size(38.dp),
+                      ) {
+                        Box(contentAlignment = Alignment.Center) {
+                          Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp),
+                          )
+                        }
+                      }
+                      Column {
+                        Text(
+                          text = stringResource(R.string.topbar_budget_title),
+                          style = MaterialTheme.typography.titleMedium,
+                          fontWeight = FontWeight.ExtraBold,
+                          color = MaterialTheme.colorScheme.onBackground,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                          text = stringResource(R.string.topbar_budget_subtitle),
+                          style = MaterialTheme.typography.labelSmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      }
+                    }
+                  }
+                  ROUTE_SAVINGS -> {
+                    Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                      Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)),
+                        modifier = Modifier.size(38.dp),
+                      ) {
+                        Box(contentAlignment = Alignment.Center) {
+                          Icon(
+                            imageVector = Icons.Rounded.Savings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp),
+                          )
+                        }
+                      }
+                      Column {
+                        Text(
+                          text = stringResource(R.string.topbar_savings_title),
+                          style = MaterialTheme.typography.titleMedium,
+                          fontWeight = FontWeight.ExtraBold,
+                          color = MaterialTheme.colorScheme.onBackground,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                          text = stringResource(R.string.topbar_savings_subtitle),
+                          style = MaterialTheme.typography.labelSmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      }
+                    }
+                  }
+                  else -> {
+                    Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                      Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                        modifier = Modifier.size(38.dp),
+                      ) {
+                        Box(contentAlignment = Alignment.Center) {
+                          Icon(
+                            imageVector = Icons.Rounded.Dashboard,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                          )
+                        }
+                      }
+                      Column {
+                        Text(
+                          text = stringResource(R.string.dashboard_greeting, resolvedDisplayName),
+                          style = MaterialTheme.typography.titleMedium,
+                          fontWeight = FontWeight.ExtraBold,
+                          color = MaterialTheme.colorScheme.onBackground,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                          modifier = Modifier.testTag("dashboard_greeting_name"),
+                        )
+                        Text(
+                          text = stringResource(R.string.dashboard_subtitle),
+                          style = MaterialTheme.typography.labelSmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      }
+                    }
+                  }
+                }
               }
             },
             actions = {
-              MonthSelectorBar(
-                monthKey = selectedMonthKey,
-                onPreviousMonth = { viewModel.shiftMonth(-1L) },
-                onNextMonth = { viewModel.shiftMonth(1L) },
-              )
               val profileDesc = stringResource(R.string.profile_cd, resolvedDisplayName)
+              val profileInteractionSource = remember { MutableInteractionSource() }
               IconButton(
-                onClick = { showAccountDialog = true },
+                onClick = {
+                  tactile.tick()
+                  showAccountDialog = true
+                },
+                interactionSource = profileInteractionSource,
                 modifier = Modifier
                   .size(48.dp)
+                  .tactilePressScale(
+                    interactionSource = profileInteractionSource,
+                    pressedScale = 0.90f,
+                    enablePressHaptic = false,
+                  )
                   .semantics { contentDescription = profileDesc }
                   .testTag("account_menu_button"),
               ) {
-                ProfileAvatar(
-                  displayName = resolvedDisplayName,
-                  customPhotoBase64 = customPhotoBase64,
-                  googlePhotoUrl = googlePhotoUrl,
-                  size = 34.dp,
-                )
+                Surface(
+                  shape = CircleShape,
+                  color = Color.Transparent,
+                  border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+                ) {
+                  Box(modifier = Modifier.padding(2.dp)) {
+                    ProfileAvatar(
+                      displayName = resolvedDisplayName,
+                      customPhotoBase64 = customPhotoBase64,
+                      googlePhotoUrl = googlePhotoUrl,
+                      size = 34.dp,
+                    )
+                  }
+                }
               }
             },
           )
         },
         bottomBar = {
           if (!useNavigationRail) {
-            NavigationBar(
-              containerColor = MaterialTheme.colorScheme.surface,
-              tonalElevation = 3.dp,
-            ) {
-              navTabs.forEach { tab ->
-                val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                val label = stringResource(tab.labelRes)
-                NavigationBarItem(
-                  selected = selected,
-                  onClick = { navigateToTab(tab.route) },
-                  icon = {
-                    Icon(
-                      imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                      contentDescription = label,
-                    )
-                  },
-                  label = { Text(label) },
-                  modifier = Modifier.testTag(tab.testTag),
-                )
+            Column {
+              HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+              )
+              NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+              ) {
+                navTabs.forEach { tab ->
+                  val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                  val label = stringResource(tab.labelRes)
+                  val tabInteractionSource = remember { MutableInteractionSource() }
+                  val iconScale by animateFloatAsState(
+                    targetValue = if (selected) 1.12f else 1.0f,
+                    animationSpec = spring(
+                      dampingRatio = Spring.DampingRatioMediumBouncy,
+                      stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    label = "nav_icon_scale_${tab.route}",
+                  )
+                  NavigationBarItem(
+                    selected = selected,
+                    onClick = { navigateToTab(tab.route) },
+                    interactionSource = tabInteractionSource,
+                    icon = {
+                      Icon(
+                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
+                        contentDescription = label,
+                        modifier = Modifier.graphicsLayer {
+                          scaleX = iconScale
+                          scaleY = iconScale
+                        },
+                      )
+                    },
+                    label = {
+                      Text(
+                        text = label,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                      )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                      selectedIconColor = MaterialTheme.colorScheme.primary,
+                      selectedTextColor = MaterialTheme.colorScheme.primary,
+                      indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    ),
+                    modifier = Modifier
+                      .tactilePressScale(
+                        interactionSource = tabInteractionSource,
+                        pressedScale = 0.92f,
+                        enablePressHaptic = false,
+                      )
+                      .testTag(tab.testTag),
+                  )
+                }
               }
             }
           }
         },
         floatingActionButton = {
-          if (currentRoute == ROUTE_DASHBOARD || currentRoute == ROUTE_EXPENSES) {
+          AnimatedVisibility(
+            visible = currentRoute == ROUTE_EXPENSES,
+            enter = fadeIn(tween(220)) + scaleIn(
+              initialScale = 0.85f,
+              animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+              ),
+            ),
+            exit = fadeOut(tween(160)) + scaleOut(targetScale = 0.85f, animationSpec = tween(160)),
+          ) {
+            val fabInteractionSource = remember { MutableInteractionSource() }
             ExtendedFloatingActionButton(
               onClick = {
+                tactile.confirm()
                 editingExpense = null
+                prefillEpochDay = null
                 showExpenseSheet = true
               },
+              interactionSource = fabInteractionSource,
               containerColor = MaterialTheme.colorScheme.primary,
               contentColor = MaterialTheme.colorScheme.onPrimary,
               shape = RoundedCornerShape(18.dp),
@@ -370,13 +661,21 @@ fun MainAppScaffold(
                   fontWeight = FontWeight.SemiBold,
                 )
               },
-              modifier = Modifier.testTag("add_expense_fab"),
+              modifier = Modifier
+                .tactilePressScale(
+                  interactionSource = fabInteractionSource,
+                  pressedScale = 0.94f,
+                  enablePressHaptic = false,
+                )
+                .testTag("add_expense_fab"),
             )
           }
         },
       ) { innerPadding ->
-        when (val state = uiState) {
-          UiState.Loading -> {
+        Box(modifier = Modifier.fillMaxSize()) {
+          AppAmbientBackdrop()
+          when (val state = uiState) {
+            UiState.Loading -> {
             Box(
               modifier = Modifier
                 .fillMaxSize()
@@ -430,6 +729,38 @@ fun MainAppScaffold(
             NavHost(
               navController = navController,
               startDestination = ROUTE_DASHBOARD,
+              enterTransition = {
+                val forward = navRouteOrder(targetState.destination.route) >= navRouteOrder(initialState.destination.route)
+                slideInHorizontally(
+                  animationSpec = tween(durationMillis = 380, easing = PageSlideEasing),
+                ) { fullWidth ->
+                  if (forward) fullWidth else -fullWidth
+                } + fadeIn(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
+              },
+              exitTransition = {
+                val forward = navRouteOrder(targetState.destination.route) >= navRouteOrder(initialState.destination.route)
+                slideOutHorizontally(
+                  animationSpec = tween(durationMillis = 360, easing = PageSlideEasing),
+                ) { fullWidth ->
+                  if (forward) -fullWidth / 3 else fullWidth / 3
+                } + fadeOut(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing))
+              },
+              popEnterTransition = {
+                val forward = navRouteOrder(targetState.destination.route) >= navRouteOrder(initialState.destination.route)
+                slideInHorizontally(
+                  animationSpec = tween(durationMillis = 380, easing = PageSlideEasing),
+                ) { fullWidth ->
+                  if (forward) fullWidth else -fullWidth
+                } + fadeIn(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
+              },
+              popExitTransition = {
+                val forward = navRouteOrder(targetState.destination.route) >= navRouteOrder(initialState.destination.route)
+                slideOutHorizontally(
+                  animationSpec = tween(durationMillis = 360, easing = PageSlideEasing),
+                ) { fullWidth ->
+                  if (forward) -fullWidth / 3 else fullWidth / 3
+                } + fadeOut(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing))
+              },
               modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -451,8 +782,12 @@ fun MainAppScaffold(
                   onNavigateToSavings = { navigateToTab(ROUTE_SAVINGS) },
                   onEditExpense = { expense ->
                     editingExpense = expense
+                    prefillEpochDay = null
                     showExpenseSheet = true
                   },
+                  onPreviousMonth = { viewModel.shiftMonth(-1L) },
+                  onNextMonth = { viewModel.shiftMonth(1L) },
+                  onSelectMonth = viewModel::selectMonth,
                 )
               }
               composable(ROUTE_EXPENSES) {
@@ -462,6 +797,7 @@ fun MainAppScaffold(
                   onCategoryFilterSelect = viewModel::setCategoryFilter,
                   onEditExpense = { expense ->
                     editingExpense = expense
+                    prefillEpochDay = null
                     showExpenseSheet = true
                   },
                   onDeleteExpense = viewModel::deleteExpense,
@@ -469,6 +805,14 @@ fun MainAppScaffold(
                   onAddRecurringTemplate = viewModel::addRecurringTemplate,
                   onDeleteRecurringTemplate = viewModel::deleteRecurringTemplate,
                   onOpenExportReport = { showExportSheet = true },
+                  onPreviousMonth = { viewModel.shiftMonth(-1L) },
+                  onNextMonth = { viewModel.shiftMonth(1L) },
+                  onSelectMonth = viewModel::selectMonth,
+                  onAddExpenseOnDate = { epochDay ->
+                    editingExpense = null
+                    prefillEpochDay = epochDay
+                    showExpenseSheet = true
+                  },
                 )
               }
               composable(ROUTE_SAVINGS) {
@@ -517,6 +861,10 @@ fun MainAppScaffold(
                       onWithdrawGoal = savingsViewModel::withdrawFromGoal,
                       onDeleteGoal = savingsViewModel::deleteGoal,
                       onSetWalletBalance = savingsViewModel::setWalletBalance,
+                      monthKey = selectedMonthKey,
+                      onPreviousMonth = { viewModel.shiftMonth(-1L) },
+                      onNextMonth = { viewModel.shiftMonth(1L) },
+                      onSelectMonth = viewModel::selectMonth,
                     )
                   }
                 }
@@ -527,10 +875,14 @@ fun MainAppScaffold(
                   currentUserId = currentUserId,
                   isSaving = isSaving,
                   onSaveBudget = viewModel::saveComposedBudget,
+                  onPreviousMonth = { viewModel.shiftMonth(-1L) },
+                  onNextMonth = { viewModel.shiftMonth(1L) },
+                  onSelectMonth = viewModel::selectMonth,
                 )
               }
             }
           }
+        }
         }
       }
     }
@@ -539,27 +891,48 @@ fun MainAppScaffold(
   if (showExpenseSheet) {
     ExpenseEditorSheet(
       existingExpense = editingExpense,
+      initialEpochDay = prefillEpochDay,
       aiParseState = aiParseState,
       onParseWithAi = viewModel::parseExpenseWithAi,
       onScanReceiptUri = { uri ->
         viewModel.parseReceiptUriWithAi(context.applicationContext, uri)
       },
+      onScanReceiptBase64 = viewModel::parseReceiptBase64WithAi,
       onClearAiParse = viewModel::resetAiExpenseParser,
       onDismiss = {
         viewModel.resetAiExpenseParser()
         showExpenseSheet = false
         editingExpense = null
+        prefillEpochDay = null
       },
-      onSave = { title, amount, category, method, epochDay, note ->
+      onSave = { title, amount, category, method, epochDay, note, receiptPhotoBase64 ->
         val currentEdit = editingExpense
         if (currentEdit == null) {
-          viewModel.addExpense(title, amount, category, method, epochDay, note)
+          viewModel.addExpense(
+            title = title,
+            amount = amount,
+            category = category,
+            paymentMethod = method,
+            dateEpochDay = epochDay,
+            note = note,
+            receiptPhotoBase64 = receiptPhotoBase64,
+          )
         } else {
-          viewModel.updateExpense(currentEdit, title, amount, category, method, epochDay, note)
+          viewModel.updateExpense(
+            existing = currentEdit,
+            title = title,
+            amount = amount,
+            category = category,
+            paymentMethod = method,
+            dateEpochDay = epochDay,
+            note = note,
+            receiptPhotoBase64 = receiptPhotoBase64,
+          )
         }
         viewModel.resetAiExpenseParser()
         showExpenseSheet = false
         editingExpense = null
+        prefillEpochDay = null
       },
     )
   }
@@ -577,6 +950,9 @@ fun MainAppScaffold(
       onSaveDisplayName = viewModel::saveDisplayName,
       onPickPhotoUri = { uri ->
         viewModel.saveProfilePhotoFromUri(context.applicationContext, uri, resolvedDisplayName)
+      },
+      onTakePhotoBitmap = { bitmap ->
+        viewModel.saveProfilePhotoFromBitmap(bitmap, resolvedDisplayName)
       },
       onSyncGooglePhoto = {
         viewModel.clearCustomProfilePhoto(resolvedDisplayName)

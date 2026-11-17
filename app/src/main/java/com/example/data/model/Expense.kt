@@ -131,6 +131,7 @@ data class Expense(
   val dateEpochDay: Long = 0L,
   val monthKey: String = "",
   val note: String = "",
+  val receiptPhotoBase64: String = "",
   @ServerTimestamp val createdAt: Timestamp? = null,
   @ServerTimestamp val updatedAt: Timestamp? = null,
 ) {
@@ -141,4 +142,8 @@ data class Expense(
   @get:Exclude
   val paymentMethodEnum: PaymentMethod
     get() = PaymentMethod.fromKey(paymentMethod)
+
+  @get:Exclude
+  val hasReceiptPhoto: Boolean
+    get() = receiptPhotoBase64.isNotBlank()
 }

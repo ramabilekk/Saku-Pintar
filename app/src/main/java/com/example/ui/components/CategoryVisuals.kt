@@ -37,9 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -54,6 +56,13 @@ import com.example.R
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.theme.CoralDanger
@@ -85,8 +94,9 @@ fun CategoryIconBadge(
   modifier: Modifier = Modifier,
 ) {
   Surface(
-    shape = RoundedCornerShape(12.dp),
-    color = category.accentColor.copy(alpha = 0.14f),
+    shape = RoundedCornerShape(14.dp),
+    color = category.accentColor.copy(alpha = 0.15f),
+    border = BorderStroke(1.dp, category.accentColor.copy(alpha = 0.30f)),
     modifier = modifier.size(size),
   ) {
     Box(contentAlignment = Alignment.Center) {
@@ -105,15 +115,18 @@ fun MonthSelectorBar(
   monthKey: String,
   onPreviousMonth: () -> Unit,
   onNextMonth: () -> Unit,
+  onSelectMonth: ((String) -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
   val activeLang by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val locale = activeLang.toLocale()
+  var showMonthPicker by remember { mutableStateOf(false) }
 
   Surface(
     shape = RoundedCornerShape(50),
-    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
     modifier = modifier,
   ) {
     Row(
@@ -133,13 +146,38 @@ fun MonthSelectorBar(
           tint = MaterialTheme.colorScheme.onSurface,
         )
       }
-      Text(
-        text = Formatters.formatMonthTitle(monthKey, locale),
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(horizontal = 6.dp),
-      )
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+          .heightIn(min = 40.dp)
+          .clip(RoundedCornerShape(50))
+          .then(
+            if (onSelectMonth != null) {
+              Modifier
+                .clickable { showMonthPicker = true }
+                .testTag("month_picker_button")
+            } else {
+              Modifier
+            }
+          )
+          .padding(horizontal = 8.dp),
+      ) {
+        if (onSelectMonth != null) {
+          Icon(
+            imageVector = Icons.Rounded.CalendarMonth,
+            contentDescription = stringResource(R.string.month_picker_title),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+          )
+        }
+        Text(
+          text = Formatters.formatMonthTitle(monthKey, locale),
+          style = MaterialTheme.typography.titleSmall,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+      }
       IconButton(
         onClick = onNextMonth,
         modifier = Modifier
@@ -153,6 +191,15 @@ fun MonthSelectorBar(
         )
       }
     }
+  }
+
+  if (showMonthPicker && onSelectMonth != null) {
+    MonthYearPickerDialog(
+      currentMonthKey = monthKey,
+      locale = locale,
+      onSelectMonth = onSelectMonth,
+      onDismiss = { showMonthPicker = false },
+    )
   }
 }
 
@@ -238,9 +285,15 @@ fun SevenDaySpendingChart(
         if (amount > 0L) {
           val ratio = (amount.toFloat() / maxAmount.toFloat()).coerceIn(0.05f, 1f)
           val barH = chartHeight * ratio
-          val barColor = if (dailySafeLimit > 0L && amount > dailySafeLimit) CoralDanger else primaryColor
+          val isOver = dailySafeLimit > 0L && amount > dailySafeLimit
+          val topColor = if (isOver) CoralDanger else primaryColor
+          val bottomColor = if (isOver) CoralDanger.copy(alpha = 0.65f) else primaryColor.copy(alpha = 0.65f)
           drawRoundRect(
-            color = barColor,
+            brush = Brush.verticalGradient(
+              colors = listOf(topColor, bottomColor),
+              startY = 4.dp.toPx() + (chartHeight - barH),
+              endY = 4.dp.toPx() + chartHeight,
+            ),
             topLeft = Offset(left, 4.dp.toPx() + (chartHeight - barH)),
             size = Size(barWidth, barH),
             cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),

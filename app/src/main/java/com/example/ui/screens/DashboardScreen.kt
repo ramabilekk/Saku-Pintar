@@ -2,7 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,8 +24,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Shield
@@ -32,9 +36,8 @@ import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,11 +45,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
@@ -64,8 +68,14 @@ import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.components.AiInsightCard
 import com.example.ui.components.CategoryIconBadge
-import com.example.ui.components.ProfileAvatar
+import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.MonthYearPickerDialog
+import com.example.ui.components.ReceiptPhotoViewerDialog
+import com.example.ui.components.ReceiptThumbnailBadge
+import com.example.ui.components.SculptedSurfaceCard
 import com.example.ui.components.SevenDaySpendingChart
+import com.example.ui.components.rememberTactileFeedback
+import com.example.ui.components.tactileClickable
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -92,12 +102,16 @@ fun DashboardScreen(
   onNavigateToAutoBudget: () -> Unit,
   onNavigateToSavings: () -> Unit,
   onEditExpense: (Expense) -> Unit,
+  onPreviousMonth: () -> Unit = {},
+  onNextMonth: () -> Unit = {},
+  onSelectMonth: (String) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+  var viewingReceiptExpense by remember { mutableStateOf<Expense?>(null) }
 
   Box(
     modifier = modifier.fillMaxSize(),
@@ -107,178 +121,172 @@ fun DashboardScreen(
       modifier = Modifier
         .widthIn(max = 680.dp)
         .fillMaxSize(),
-      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
+      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 104.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // 0. Personalized Greeting Header
-      item {
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          ProfileAvatar(
-            displayName = displayName,
-            customPhotoBase64 = customPhotoBase64,
-            googlePhotoUrl = googlePhotoUrl,
-            size = 46.dp,
-            modifier = Modifier
-              .clickable(onClick = onOpenProfile)
-              .testTag("dashboard_profile_avatar"),
-          )
-          Column(modifier = Modifier.weight(1f)) {
-            Text(
-              text = stringResource(R.string.dashboard_greeting, displayName),
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onBackground,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.testTag("dashboard_greeting_name"),
-            )
-            Text(
-              text = stringResource(R.string.dashboard_subtitle),
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-          TextButton(
-            onClick = onOpenProfile,
-            modifier = Modifier
-              .height(48.dp)
-              .testTag("dashboard_edit_profile_button"),
-          ) {
-            Icon(
-              imageVector = Icons.Rounded.Edit,
-              contentDescription = stringResource(R.string.action_edit),
-              modifier = Modifier.size(16.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.action_edit))
-          }
-        }
-      }
-
-      // 1. Hero Monthly Summary + Daily Safe Limit Card
+      // 1. 3D-Layered Hero Monthly Summary + Integrated Calendar Selector + Daily Safe Limit Card
       item {
         HeroSummaryCard(
           data = data,
           currency = activeCurrency,
           locale = activeLocale,
+          onPreviousMonth = onPreviousMonth,
+          onNextMonth = onNextMonth,
+          onSelectMonth = onSelectMonth,
           onSetupBudgetClick = onNavigateToAutoBudget,
         )
       }
 
-      // 1b. Quick Export Monthly Recap (Excel / PDF / CSV / Share)
+      // 1b. 2-Column Quick-Access Bento Row: Tabungan & Dompet + Rekap Laporan
       item {
-        Surface(
-          onClick = onOpenExportReport,
-          shape = RoundedCornerShape(18.dp),
-          color = MaterialTheme.colorScheme.surface,
-          tonalElevation = 1.dp,
-          modifier = Modifier
-            .fillMaxWidth()
-            .testTag("dashboard_export_report_button"),
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-          Row(
+          // Left Bento Card: Tabungan & Dompet
+          SculptedSurfaceCard(
+            accentColor = GoldAccent,
+            cornerRadius = 20,
+            onClick = onNavigateToSavings,
             modifier = Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+              .weight(1f)
+              .testTag("dashboard_savings_card"),
           ) {
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = MaterialTheme.colorScheme.primaryContainer,
-              modifier = Modifier.size(40.dp),
+            Column(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+              verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-              Box(contentAlignment = Alignment.Center) {
-                Icon(
-                  imageVector = Icons.Rounded.TableChart,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                  modifier = Modifier.size(20.dp),
-                )
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Surface(
+                  shape = RoundedCornerShape(12.dp),
+                  color = GoldAccent.copy(alpha = 0.16f),
+                  border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f)),
+                  modifier = Modifier.size(38.dp),
+                ) {
+                  Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                      imageVector = Icons.Rounded.Savings,
+                      contentDescription = null,
+                      tint = GoldAccent,
+                      modifier = Modifier.size(20.dp),
+                    )
+                  }
+                }
+                Surface(
+                  shape = CircleShape,
+                  color = GoldAccent.copy(alpha = 0.14f),
+                  modifier = Modifier.size(28.dp),
+                ) {
+                  Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                      imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                      contentDescription = stringResource(R.string.dashboard_savings_cd),
+                      tint = GoldAccent,
+                      modifier = Modifier.size(15.dp),
+                    )
+                  }
+                }
               }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(R.string.dashboard_recap_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-              )
-              Text(
-                text = stringResource(R.string.dashboard_recap_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-            }
-            Icon(
-              imageVector = Icons.Rounded.FileDownload,
-              contentDescription = stringResource(R.string.dashboard_recap_cd),
-              tint = MaterialTheme.colorScheme.primary,
-            )
-          }
-        }
-      }
 
-      // 1c. Savings & Wallet Balances Quick Card
-      item {
-        Surface(
-          onClick = onNavigateToSavings,
-          shape = RoundedCornerShape(18.dp),
-          color = MaterialTheme.colorScheme.surface,
-          tonalElevation = 1.dp,
-          modifier = Modifier
-            .fillMaxWidth()
-            .testTag("dashboard_savings_card"),
-        ) {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = GoldAccent.copy(alpha = 0.16f),
-              modifier = Modifier.size(40.dp),
-            ) {
-              Box(contentAlignment = Alignment.Center) {
-                Icon(
-                  imageVector = Icons.Rounded.Savings,
-                  contentDescription = null,
-                  tint = GoldAccent,
-                  modifier = Modifier.size(20.dp),
+              Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                  text = stringResource(R.string.dashboard_savings_title),
+                  style = MaterialTheme.typography.titleSmall,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                  text = stringResource(
+                    R.string.dashboard_savings_subtitle,
+                    Formatters.formatMoneyCompact(totalSavedAmount, activeCurrency, activeLocale),
+                    Formatters.formatMoneyCompact(totalWalletBalance, activeCurrency, activeLocale),
+                  ),
+                  style = MaterialTheme.typography.labelSmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  maxLines = 2,
+                  overflow = TextOverflow.Ellipsis,
                 )
               }
             }
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(R.string.dashboard_savings_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-              )
-              Text(
-                text = stringResource(
-                  R.string.dashboard_savings_subtitle,
-                  Formatters.formatMoneyCompact(totalSavedAmount, activeCurrency, activeLocale),
-                  Formatters.formatMoneyCompact(totalWalletBalance, activeCurrency, activeLocale),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-              )
+          }
+
+          // Right Bento Card: Rekap Laporan Bulanan
+          SculptedSurfaceCard(
+            accentColor = MaterialTheme.colorScheme.primary,
+            cornerRadius = 20,
+            onClick = onOpenExportReport,
+            modifier = Modifier
+              .weight(1f)
+              .testTag("dashboard_export_report_button"),
+          ) {
+            Column(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+              verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Surface(
+                  shape = RoundedCornerShape(12.dp),
+                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                  modifier = Modifier.size(38.dp),
+                ) {
+                  Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                      imageVector = Icons.Rounded.TableChart,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.size(20.dp),
+                    )
+                  }
+                }
+                Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                  modifier = Modifier.size(28.dp),
+                ) {
+                  Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                      imageVector = Icons.Rounded.FileDownload,
+                      contentDescription = stringResource(R.string.dashboard_recap_cd),
+                      tint = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.size(15.dp),
+                    )
+                  }
+                }
+              }
+
+              Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                  text = stringResource(R.string.dashboard_recap_title),
+                  style = MaterialTheme.typography.titleSmall,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                  text = stringResource(R.string.dashboard_recap_subtitle),
+                  style = MaterialTheme.typography.labelSmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  maxLines = 2,
+                  overflow = TextOverflow.Ellipsis,
+                )
+              }
             }
-            Icon(
-              imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-              contentDescription = stringResource(R.string.dashboard_savings_cd),
-              tint = MaterialTheme.colorScheme.primary,
-            )
           }
         }
       }
@@ -301,11 +309,9 @@ fun DashboardScreen(
 
       // 4. 7-Day Daily Pace Chart
       item {
-        Card(
-          shape = RoundedCornerShape(22.dp),
-          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-          elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-          modifier = Modifier.fillMaxWidth(),
+        SculptedSurfaceCard(
+          accentColor = MaterialTheme.colorScheme.primary,
+          cornerRadius = 22,
         ) {
           SevenDaySpendingChart(
             expenses = data.allHistoricalExpenses,
@@ -324,16 +330,32 @@ fun DashboardScreen(
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically,
         ) {
-          Text(
-            text = stringResource(R.string.dashboard_category_allocation),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-          )
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            Surface(
+              shape = CircleShape,
+              color = MaterialTheme.colorScheme.primary,
+              modifier = Modifier
+                .width(4.dp)
+                .height(18.dp),
+            ) {}
+            Text(
+              text = stringResource(R.string.dashboard_category_allocation),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.ExtraBold,
+              color = MaterialTheme.colorScheme.onBackground,
+            )
+          }
           TextButton(
             onClick = onNavigateToAutoBudget,
             modifier = Modifier.testTag("edit_budget_link"),
           ) {
-            Text(stringResource(R.string.dashboard_auto_arrange))
+            Text(
+              text = stringResource(R.string.dashboard_auto_arrange),
+              fontWeight = FontWeight.SemiBold,
+            )
           }
         }
       }
@@ -341,11 +363,7 @@ fun DashboardScreen(
       val activeCategories = data.categoryBreakdown.filter { it.allocated > 0L || it.spent > 0L }
       if (activeCategories.isEmpty()) {
         item {
-          Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(),
-          ) {
+          SculptedSurfaceCard(cornerRadius = 18) {
             Text(
               text = stringResource(
                 R.string.dashboard_empty_categories,
@@ -376,16 +394,32 @@ fun DashboardScreen(
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically,
         ) {
-          Text(
-            text = stringResource(R.string.dashboard_recent_expenses),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-          )
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            Surface(
+              shape = CircleShape,
+              color = MaterialTheme.colorScheme.secondary,
+              modifier = Modifier
+                .width(4.dp)
+                .height(18.dp),
+            ) {}
+            Text(
+              text = stringResource(R.string.dashboard_recent_expenses),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.ExtraBold,
+              color = MaterialTheme.colorScheme.onBackground,
+            )
+          }
           TextButton(
             onClick = onNavigateToExpenses,
             modifier = Modifier.testTag("see_all_expenses_button"),
           ) {
-            Text(stringResource(R.string.dashboard_see_all))
+            Text(
+              text = stringResource(R.string.dashboard_see_all),
+              fontWeight = FontWeight.SemiBold,
+            )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
               imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
@@ -399,18 +433,17 @@ fun DashboardScreen(
       val recent = data.expenses.take(4)
       if (recent.isEmpty()) {
         item {
-          Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(),
-          ) {
+          SculptedSurfaceCard(cornerRadius = 18) {
             Column(
-              modifier = Modifier.padding(20.dp),
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
               horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
                 text = stringResource(R.string.dashboard_empty_expenses_title),
                 style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
               )
               Spacer(modifier = Modifier.height(4.dp))
@@ -429,9 +462,22 @@ fun DashboardScreen(
             currency = activeCurrency,
             locale = activeLocale,
             onClick = { onEditExpense(expense) },
+            onViewReceipt = { viewingReceiptExpense = expense },
           )
         }
       }
+    }
+  }
+
+  viewingReceiptExpense?.let { exp ->
+    if (exp.hasReceiptPhoto) {
+      ReceiptPhotoViewerDialog(
+        receiptPhotoBase64 = exp.receiptPhotoBase64,
+        title = exp.title,
+        subtitle = Formatters.formatShortDate(exp.dateEpochDay, activeLocale),
+        amountFormatted = Formatters.formatMoney(exp.amount, activeCurrency),
+        onDismiss = { viewingReceiptExpense = null },
+      )
     }
   }
 }
@@ -441,12 +487,16 @@ private fun HeroSummaryCard(
   data: FinanceDashboardData,
   currency: AppCurrency,
   locale: Locale,
+  onPreviousMonth: () -> Unit,
+  onNextMonth: () -> Unit,
+  onSelectMonth: (String) -> Unit,
   onSetupBudgetClick: () -> Unit,
 ) {
   val insight = data.dailyInsight
   val budget = data.budget
   val primary = MaterialTheme.colorScheme.primary
-  val secondary = MaterialTheme.colorScheme.secondary
+  val tactile = rememberTactileFeedback()
+  var showMonthPicker by remember { mutableStateOf(false) }
 
   val progressRatio = if (insight.totalBudget > 0L) {
     (insight.totalSpent.toFloat() / insight.totalBudget.toFloat()).coerceIn(0f, 1f)
@@ -463,47 +513,98 @@ private fun HeroSummaryCard(
     BudgetPaceStatus.OVER -> Triple(stringResource(R.string.hero_status_over), CoralDanger, Icons.Rounded.WarningAmber)
   }
 
-  Box(
-    modifier = Modifier
-      .fillMaxWidth()
-      .clip(RoundedCornerShape(26.dp))
-      .background(Brush.linearGradient(listOf(primary, secondary)))
-      .padding(20.dp),
-  ) {
+  DimensionalVaultCard {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+      // Top Integrated Calendar / Month Selector + Status Badge Row
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Column {
-          Text(
-            text = if (budget != null) {
-              stringResource(R.string.hero_remaining_budget)
-            } else {
-              stringResource(R.string.hero_total_spent_month)
-            },
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White.copy(alpha = 0.85f),
-          )
-          Spacer(modifier = Modifier.height(4.dp))
-          Text(
-            text = if (budget != null) {
-              Formatters.formatMoney(insight.remainingBudget, currency)
-            } else {
-              Formatters.formatMoney(insight.totalSpent, currency)
-            },
-            style = MaterialTheme.typography.displaySmall,
-            fontFamily = JetBrainsMonoFontFamily,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-          )
+        Surface(
+          color = Color.White.copy(alpha = 0.15f),
+          shape = RoundedCornerShape(50),
+          border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.28f)),
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 2.dp),
+          ) {
+            IconButton(
+              onClick = {
+                tactile.tick()
+                onPreviousMonth()
+              },
+              modifier = Modifier
+                .size(48.dp)
+                .testTag("prev_month_button"),
+            ) {
+              Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.prev_month_cd),
+                tint = Color.White,
+                modifier = Modifier.size(18.dp),
+              )
+            }
+
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(5.dp),
+              modifier = Modifier
+                .heightIn(min = 40.dp)
+                .clip(RoundedCornerShape(50))
+                .tactileClickable(
+                  pressedScale = 0.94f,
+                  rippleColor = Color.White,
+                ) { showMonthPicker = true }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .testTag("month_picker_button"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.CalendarMonth,
+                contentDescription = stringResource(R.string.month_picker_title),
+                tint = Color(0xFFFDE68A),
+                modifier = Modifier.size(15.dp),
+              )
+              Text(
+                text = Formatters.formatMonthTitle(data.monthKey, locale),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+              )
+              Icon(
+                imageVector = Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.size(15.dp),
+              )
+            }
+
+            IconButton(
+              onClick = {
+                tactile.tick()
+                onNextMonth()
+              },
+              modifier = Modifier
+                .size(48.dp)
+                .testTag("next_month_button"),
+            ) {
+              Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.next_month_cd),
+                tint = Color.White,
+                modifier = Modifier.size(18.dp),
+              )
+            }
+          }
         }
 
         if (budget != null) {
           Surface(
-            color = Color.White.copy(alpha = 0.18f),
+            color = Color.White.copy(alpha = 0.16f),
             shape = RoundedCornerShape(50),
+            border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.30f)),
           ) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
@@ -513,18 +614,44 @@ private fun HeroSummaryCard(
                 imageVector = statusIcon,
                 contentDescription = null,
                 tint = statusColor,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(15.dp),
               )
-              Spacer(modifier = Modifier.width(5.dp))
+              Spacer(modifier = Modifier.width(4.dp))
               Text(
                 text = statusLabel,
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
               )
             }
           }
         }
+      }
+
+      // Main Budget Amount Headline
+      Column {
+        Text(
+          text = if (budget != null) {
+            stringResource(R.string.hero_remaining_budget)
+          } else {
+            stringResource(R.string.hero_total_spent_month)
+          },
+          style = MaterialTheme.typography.labelLarge,
+          color = Color.White.copy(alpha = 0.85f),
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+          text = if (budget != null) {
+            Formatters.formatMoney(insight.remainingBudget, currency)
+          } else {
+            Formatters.formatMoney(insight.totalSpent, currency)
+          },
+          style = MaterialTheme.typography.displaySmall,
+          fontFamily = JetBrainsMonoFontFamily,
+          fontWeight = FontWeight.ExtraBold,
+          color = Color.White,
+        )
       }
 
       if (budget != null) {
@@ -535,8 +662,8 @@ private fun HeroSummaryCard(
               .fillMaxWidth()
               .height(8.dp)
               .clip(RoundedCornerShape(50)),
-            color = if (insight.paceStatus == BudgetPaceStatus.OVER) CoralDanger else Color.White,
-            trackColor = Color.White.copy(alpha = 0.22f),
+            color = if (insight.paceStatus == BudgetPaceStatus.OVER) CoralDanger else SkyPositiveAccent,
+            trackColor = Color.White.copy(alpha = 0.20f),
             strokeCap = StrokeCap.Round,
           )
           Row(
@@ -562,21 +689,22 @@ private fun HeroSummaryCard(
           }
         }
 
-        // Daily Safe-to-Spend & Savings Pill Row
+        // Daily Safe-to-Spend & Savings Glassmorphic Pill Row
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
           Surface(
             color = Color.White.copy(alpha = 0.14f),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.24f)),
             modifier = Modifier.weight(1f),
           ) {
             Column(modifier = Modifier.padding(12.dp)) {
               Text(
                 text = stringResource(R.string.hero_daily_safe_limit),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.82f),
+                color = Color.White.copy(alpha = 0.84f),
               )
               Spacer(modifier = Modifier.height(2.dp))
               Text(
@@ -592,14 +720,15 @@ private fun HeroSummaryCard(
                   Formatters.formatMoneyCompact(insight.todaySpent, currency, locale),
                 ),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.78f),
+                color = Color(0xFFBAE6FD),
               )
             }
           }
 
           Surface(
             color = Color.White.copy(alpha = 0.14f),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(0.8.dp, GoldAccent.copy(alpha = 0.36f)),
             modifier = Modifier.weight(1f),
           ) {
             Column(modifier = Modifier.padding(12.dp)) {
@@ -614,7 +743,7 @@ private fun HeroSummaryCard(
                 Text(
                   text = stringResource(R.string.hero_savings_target),
                   style = MaterialTheme.typography.labelSmall,
-                  color = Color.White.copy(alpha = 0.82f),
+                  color = Color.White.copy(alpha = 0.84f),
                 )
               }
               Spacer(modifier = Modifier.height(2.dp))
@@ -628,7 +757,7 @@ private fun HeroSummaryCard(
               Text(
                 text = stringResource(R.string.hero_percent_income, budget.savingsPercent),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.78f),
+                color = Color(0xFFFDE68A),
               )
             }
           }
@@ -662,23 +791,30 @@ private fun HeroSummaryCard(
           Spacer(modifier = Modifier.width(8.dp))
           Text(
             text = stringResource(R.string.hero_setup_budget_cta),
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
           )
         }
       }
     }
   }
+
+  if (showMonthPicker) {
+    MonthYearPickerDialog(
+      currentMonthKey = data.monthKey,
+      locale = locale,
+      onSelectMonth = onSelectMonth,
+      onDismiss = { showMonthPicker = false },
+    )
+  }
 }
 
 @Composable
 private fun AutoBudgetPromptCard(onClick: () -> Unit) {
-  Card(
-    shape = RoundedCornerShape(20.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-    modifier = Modifier
-      .fillMaxWidth()
-      .clickable(onClick = onClick)
-      .testTag("auto_budget_prompt_card"),
+  SculptedSurfaceCard(
+    accentColor = MaterialTheme.colorScheme.tertiary,
+    cornerRadius = 20,
+    onClick = onClick,
+    modifier = Modifier.testTag("auto_budget_prompt_card"),
   ) {
     Row(
       modifier = Modifier.padding(16.dp),
@@ -686,8 +822,9 @@ private fun AutoBudgetPromptCard(onClick: () -> Unit) {
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
       Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)),
         modifier = Modifier.size(44.dp),
       ) {
         Box(contentAlignment = Alignment.Center) {
@@ -702,19 +839,19 @@ private fun AutoBudgetPromptCard(onClick: () -> Unit) {
         Text(
           text = stringResource(R.string.prompt_budget_missing_title),
           style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onTertiaryContainer,
+          color = MaterialTheme.colorScheme.onSurface,
           fontWeight = FontWeight.Bold,
         )
         Text(
           text = stringResource(R.string.prompt_budget_missing_body),
           style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
       Icon(
         imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
         contentDescription = stringResource(R.string.prompt_budget_missing_cd),
-        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+        tint = MaterialTheme.colorScheme.tertiary,
       )
     }
   }
@@ -734,11 +871,9 @@ private fun CategoryProgressRowCard(
     label = "cat_progress",
   )
 
-  Card(
-    shape = RoundedCornerShape(18.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-    modifier = Modifier.fillMaxWidth(),
+  SculptedSurfaceCard(
+    accentColor = progressColor,
+    cornerRadius = 18,
   ) {
     Column(
       modifier = Modifier.padding(14.dp),
@@ -749,11 +884,12 @@ private fun CategoryProgressRowCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
-        CategoryIconBadge(category = item.category, size = 40.dp)
+        CategoryIconBadge(category = item.category, size = 42.dp)
         Column(modifier = Modifier.weight(1f)) {
           Text(
             text = stringResource(item.category.labelRes),
             style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
           )
           Text(
@@ -810,13 +946,12 @@ private fun CompactExpenseRow(
   currency: AppCurrency,
   locale: Locale,
   onClick: () -> Unit,
+  onViewReceipt: () -> Unit,
 ) {
-  Card(
-    shape = RoundedCornerShape(16.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    modifier = Modifier
-      .fillMaxWidth()
-      .clickable(onClick = onClick),
+  SculptedSurfaceCard(
+    accentColor = expense.categoryEnum.accentColor,
+    cornerRadius = 18,
+    onClick = onClick,
   ) {
     Row(
       modifier = Modifier
@@ -825,11 +960,12 @@ private fun CompactExpenseRow(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      CategoryIconBadge(category = expense.categoryEnum, size = 40.dp)
+      CategoryIconBadge(category = expense.categoryEnum, size = 42.dp)
       Column(modifier = Modifier.weight(1f)) {
         Text(
           text = expense.title,
           style = MaterialTheme.typography.titleSmall,
+          fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.onSurface,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
@@ -840,11 +976,18 @@ private fun CompactExpenseRow(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
+      if (expense.hasReceiptPhoto) {
+        ReceiptThumbnailBadge(
+          receiptPhotoBase64 = expense.receiptPhotoBase64,
+          onClick = onViewReceipt,
+          modifier = Modifier.testTag("dashboard_receipt_badge_${expense.id}"),
+        )
+      }
       Text(
         text = "-${Formatters.formatMoney(expense.amount, currency)}",
         style = MaterialTheme.typography.titleSmall,
         fontFamily = JetBrainsMonoFontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface,
       )
     }

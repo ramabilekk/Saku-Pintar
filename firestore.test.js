@@ -94,9 +94,9 @@ test("Unauthenticated user cannot read or write expenses or budgets", async () =
 test("Authenticated owner can create, list, update, and delete own expenses", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
   const expRef = aliceDb.collection("users").doc(ALICE_UID).collection("expenses").doc("exp_1");
-  await assertSucceeds(expRef.set(validExpensePayload()));
+  await assertSucceeds(expRef.set(validExpensePayload(ALICE_UID, { receiptPhotoBase64: "dGVzdC1yZWNlaXB0" })));
   await assertSucceeds(aliceDb.collection("users").doc(ALICE_UID).collection("expenses").where("monthKey", "==", "2026-11").get());
-  await assertSucceeds(expRef.update({ amount: 42000, title: "Makan Malam", updatedAt: serverTime() }));
+  await assertSucceeds(expRef.update({ amount: 42000, title: "Makan Malam", receiptPhotoBase64: "", updatedAt: serverTime() }));
   await assertSucceeds(expRef.delete());
 });
 
@@ -113,7 +113,7 @@ test("Cross-user access to expenses and budgets is rejected", async () => {
   await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("budgets").doc("2026-11").set(validBudgetPayload(ALICE_UID)));
 });
 
-test("Expense schema validation blocks negative amount, invalid category, ghost fields, and userId spoofing", async () => {
+test("Expense schema validation blocks negative amount, invalid category, ghost fields, oversized receiptPhotoBase64, and userId spoofing", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
   const col = aliceDb.collection("users").doc(ALICE_UID).collection("expenses");
 
@@ -123,6 +123,7 @@ test("Expense schema validation blocks negative amount, invalid category, ghost 
   await assertFails(col.doc("e_ghost").set(validExpensePayload(ALICE_UID, { isAdmin: true })));
   await assertFails(col.doc("e_spoof").set(validExpensePayload(BOB_UID)));
   await assertFails(col.doc("e_month").set(validExpensePayload(ALICE_UID, { monthKey: "2026-13" })));
+  await assertFails(col.doc("e_receipt_big").set(validExpensePayload(ALICE_UID, { receiptPhotoBase64: "x".repeat(200001) })));
 });
 
 test("Budget schema validation enforces valid monthKey, percent sum == 100, and safe categoryBudgets map", async () => {

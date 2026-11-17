@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,14 +24,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FlightTakeoff
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
@@ -80,8 +86,13 @@ import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.components.CreateSavingsGoalDialog
+import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.MonthYearPickerDialog
 import com.example.ui.components.SavingsTransactionDialog
+import com.example.ui.components.SculptedSurfaceCard
 import com.example.ui.components.WalletBalanceDialog
+import com.example.ui.components.rememberTactileFeedback
+import com.example.ui.components.tactileClickable
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -104,6 +115,10 @@ fun SavingsScreen(
   onWithdrawGoal: (SavingsGoal, Long) -> Unit,
   onDeleteGoal: (String) -> Unit,
   onSetWalletBalance: (PaymentMethod, Long) -> Unit,
+  monthKey: String = Formatters.currentMonthKey(),
+  onPreviousMonth: () -> Unit = {},
+  onNextMonth: () -> Unit = {},
+  onSelectMonth: (String) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -127,12 +142,16 @@ fun SavingsScreen(
       contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // 1. Hero Total Saved & Wallet Overview
+      // 1. Hero Total Saved & Wallet Overview + Integrated Calendar Selector
       item {
         SavingsHeroCard(
           data = data,
+          monthKey = monthKey,
           currency = activeCurrency,
           locale = activeLocale,
+          onPreviousMonth = onPreviousMonth,
+          onNextMonth = onNextMonth,
+          onSelectMonth = onSelectMonth,
         )
       }
 
@@ -207,11 +226,9 @@ fun SavingsScreen(
       // 4. Savings Goals List or Empty State
       if (data.goals.isEmpty()) {
         item {
-          Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth(),
+          SculptedSurfaceCard(
+            accentColor = GoldAccent,
+            cornerRadius = 22,
           ) {
             Column(
               modifier = Modifier
@@ -222,14 +239,15 @@ fun SavingsScreen(
             ) {
               Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = GoldAccent.copy(alpha = 0.16f),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f)),
                 modifier = Modifier.size(56.dp),
               ) {
                 Box(contentAlignment = Alignment.Center) {
                   Icon(
                     imageVector = Icons.Rounded.Savings,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = GoldAccent,
                     modifier = Modifier.size(28.dp),
                   )
                 }
@@ -378,58 +396,138 @@ fun SavingsScreen(
 @Composable
 private fun SavingsHeroCard(
   data: SavingsUiData,
+  monthKey: String,
   currency: AppCurrency,
   locale: Locale,
+  onPreviousMonth: () -> Unit,
+  onNextMonth: () -> Unit,
+  onSelectMonth: (String) -> Unit,
 ) {
-  val primary = MaterialTheme.colorScheme.primary
-  val secondary = MaterialTheme.colorScheme.secondary
+  var showMonthPicker by remember { mutableStateOf(false) }
+  val tactile = rememberTactileFeedback()
   val animatedProgress by animateFloatAsState(
     targetValue = data.overallProgressFraction,
     animationSpec = tween(durationMillis = 450),
     label = "savings_total_progress",
   )
 
-  Box(
-    modifier = Modifier
-      .fillMaxWidth()
-      .clip(RoundedCornerShape(26.dp))
-      .background(Brush.linearGradient(listOf(primary, secondary)))
-      .padding(20.dp),
-  ) {
+  DimensionalVaultCard {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+      // Top Integrated Calendar / Month Selector + Gold Vault Badge Row
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Column {
-          Text(
-            text = stringResource(R.string.savings_hero_total),
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White.copy(alpha = 0.85f),
-          )
-          Spacer(modifier = Modifier.height(4.dp))
-          Text(
-            text = Formatters.formatMoney(data.totalSaved, currency),
-            style = MaterialTheme.typography.displaySmall,
-            fontFamily = JetBrainsMonoFontFamily,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-          )
-        }
         Surface(
-          color = Color.White.copy(alpha = 0.16f),
+          color = Color.White.copy(alpha = 0.15f),
+          shape = RoundedCornerShape(50),
+          border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.28f)),
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 2.dp),
+          ) {
+            IconButton(
+              onClick = {
+                tactile.tick()
+                onPreviousMonth()
+              },
+              modifier = Modifier
+                .size(48.dp)
+                .testTag("prev_month_button"),
+            ) {
+              Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.prev_month_cd),
+                tint = Color.White,
+                modifier = Modifier.size(18.dp),
+              )
+            }
+
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(5.dp),
+              modifier = Modifier
+                .heightIn(min = 40.dp)
+                .clip(RoundedCornerShape(50))
+                .tactileClickable(
+                  pressedScale = 0.94f,
+                  rippleColor = Color.White,
+                ) { showMonthPicker = true }
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .testTag("month_picker_button"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.CalendarMonth,
+                contentDescription = stringResource(R.string.month_picker_title),
+                tint = Color(0xFFFDE68A),
+                modifier = Modifier.size(15.dp),
+              )
+              Text(
+                text = Formatters.formatMonthTitle(monthKey, locale),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+              )
+              Icon(
+                imageVector = Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.size(15.dp),
+              )
+            }
+
+            IconButton(
+              onClick = {
+                tactile.tick()
+                onNextMonth()
+              },
+              modifier = Modifier
+                .size(48.dp)
+                .testTag("next_month_button"),
+            ) {
+              Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.next_month_cd),
+                tint = Color.White,
+                modifier = Modifier.size(18.dp),
+              )
+            }
+          }
+        }
+
+        Surface(
+          color = GoldAccent.copy(alpha = 0.22f),
           shape = RoundedCornerShape(14.dp),
+          border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.50f)),
         ) {
           Icon(
             imageVector = Icons.Rounded.Savings,
             contentDescription = null,
-            tint = GoldAccent,
+            tint = Color(0xFFFDE68A),
             modifier = Modifier
-              .padding(10.dp)
-              .size(28.dp),
+              .padding(9.dp)
+              .size(22.dp),
           )
         }
+      }
+
+      Column {
+        Text(
+          text = stringResource(R.string.savings_hero_total),
+          style = MaterialTheme.typography.labelLarge,
+          color = Color.White.copy(alpha = 0.85f),
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+          text = Formatters.formatMoney(data.totalSaved, currency),
+          style = MaterialTheme.typography.displaySmall,
+          fontFamily = JetBrainsMonoFontFamily,
+          fontWeight = FontWeight.ExtraBold,
+          color = Color.White,
+        )
       }
 
       if (data.totalTarget > 0L) {
@@ -465,7 +563,8 @@ private fun SavingsHeroCard(
 
       Surface(
         color = Color.White.copy(alpha = 0.14f),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.24f)),
         modifier = Modifier.fillMaxWidth(),
       ) {
         Row(
@@ -500,6 +599,18 @@ private fun SavingsHeroCard(
       }
     }
   }
+
+  if (showMonthPicker) {
+    MonthYearPickerDialog(
+      currentMonthKey = monthKey,
+      locale = locale,
+      onSelectMonth = { newKey ->
+        onSelectMonth(newKey)
+        showMonthPicker = false
+      },
+      onDismiss = { showMonthPicker = false },
+    )
+  }
 }
 
 @Composable
@@ -511,19 +622,23 @@ private fun WalletCard(
   modifier: Modifier = Modifier,
 ) {
   val methodLabel = stringResource(paymentMethod.labelRes)
-  Card(
-    shape = RoundedCornerShape(18.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    modifier = modifier
-      .clickable(onClick = onClick)
-      .testTag("wallet_card_${paymentMethod.name}"),
+  val accentColor = when (paymentMethod) {
+    PaymentMethod.QRIS -> MaterialTheme.colorScheme.primary
+    PaymentMethod.CASH -> GoldAccent
+    PaymentMethod.TRANSFER -> SkyPositiveAccent
+    PaymentMethod.CARD -> MaterialTheme.colorScheme.secondary
+  }
+  SculptedSurfaceCard(
+    accentColor = accentColor,
+    cornerRadius = 18,
+    onClick = onClick,
+    modifier = modifier.testTag("wallet_card_${paymentMethod.name}"),
   ) {
     Column(
       modifier = Modifier
         .fillMaxWidth()
         .padding(14.dp),
-      verticalArrangement = Arrangement.spacedBy(6.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -532,14 +647,23 @@ private fun WalletCard(
       ) {
         Row(
           verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(6.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          Icon(
-            imageVector = paymentMethod.walletIcon(),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
-          )
+          Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = accentColor.copy(alpha = 0.15f),
+            border = BorderStroke(0.8.dp, accentColor.copy(alpha = 0.30f)),
+            modifier = Modifier.size(30.dp),
+          ) {
+            Box(contentAlignment = Alignment.Center) {
+              Icon(
+                imageVector = paymentMethod.walletIcon(),
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(16.dp),
+              )
+            }
+          }
           Text(
             text = methodLabel,
             style = MaterialTheme.typography.labelLarge,
@@ -582,13 +706,10 @@ private fun SavingsGoalCard(
     label = "goal_progress_${goal.id}",
   )
 
-  Card(
-    shape = RoundedCornerShape(20.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    modifier = Modifier
-      .fillMaxWidth()
-      .testTag("savings_goal_card_${goal.id}"),
+  SculptedSurfaceCard(
+    accentColor = category.accentColor,
+    cornerRadius = 20,
+    modifier = Modifier.testTag("savings_goal_card_${goal.id}"),
   ) {
     Column(
       modifier = Modifier

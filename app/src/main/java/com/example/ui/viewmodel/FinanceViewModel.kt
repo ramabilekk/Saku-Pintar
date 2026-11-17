@@ -54,7 +54,10 @@ sealed interface AiInsightUiState {
 sealed interface AiExpenseParseState {
   data object Idle : AiExpenseParseState
   data object Loading : AiExpenseParseState
-  data class Success(val parsed: AiParsedExpense) : AiExpenseParseState
+  data class Success(
+    val parsed: AiParsedExpense,
+    val receiptPhotoBase64: String? = null,
+  ) : AiExpenseParseState
   data class Error(val message: String) : AiExpenseParseState
 }
 
@@ -242,6 +245,12 @@ class FinanceViewModel(
     _aiInsightState.value = AiInsightUiState.Idle
   }
 
+  fun selectMonth(monthKey: String) {
+    val valid = runCatching { java.time.YearMonth.parse(monthKey).toString() }.getOrNull() ?: return
+    _selectedMonthKey.value = valid
+    _aiInsightState.value = AiInsightUiState.Idle
+  }
+
   fun setCategoryFilter(category: ExpenseCategory?) {
     _selectedCategoryFilter.value = if (_selectedCategoryFilter.value == category) null else category
   }
@@ -257,6 +266,7 @@ class FinanceViewModel(
     paymentMethod: PaymentMethod,
     dateEpochDay: Long,
     note: String,
+    receiptPhotoBase64: String = "",
   ) {
     if (amount <= 0L || title.isBlank()) {
       _actionStatus.value = str(R.string.vm_expense_validation, "Expense name and amount are required.")
@@ -276,6 +286,7 @@ class FinanceViewModel(
           dateEpochDay = dateEpochDay,
           monthKey = expenseMonthKey,
           note = note,
+          receiptPhotoBase64 = receiptPhotoBase64,
         )
         _selectedMonthKey.value = expenseMonthKey
         _actionStatus.value = str(R.string.vm_expense_added, "Expense recorded!")
@@ -298,6 +309,7 @@ class FinanceViewModel(
     paymentMethod: PaymentMethod,
     dateEpochDay: Long,
     note: String,
+    receiptPhotoBase64: String = existing.receiptPhotoBase64,
   ) {
     if (amount <= 0L || title.isBlank()) {
       _actionStatus.value = str(R.string.vm_expense_validation, "Expense name and amount are required.")
@@ -318,6 +330,7 @@ class FinanceViewModel(
             dateEpochDay = dateEpochDay,
             monthKey = expenseMonthKey,
             note = note,
+            receiptPhotoBase64 = receiptPhotoBase64,
           )
         )
         _selectedMonthKey.value = expenseMonthKey
@@ -417,12 +430,42 @@ class FinanceViewModel(
       _aiParseState.value = AiExpenseParseState.Loading
       try {
         val bitmap = ImageUtils.decodeScaledBitmap(appContext, uri)
+        val encodedReceipt = runCatching { ImageUtils.encodeReceiptBitmapBase64(bitmap) }.getOrNull()
         val parsed = aiAssistant.parseReceiptImage(
           bitmap = bitmap,
           language = LanguagePreferenceManager.currentLanguage,
           currency = CurrencyPreferenceManager.currentCurrency,
         )
-        _aiParseState.value = AiExpenseParseState.Success(parsed)
+        _aiParseState.value = AiExpenseParseState.Success(
+          parsed = parsed,
+          receiptPhotoBase64 = encodedReceipt,
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _aiParseState.value = AiExpenseParseState.Error(
+          e.localizedMessage ?: str(R.string.error_generic, "Failed to scan receipt photo."),
+        )
+      }
+    }
+  }
+
+  fun parseReceiptBase64WithAi(receiptPhotoBase64: String) {
+    if (receiptPhotoBase64.isBlank()) return
+    viewModelScope.launch {
+      _aiParseState.value = AiExpenseParseState.Loading
+      try {
+        val bitmap = ImageUtils.decodeAvatarBitmap(receiptPhotoBase64)
+          ?: error(str(R.string.error_generic, "Failed to read receipt image."))
+        val parsed = aiAssistant.parseReceiptImage(
+          bitmap = bitmap,
+          language = LanguagePreferenceManager.currentLanguage,
+          currency = CurrencyPreferenceManager.currentCurrency,
+        )
+        _aiParseState.value = AiExpenseParseState.Success(
+          parsed = parsed,
+          receiptPhotoBase64 = receiptPhotoBase64,
+        )
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -519,6 +562,26 @@ class FinanceViewModel(
       _isSaving.value = true
       try {
         val base64 = ImageUtils.encodeAvatarBase64(appContext, uri)
+        repository.saveProfilePhoto(base64, fallbackDisplayName)
+        _actionStatus.value = str(R.string.vm_profile_photo_saved, "Profile photo updated!")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to save photo: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun saveProfilePhotoFromBitmap(bitmap: android.graphics.Bitmap, fallbackDisplayName: String) {
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        val base64 = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+          ImageUtils.encodeAvatarBitmapBase64(bitmap)
+        }
         repository.saveProfilePhoto(base64, fallbackDisplayName)
         _actionStatus.value = str(R.string.vm_profile_photo_saved, "Profile photo updated!")
       } catch (e: CancellationException) {

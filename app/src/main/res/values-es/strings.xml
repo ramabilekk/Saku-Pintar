@@ -68,11 +68,17 @@
 
     <!-- Language & Currency -->
     <string name="language_section_title">Idioma de la app</string>
-    <string name="language_section_subtitle">Indonesio y 6 idiomas oficiales de la ONU</string>
+    <string name="language_section_subtitle">Elige el idioma de pantalla de la aplicación</string>
     <string name="language_picker_title">Elige el idioma</string>
     <string name="language_auto">Auto (Idioma del dispositivo)</string>
-    <string name="language_un_badge">Oficial ONU</string>
     <string name="language_changed_status">Idioma cambiado a %1$s.</string>
+    <string name="month_picker_title">Elegir mes y año</string>
+    <string name="month_picker_this_month">Este mes</string>
+    <string name="calendar_section_title">Calendario mensual</string>
+    <string name="calendar_selected_date_filter">Fecha: %1$s</string>
+    <string name="calendar_clear_filter">Mostrar todo</string>
+    <string name="calendar_day_summary_none">Toca un día para filtrar gastos</string>
+    <string name="calendar_add_on_date">Registrar en esta fecha</string>
     <string name="currency_section_title">Moneda</string>
     <string name="currency_section_subtitle">Elige la moneda de visualización y registro</string>
     <string name="currency_changed_status">Moneda cambiada a %1$s.</string>
@@ -240,10 +246,12 @@
     <string name="reminder_subtitle">Notificación diaria para no olvidar tus gastos</string>
     <string name="reminder_notification_title">Hora de anotar los gastos de hoy</string>
     <string name="reminder_notification_body">Dedica 10 segundos a registrar tus compras de hoy en SakuPintar.</string>
-    <string name="reminder_enabled_status">Recordatorio activado a las %1$02d:00.</string>
+    <string name="reminder_enabled_status">Recordatorio activado a las %1$s.</string>
     <string name="reminder_disabled_status">Recordatorio diario desactivado.</string>
     <string name="reminder_denied_status">Permiso de notificación denegado. Actívalo en Ajustes del sistema.</string>
-    <string name="reminder_time_changed">Hora del recordatorio cambiada a las %1$02d:00.</string>
+    <string name="reminder_time_changed">Hora del recordatorio cambiada a las %1$s.</string>
+    <string name="reminder_custom_time_action">Elegir hora</string>
+    <string name="reminder_picker_title">Elegir hora del recordatorio</string>
     <string name="theme_section_title">Tema visual</string>
     <string name="theme_section_subtitle">Elige modo claro, oscuro o del sistema</string>
     <string name="theme_mode_system">Del sistema</string>
@@ -346,4 +354,24 @@
     <string name="report_banner_title">SakuPintar — Resumen Financiero Mensual</string>
     <string name="report_period_printed">Período: %1$s  •  Impreso: %2$s</string>
     <string name="report_page_footer">Página %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">Foto de recibo / factura</string>
+    <string name="receipt_section_subtitle">Adjunta la foto de tu recibo de compra o factura</string>
+    <string name="receipt_pick_gallery">Galería</string>
+    <string name="receipt_take_camera">Cámara</string>
+    <string name="receipt_scan_ai_from_photo">Autocompletar con recibo (IA)</string>
+    <string name="receipt_attached_badge">Recibo adjunto</string>
+    <string name="receipt_badge_short">Recibo</string>
+    <string name="receipt_view_full">Ver recibo</string>
+    <string name="receipt_change_photo">Cambiar</string>
+    <string name="receipt_remove_photo">Quitar</string>
+    <string name="receipt_viewer_title">Recibo / Factura</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">Apoyo</string>
+    <string name="profile_support_title">Apoyar a SakuPintar</string>
+    <string name="profile_support_subtitle">Apoya el desarrollo continuo en Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">No se pudo abrir el navegador. Visita trakteer.id/ramabilekk/gift.</string>
 </resources>

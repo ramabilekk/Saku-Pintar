@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -18,8 +18,6 @@ import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -46,10 +44,9 @@ fun AiInsightCard(
   onAnalyzeClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Card(
-    shape = RoundedCornerShape(22.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+  SculptedSurfaceCard(
+    accentColor = MaterialTheme.colorScheme.secondary,
+    cornerRadius = 22,
     modifier = modifier.fillMaxWidth(),
   ) {
     Column(
@@ -58,19 +55,20 @@ fun AiInsightCard(
     ) {
       Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         Surface(
-          shape = CircleShape,
-          color = MaterialTheme.colorScheme.primaryContainer,
-          modifier = Modifier.size(40.dp),
+          shape = RoundedCornerShape(14.dp),
+          color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+          modifier = Modifier.size(42.dp),
         ) {
           Box(contentAlignment = Alignment.Center) {
             Icon(
               imageVector = Icons.Rounded.AutoAwesome,
               contentDescription = null,
               tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(20.dp),
+              modifier = Modifier.size(21.dp),
             )
           }
         }
@@ -78,6 +76,7 @@ fun AiInsightCard(
           Text(
             text = stringResource(R.string.ai_insight_title),
             style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
           )
           Text(
@@ -85,6 +84,30 @@ fun AiInsightCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
+        }
+        Surface(
+          shape = RoundedCornerShape(50),
+          color = GoldAccent.copy(alpha = 0.16f),
+          border = BorderStroke(0.8.dp, GoldAccent.copy(alpha = 0.45f)),
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.AutoAwesome,
+              contentDescription = null,
+              tint = GoldAccent,
+              modifier = Modifier.size(12.dp),
+            )
+            Text(
+              text = "AI",
+              style = MaterialTheme.typography.labelSmall,
+              fontWeight = FontWeight.Bold,
+              color = GoldAccent,
+            )
+          }
         }
       }
 
@@ -114,6 +137,7 @@ fun AiInsightCard(
           Surface(
             shape = RoundedCornerShape(14.dp),
             color = MaterialTheme.colorScheme.errorContainer,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.30f)),
             modifier = Modifier.fillMaxWidth(),
           ) {
             Text(
@@ -152,6 +176,7 @@ fun AiInsightCard(
           Surface(
             shape = RoundedCornerShape(50),
             color = badgeColor.copy(alpha = 0.14f),
+            border = BorderStroke(0.8.dp, badgeColor.copy(alpha = 0.35f)),
           ) {
             Text(
               text = stringResource(R.string.ai_insight_status_badge, statusText),
@@ -178,6 +203,7 @@ fun AiInsightCard(
           Surface(
             shape = RoundedCornerShape(14.dp),
             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
             modifier = Modifier.fillMaxWidth(),
           ) {
             Row(
@@ -203,6 +229,7 @@ fun AiInsightCard(
             Text(
               text = stringResource(R.string.ai_insight_tips_title),
               style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.SemiBold,
               color = MaterialTheme.colorScheme.onSurface,
             )
             insight.actionTips.forEachIndexed { index, tip ->
@@ -251,6 +278,7 @@ fun AiInsightCard(
               containerColor = MaterialTheme.colorScheme.primary,
               contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
             modifier = Modifier
               .fillMaxWidth()
               .height(48.dp)

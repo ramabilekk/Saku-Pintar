@@ -82,4 +82,28 @@ class LocalizationManagerTest {
     assertNotEquals(0L, usdBudget.totalAllocatedSpendBudget)
     assertEquals(3_500L, usdBudget.savingsTarget + usdBudget.totalAllocatedSpendBudget)
   }
+
+  @Test
+  fun languagePickerRemovesUnOfficialWordingAcrossAllLocales() {
+    val baseContext = ApplicationProvider.getApplicationContext<Context>()
+    val forbiddenMarkers = listOf("PBB", "UN ", "UN-", "United Nations", "الأمم", "ONU", "ООН", "联合国")
+
+    val supportedLanguages = AppLanguage.entries.filter { it != AppLanguage.SYSTEM }
+    assertEquals(7, supportedLanguages.size)
+
+    supportedLanguages.forEach { lang ->
+      val ctx = LanguagePreferenceManager.localizedContext(baseContext, lang)
+      val subtitle = ctx.getString(R.string.language_section_subtitle)
+      forbiddenMarkers.forEach { marker ->
+        assertFalse(
+          "Expected no UN/PBB reference '$marker' in ${lang.name} subtitle: $subtitle",
+          subtitle.contains(marker, ignoreCase = true),
+        )
+      }
+      val customReminder = ctx.getString(R.string.reminder_custom_time_action)
+      val calendarTitle = ctx.getString(R.string.calendar_section_title)
+      assertTrue(customReminder.isNotBlank())
+      assertTrue(calendarTitle.isNotBlank())
+    }
+  }
 }

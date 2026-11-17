@@ -11,6 +11,7 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
+import java.util.Base64
 import java.util.zip.ZipInputStream
 
 class ReportExporterTest {
@@ -29,6 +30,7 @@ class ReportExporterTest {
         dateEpochDay = day,
         monthKey = "2026-11",
         note = "Baris1\nBaris2",
+        receiptPhotoBase64 = Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3, 4)),
       ),
     )
     val budget = MonthlyBudget(
@@ -44,7 +46,9 @@ class ReportExporterTest {
     assertTrue(csv.startsWith("\uFEFFTanggal,Judul,Kategori,Metode Pembayaran,Nominal (Rp),Catatan"))
     assertTrue(csv.contains("\"Kopi \"\"Spesial\"\", Susu\""))
     assertTrue(csv.contains("\"Baris1 Baris2\""))
+    assertTrue(csv.contains("\"Terlampir (#1)\""))
     assertTrue(csv.contains("Total Pengeluaran,28000"))
+    assertTrue(csv.contains("Bukti Struk,1"))
     assertTrue(csv.contains("Pendapatan Bulanan,5000000"))
   }
 
@@ -61,6 +65,7 @@ class ReportExporterTest {
         paymentMethod = PaymentMethod.CASH.name,
         dateEpochDay = day,
         monthKey = "2026-11",
+        receiptPhotoBase64 = Base64.getEncoder().encodeToString(byteArrayOf(10, 20, 30)),
       ),
     )
     val insight = DailyBudgetInsight(
@@ -79,6 +84,7 @@ class ReportExporterTest {
 
     assertTrue(summary.contains("Rekap Keuangan SakuPintar"))
     assertTrue(summary.contains("Makan Siang"))
+    assertTrue(summary.contains("[Struk]"))
     assertTrue(summary.contains("Rincian per Kategori"))
   }
 
@@ -160,6 +166,63 @@ class ReportExporterTest {
     val sheet2 = entries.getValue("xl/worksheets/sheet2.xml")
     assertTrue(sheet2.contains("Makan &amp; Kopi &lt;Spesial&gt;"))
     assertTrue(sheet2.contains("<f>SUM(E2:E3)</f><v>65000</v>"))
+  }
+
+  @Test
+  fun buildMonthlyExcelBytes_embedsReceiptImagesAndLampiranStrukSheetWhenReceiptsExist() {
+    val day = LocalDate.of(2026, 11, 14).toEpochDay()
+    val fakeJpegBytes = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte())
+    val base64Receipt = Base64.getEncoder().encodeToString(fakeJpegBytes)
+    val expenses = listOf(
+      Expense(
+        id = "exp-receipt-1",
+        userId = "user-1",
+        title = "Belanja Supermarket",
+        amount = 125_000L,
+        category = ExpenseCategory.SHOPPING.name,
+        paymentMethod = PaymentMethod.QRIS.name,
+        dateEpochDay = day,
+        monthKey = "2026-11",
+        note = "Struk lengkap",
+        receiptPhotoBase64 = base64Receipt,
+      ),
+    )
+    val insight = DailyBudgetInsight(
+      totalBudget = 2_500_000L,
+      totalSpent = 125_000L,
+      remainingBudget = 2_375_000L,
+      daysInMonth = 30,
+      daysRemaining = 16,
+      dailySafeLimit = 148_437L,
+      todaySpent = 125_000L,
+      todayRemaining = 23_437L,
+      paceStatus = BudgetPaceStatus.SAFE,
+    )
+
+    val bytes = ReportExporter.buildMonthlyExcelBytes("2026-11", expenses, null, insight)
+    val entryNames = mutableSetOf<String>()
+    val xmlEntries = mutableMapOf<String, String>()
+    ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+      var entry = zip.nextEntry
+      while (entry != null) {
+        val raw = zip.readBytes()
+        entryNames.add(entry.name)
+        if (entry.name.endsWith(".xml") || entry.name.endsWith(".rels")) {
+          xmlEntries[entry.name] = String(raw, StandardCharsets.UTF_8)
+        }
+        entry = zip.nextEntry
+      }
+    }
+
+    assertTrue(entryNames.contains("xl/worksheets/sheet3.xml"))
+    assertTrue(entryNames.contains("xl/drawings/drawing1.xml"))
+    assertTrue(entryNames.contains("xl/drawings/drawing2.xml"))
+    assertTrue(entryNames.contains("xl/media/receipt_1.jpg"))
+    assertTrue(xmlEntries.getValue("xl/workbook.xml").contains("Lampiran Struk"))
+    assertTrue(xmlEntries.getValue("xl/worksheets/sheet2.xml").contains("Terlampir (#1)"))
+    assertTrue(xmlEntries.getValue("xl/worksheets/sheet2.xml").contains("ht=\"92\" customHeight=\"1\""))
+    assertTrue(xmlEntries.getValue("xl/worksheets/sheet3.xml").contains("Belanja Supermarket"))
+    assertTrue(xmlEntries.getValue("xl/worksheets/sheet3.xml").contains("ht=\"138\" customHeight=\"1\""))
   }
 
   @Test

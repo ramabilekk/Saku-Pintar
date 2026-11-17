@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <meta
+      name="description"
+      content="SakuPintar v2.0 — Catat pengeluaran harian, kelola anggaran pintar, celengan target, dan sinkron otomatis dengan aplikasi Android APK."
+    />
+    <title>SakuPintar Web &amp; APK — Pengelola Keuangan Pribadi v2.0</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./firebase-config.js"></script>
+  </head>
+  <body>
+    <div class="ambient-backdrop" aria-hidden="true"></div>
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a href="#top" class="brand-lockup" aria-label="SakuPintar Beranda">
+          <img src="./icon.svg" alt="Ikon SakuPintar" class="brand-icon" />
+          <div>
+            <div class="brand-name">
+              <span>SakuPintar</span>
+              <span class="version-pill mono">v2.0</span>
+            </div>
+            <div class="brand-tagline" data-i18n="brandTagline">
+              Sinkron Web &amp; Android APK
+            </div>
+          </div>
+        </a>
+
+        <div class="topbar-actions">
+          <div class="theme-toggle" role="group" aria-label="Pilih Bahasa">
+            <button type="button" id="langIdBtn" class="active" data-lang="id">
+              ID
+            </button>
+            <button type="button" id="langEnBtn" data-lang="en">EN</button>
+          </div>
+
+          <div class="theme-toggle" role="group" aria-label="Pilih Tema">
+            <button
+              type="button"
+              id="themeLightBtn"
+              class="active"
+              data-theme-pick="light"
+              aria-label="Tema Terang"
+            >
+              ☀️ <span data-i18n="themeLight">Terang</span>
+            </button>
+            <button
+              type="button"
+              id="themeDarkBtn"
+              data-theme-pick="dark"
+              aria-label="Tema Gelap"
+            >
+              🌙 <span data-i18n="themeDark">Gelap</span>
+            </button>
+          </div>
+
+          <a
+            id="topApkDownloadBtn"
+            href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-emerald btn-sm"
+          >
+            📲 <span data-i18n="navDownloadApk">Unduh APK</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top" class="container">
+      <!-- Hero + APK Promotion -->
+      <section class="hero-section" aria-label="Promosi SakuPintar Web dan APK">
+        <div class="hero-grid">
+          <div class="card hero-main">
+            <div>
+              <div class="hero-badge-row" style="margin-bottom: 14px">
+                <span class="badge-chip">☁️ <span data-i18n="heroBadgeSync">Sinkron Real-Time Web ↔ APK</span></span>
+                <span class="badge-chip emerald">✨ <span data-i18n="heroBadgeFree">Gratis Tanpa Langganan</span></span>
+                <span class="badge-chip gold" id="heroModeChip">🌐 Web App v2.0</span>
+              </div>
+              <h1 class="hero-title" data-i18n="heroTitle">
+                Kelola Keuangan dari Browser, Sinkron Otomatis ke HP Android Anda
+              </h1>
+              <p class="hero-subtitle" style="margin-top: 12px" data-i18n="heroSubtitle">
+                Catat pengeluaran harian, foto struk belanja, atur anggaran 50/30/20, dan pantau celengan target langsung di browser. Masuk dengan Google agar semua data langsung tersinkron dua arah dengan aplikasi Android SakuPintar.
+              </p>
+            </div>
+
+            <div class="hero-cta-row">
+              <a
+                id="heroApkBtn"
+                href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-emerald"
+              >
+                ⬇️ <span data-i18n="heroCtaApk">Download APK Android</span>
+              </a>
+              <button type="button" id="heroStartWebBtn" class="btn btn-primary">
+                🚀 <span data-i18n="heroCtaWeb">Gunakan di Browser</span>
+              </button>
+              <button type="button" id="heroGuideBtn" class="btn btn-outline">
+                📖 <span data-i18n="heroCtaGuide">Cara Pasang APK</span>
+              </button>
+            </div>
+          </div>
+
+          <aside class="apk-promo-card" aria-label="Unduh Aplikasi Android SakuPintar">
+            <div style="position: relative; z-index: 1">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  margin-bottom: 10px;
+                "
+              >
+                <span
+                  style="
+                    font-size: 0.78rem;
+                    font-weight: 800;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #93c5fd;
+                  "
+                  data-i18n="apkCardEyebrow"
+                >
+                  APLIKASI ANDROID RESMI
+                </span>
+                <span
+                  id="apkVersionBadge"
+                  class="mono"
+                  style="
+                    background: rgba(16, 185, 129, 0.24);
+                    border: 1px solid rgba(52, 211, 153, 0.45);
+                    color: #a7f3d0;
+                    font-size: 0.76rem;
+                    font-weight: 700;
+                    padding: 3px 10px;
+                    border-radius: 999px;
+                  "
+                >
+                  v2.0
+                </span>
+              </div>
+
+              <h2 style="margin: 0 0 8px; font-size: 1.32rem; font-weight: 800" data-i18n="apkCardTitle">
+                SakuPintar untuk Android
+              </h2>
+              <p
+                style="
+                  margin: 0 0 14px;
+                  font-size: 0.88rem;
+                  color: rgba(255, 255, 255, 0.84);
+                  line-height: 1.5;
+                "
+                data-i18n="apkCardDesc"
+              >
+                Lebih cepat di genggaman dengan kamera struk instan, notifikasi cerdas, dan offline cache native Material 3.
+              </p>
+
+              <ul class="apk-feature-list">
+                <li>✅ <span data-i18n="apkFeat1">Sinkron otomatis lewat akun Google yang sama</span></li>
+                <li>📸 <span data-i18n="apkFeat2">Foto struk langsung dari kamera &amp; rekap PDF/CSV</span></li>
+                <li>🔒 <span data-i18n="apkFeat3">Cepat tanpa OTP rumit — cukup Google atau Guest</span></li>
+              </ul>
+            </div>
+
+            <div class="apk-meta-box" style="position: relative; z-index: 1">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  font-size: 0.8rem;
+                  color: rgba(255, 255, 255, 0.82);
+                  gap: 8px;
+                  flex-wrap: wrap;
+                "
+              >
+                <span id="apkAssetName" class="mono">SakuPintar-v2.0.apk</span>
+                <span id="apkAssetSize" class="mono">GitHub Release</span>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <a
+                  id="apkDirectDownloadLink"
+                  href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-emerald"
+                  style="flex: 1; min-width: 170px"
+                >
+                  📲 <span data-i18n="apkDownloadNow">Download APK Sekarang</span>
+                </a>
+                <a
+                  href="https://github.com/ramabilekk/Saku-Pintar/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm"
+                  style="
+                    background: rgba(255, 255, 255, 0.14);
+                    color: #ffffff;
+                    border: 1px solid rgba(255, 255, 255, 0.25);
+                  "
+                >
+                  GitHub Releases ↗
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Auth & Cloud Sync Strip -->
+      <section class="card auth-strip" aria-label="Status Akun dan Sinkronisasi">
+        <div class="auth-user-meta">
+          <div class="avatar-circle" id="userAvatar">G</div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+              <strong id="userDisplayName">Mode Guest (Browser Lokal)</strong>
+              <span class="badge-chip" id="syncStatusBadge">💾 Lokal Browser</span>
+            </div>
+            <div id="userSubStatus" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px">
+              Data tersimpan di browser ini. Masuk dengan Google untuk sinkron real-time dengan APK Android.
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-controls">
+          <button type="button" id="googleSignInBtn" class="btn btn-primary btn-sm">
+            🔐 <span data-i18n="btnGoogleSignIn">Masuk dengan Google (Sinkron APK)</span>
+          </button>
+          <button type="button" id="guestModeBtn" class="btn btn-tonal btn-sm">
+            👤 <span data-i18n="btnGuestMode">Mode Guest</span>
+          </button>
+          <button type="button" id="openFirebaseSetupBtn" class="btn btn-outline btn-sm">
+            ⚙️ <span data-i18n="btnFirebaseConfig">Konfigurasi Cloud</span>
+          </button>
+          <button
+            type="button"
+            id="signOutBtn"
+            class="btn btn-danger btn-sm"
+            style="display: none"
+          >
+            🚪 <span data-i18n="btnSignOut">Keluar</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Workspace Header: Tabs & Month Switcher -->
+      <div id="workspaceAnchor" class="workspace-header">
+        <nav class="nav-tabs" aria-label="Navigasi Menu Aplikasi">
+          <button type="button" class="nav-pill active" data-tab="dashboard">
+            📊 <span data-i18n="tabDashboard">Ringkasan</span>
+          </button>
+          <button type="button" class="nav-pill" data-tab="expenses">
+            🧾 <span data-i18n="tabExpenses">Pengeluaran</span>
+          </button>
+          <button type="button" class="nav-pill" data-tab="budget">
+            🧠 <span data-i18n="tabBudget">Anggaran</span>
+          </button>
+          <button type="button" class="nav-pill" data-tab="savings">
+            🏦 <span data-i18n="tabSavings">Celengan &amp; Dompet</span>
+          </button>
+        </nav>
+
+        <div class="month-bar" role="group" aria-label="Pilih Bulan">
+          <button type="button" id="prevMonthBtn" class="btn btn-outline btn-sm" aria-label="Bulan Sebelumnya">
+            ◀
+          </button>
+          <div id="currentMonthLabel" class="month-label">Bulan Ini</div>
+          <button type="button" id="nextMonthBtn" class="btn btn-outline btn-sm" aria-label="Bulan Berikutnya">
+            ▶
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="panel-dashboard" class="tab-panel active">
+        <div class="metrics-grid">
+          <article class="card metric-card hero-budget">
+            <div class="metric-label" data-i18n="metricRemainingBudget">Sisa Anggaran Bulan Ini</div>
+            <div id="dashRemainingBudget" class="metric-value mono">Rp 0</div>
+            <div id="dashBudgetUsageSub" class="metric-sub">0% terpakai</div>
+          </article>
+
+          <article class="card metric-card">
+            <div class="metric-label" data-i18n="metricTotalSpent">Total Pengeluaran</div>
+            <div id="dashTotalSpent" class="metric-value mono">Rp 0</div>
+            <div id="dashTxCountSub" class="metric-sub">0 transaksi</div>
+          </article>
+
+          <article class="card metric-card">
+            <div class="metric-label" data-i18n="metricDailySafe">Batas Aman Harian</div>
+            <div id="dashDailySafe" class="metric-value mono">Rp 0</div>
+            <div id="dashDailySafeSub" class="metric-sub">Sisa hari bulan ini</div>
+          </article>
+
+          <article class="card metric-card">
+            <div class="metric-label" data-i18n="metricTotalWallet">Total Saldo Dompet</div>
+            <div id="dashTotalWallet" class="metric-value mono">Rp 0</div>
+            <div id="dashSavingsProgressSub" class="metric-sub">Celengan: Rp 0</div>
+          </article>
+        </div>
+
+        <div class="two-col">
+          <section class="card section-card">
+            <div class="section-head">
+              <h2 class="section-title" data-i18n="dashCategoryTitle">Distribusi Pengeluaran Kategori</h2>
+              <button type="button" id="quickAddFromDashBtn" class="btn btn-primary btn-sm no-print">
+                ➕ <span data-i18n="btnAddExpense">Tambah Transaksi</span>
+              </button>
+            </div>
+            <div id="dashCategoryBars" class="category-list"></div>
+          </section>
+
+          <section class="card section-card">
+            <div class="section-head">
+              <h2 class="section-title" data-i18n="dashRecentTitle">Transaksi Terbaru</h2>
+              <div style="display: flex; gap: 8px" class="no-print">
+                <button type="button" id="dashGoExpensesBtn" class="btn btn-tonal btn-sm">
+                  <span data-i18n="btnSeeAll">Lihat Semua</span>
+                </button>
+              </div>
+            </div>
+            <div id="dashRecentList" class="expense-list"></div>
+          </section>
+        </div>
+
+        <aside class="apk-inline-banner no-print">
+          <div>
+            <strong style="font-size: 1rem" data-i18n="bannerTitle">
+              Ingin catat pengeluaran lebih praktis tanpa buka browser?
+            </strong>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px" data-i18n="bannerSub">
+              Pasang SakuPintar APK v2.0 di HP Android Anda — login dengan akun Google yang sama untuk sinkron otomatis!
+            </div>
+          </div>
+          <a
+            id="bannerApkLink"
+            href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-emerald btn-sm"
+          >
+            📲 <span data-i18n="apkDownloadNow">Download APK Sekarang</span>
+          </a>
+        </aside>
+      </section>
+
+      <!-- TAB 2: EXPENSES -->
+      <section id="panel-expenses" class="tab-panel">
+        <div class="card section-card">
+          <div class="section-head">
+            <h2 class="section-title" data-i18n="expensesHeading">Catatan Pengeluaran Harian</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap" class="no-print">
+              <button type="button" id="exportCsvBtn" class="btn btn-outline btn-sm">
+                📄 <span data-i18n="btnExportCsv">Ekspor CSV / Excel</span>
+              </button>
+              <button type="button" id="printPdfBtn" class="btn btn-outline btn-sm">
+                🖨️ <span data-i18n="btnPrintPdf">Cetak / Simpan PDF</span>
+              </button>
+              <button type="button" id="addExpenseBtn" class="btn btn-primary btn-sm">
+                ➕ <span data-i18n="btnAddExpense">Tambah Transaksi</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-toolbar no-print">
+            <input
+              type="search"
+              id="expenseSearchInput"
+              class="input"
+              style="flex: 1.4; min-width: 190px"
+              placeholder="Cari judul atau catatan..."
+              data-i18n-placeholder="searchPlaceholder"
+            />
+            <select id="expenseCategoryFilter" class="input" style="flex: 0.8; min-width: 150px">
+              <option value="ALL" data-i18n="filterAllCat">Semua Kategori</option>
+              <option value="FOOD">Makanan &amp; Minuman</option>
+              <option value="TRANSPORT">Transportasi</option>
+              <option value="BILLS">Tagihan &amp; Utilitas</option>
+              <option value="HEALTH">Kesehatan</option>
+              <option value="SHOPPING">Belanja</option>
+              <option value="ENTERTAINMENT">Hiburan</option>
+              <option value="OTHER">Lainnya</option>
+            </select>
+            <select id="expenseMethodFilter" class="input" style="flex: 0.8; min-width: 140px">
+              <option value="ALL" data-i18n="filterAllMethod">Semua Metode</option>
+              <option value="QRIS">QRIS</option>
+              <option value="CASH">Tunai (Cash)</option>
+              <option value="TRANSFER">Transfer Bank</option>
+              <option value="CARD">Kartu Debit/Kredit</option>
+            </select>
+          </div>
+
+          <div id="expensesListContainer" class="expense-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: BUDGET -->
+      <section id="panel-budget" class="tab-panel">
+        <div class="two-col">
+          <section class="card section-card">
+            <div class="section-head">
+              <h2 class="section-title" data-i18n="budgetPlannerTitle">Atur Anggaran Pintar</h2>
+              <span class="badge-chip" id="budgetSavedBadge">Auto-Sync APK</span>
+            </div>
+
+            <form id="budgetForm" class="form-grid">
+              <div>
+                <label class="field-label" for="budgetIncomeInput" data-i18n="labelIncome">
+                  Pemasukan Bulanan (Rp)
+                </label>
+                <input
+                  type="number"
+                  id="budgetIncomeInput"
+                  class="input mono"
+                  min="0"
+                  max="100000000000"
+                  step="10000"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="field-label" for="budgetStrategySelect" data-i18n="labelStrategy">
+                  Strategi Alokasi
+                </label>
+                <select id="budgetStrategySelect" class="input">
+                  <option value="BALANCED_50_30_20">Seimbang 50 / 30 / 20 (Kebutuhan / Keinginan / Tabungan)</option>
+                  <option value="FRUGAL_60_10_30">Hemat Agresif 60 / 10 / 30</option>
+                  <option value="ADAPTIVE_HISTORY">Adaptif dari Riwayat Bulan Lalu</option>
+                  <option value="CUSTOM">Kustom (Atur Persentase Sendiri)</option>
+                </select>
+              </div>
+
+              <div class="form-row-2" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <div>
+                  <label class="field-label" for="needsPercentInput" data-i18n="labelNeedsPct">Kebutuhan %</label>
+                  <input type="number" id="needsPercentInput" class="input mono" min="0" max="100" required />
+                </div>
+                <div>
+                  <label class="field-label" for="wantsPercentInput" data-i18n="labelWantsPct">Keinginan %</label>
+                  <input type="number" id="wantsPercentInput" class="input mono" min="0" max="100" required />
+                </div>
+                <div>
+                  <label class="field-label" for="savingsPercentInput" data-i18n="labelSavingsPct">Tabungan %</label>
+                  <input type="number" id="savingsPercentInput" class="input mono" min="0" max="100" required />
+                </div>
+              </div>
+
+              <div id="budgetAllocationSummary" style="font-size: 0.84rem; color: var(--text-muted)">
+                Total persentase harus 100%.
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                💾 <span data-i18n="btnSaveBudget">Simpan &amp; Sinkronkan Anggaran</span>
+              </button>
+            </form>
+          </section>
+
+          <section class="card section-card">
+            <div class="section-head">
+              <h2 class="section-title" data-i18n="budgetCatBreakdown">Batas Per Kategori Bulan Ini</h2>
+            </div>
+            <div id="budgetCategoryProgressList" class="category-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <!-- TAB 4: SAVINGS & WALLETS -->
+      <section id="panel-savings" class="tab-panel">
+        <section class="card section-card" style="margin-bottom: 18px">
+          <div class="section-head">
+            <h2 class="section-title" data-i18n="walletsHeading">Saldo Dompet &amp; Metode Bayar</h2>
+            <span style="font-size: 0.82rem; color: var(--text-muted)" data-i18n="walletsSub">
+              Klik simpan pada tiap metode untuk menyinkronkan saldo dengan aplikasi Android.
+            </span>
+          </div>
+          <div id="walletsGrid" class="wallet-grid"></div>
+        </section>
+
+        <section class="card section-card">
+          <div class="section-head">
+            <h2 class="section-title" data-i18n="goalsHeading">Celengan Target</h2>
+            <button type="button" id="addGoalBtn" class="btn btn-primary btn-sm no-print">
+              ➕ <span data-i18n="btnAddGoal">Buat Target Baru</span>
+            </button>
+          </div>
+          <div id="goalsGrid" class="goals-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer container">
+      <div>
+        <strong>SakuPintar v2.0</strong> — <span data-i18n="footerDesc">Aplikasi Web &amp; Android Pengelola Keuangan Pribadi.</span>
+      </div>
+      <div style="margin-top: 6px">
+        <a
+          href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="color: var(--primary); font-weight: 700; text-decoration: none"
+        >
+          GitHub Releases (APK Android) ↗
+        </a>
+      </div>
+    </footer>
+
+    <!-- MODAL: Add / Edit Expense -->
+    <div id="expenseModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+      <div class="modal-card">
+        <div class="section-head">
+          <h3 id="expenseModalTitle" class="section-title">Tambah Pengeluaran</h3>
+          <button type="button" class="btn btn-outline btn-sm" data-close-modal="expenseModal">✕</button>
+        </div>
+
+        <form id="expenseForm" class="form-grid">
+          <input type="hidden" id="expenseEditId" />
+
+          <div>
+            <label class="field-label" for="expenseTitleInput" data-i18n="labelTitle">Judul Pengeluaran</label>
+            <input
+              type="text"
+              id="expenseTitleInput"
+              class="input"
+              maxlength="80"
+              placeholder="Contoh: Makan Siang / Kopi"
+              required
+            />
+          </div>
+
+          <div class="form-row-2">
+            <div>
+              <label class="field-label" for="expenseAmountInput" data-i18n="labelAmount">Nominal (Rp)</label>
+              <input
+                type="number"
+                id="expenseAmountInput"
+                class="input mono"
+                min="1"
+                max="10000000000"
+                required
+              />
+            </div>
+            <div>
+              <label class="field-label" for="expenseDateInput" data-i18n="labelDate">Tanggal</label>
+              <input type="date" id="expenseDateInput" class="input" required />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div>
+              <label class="field-label" for="expenseCategoryInput" data-i18n="labelCategory">Kategori</label>
+              <select id="expenseCategoryInput" class="input">
+                <option value="FOOD">Makanan &amp; Minuman</option>
+                <option value="TRANSPORT">Transportasi</option>
+                <option value="BILLS">Tagihan &amp; Utilitas</option>
+                <option value="HEALTH">Kesehatan</option>
+                <option value="SHOPPING">Belanja</option>
+                <option value="ENTERTAINMENT">Hiburan</option>
+                <option value="OTHER">Lainnya</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="expenseMethodInput" data-i18n="labelMethod">Metode Bayar</label>
+              <select id="expenseMethodInput" class="input">
+                <option value="QRIS">QRIS</option>
+                <option value="CASH">Tunai (Cash)</option>
+                <option value="TRANSFER">Transfer Bank</option>
+                <option value="CARD">Kartu Debit/Kredit</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="expenseNoteInput" data-i18n="labelNote">Catatan (Opsional)</label>
+            <textarea
+              id="expenseNoteInput"
+              class="input"
+              rows="2"
+              maxlength="200"
+              placeholder="Detail tambahan..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="field-label" for="expenseReceiptInput" data-i18n="labelReceipt">
+              Foto Struk (Otomatis dikompres agar sinkron dengan APK)
+            </label>
+            <input type="file" id="expenseReceiptInput" class="input" accept="image/*" />
+            <div id="expenseReceiptPreviewWrap" style="display: none; margin-top: 8px; align-items: center; gap: 10px">
+              <img
+                id="expenseReceiptPreviewImg"
+                alt="Pratinjau foto struk"
+                style="width: 72px; height: 72px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border)"
+              />
+              <button type="button" id="removeReceiptBtn" class="btn btn-danger btn-sm">
+                🗑️ <span data-i18n="btnRemoveReceipt">Hapus Foto</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px">
+            <button type="button" class="btn btn-outline" data-close-modal="expenseModal">
+              <span data-i18n="btnCancel">Batal</span>
+            </button>
+            <button type="submit" class="btn btn-primary">
+              💾 <span data-i18n="btnSave">Simpan</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Add Savings Goal -->
+    <div id="goalModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
+      <div class="modal-card">
+        <div class="section-head">
+          <h3 id="goalModalTitle" class="section-title" data-i18n="btnAddGoal">Buat Target Baru</h3>
+          <button type="button" class="btn btn-outline btn-sm" data-close-modal="goalModal">✕</button>
+        </div>
+
+        <form id="goalForm" class="form-grid">
+          <div>
+            <label class="field-label" for="goalTitleInput" data-i18n="labelGoalTitle">Nama Target</label>
+            <input
+              type="text"
+              id="goalTitleInput"
+              class="input"
+              maxlength="60"
+              placeholder="Contoh: Dana Darurat / Laptop Baru"
+              required
+            />
+          </div>
+
+          <div class="form-row-2">
+            <div>
+              <label class="field-label" for="goalTargetInput" data-i18n="labelGoalTarget">Target (Rp)</label>
+              <input
+                type="number"
+                id="goalTargetInput"
+                class="input mono"
+                min="1"
+                max="100000000000"
+                required
+              />
+            </div>
+            <div>
+              <label class="field-label" for="goalInitialInput" data-i18n="labelGoalSaved">Saldo Awal (Rp)</label>
+              <input
+                type="number"
+                id="goalInitialInput"
+                class="input mono"
+                min="0"
+                max="100000000000"
+                value="0"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="goalCategoryInput" data-i18n="labelCategory">Kategori</label>
+            <select id="goalCategoryInput" class="input">
+              <option value="EMERGENCY">Dana Darurat</option>
+              <option value="GADGET">Gadget &amp; Elektronik</option>
+              <option value="TRAVEL">Liburan &amp; Perjalanan</option>
+              <option value="VEHICLE">Kendaraan</option>
+              <option value="EDUCATION">Pendidikan</option>
+              <option value="HOME">Rumah &amp; Properti</option>
+              <option value="OTHER">Lainnya</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="goalNoteInput" data-i18n="labelNote">Catatan (Opsional)</label>
+            <input type="text" id="goalNoteInput" class="input" maxlength="120" />
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px">
+            <button type="button" class="btn btn-outline" data-close-modal="goalModal">
+              <span data-i18n="btnCancel">Batal</span>
+            </button>
+            <button type="submit" class="btn btn-primary">
+              💾 <span data-i18n="btnSave">Simpan</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Firebase Web Setup -->
+    <div id="firebaseSetupModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="firebaseModalTitle">
+      <div class="modal-card">
+        <div class="section-head">
+          <h3 id="firebaseModalTitle" class="section-title" data-i18n="firebaseModalTitle">
+            Hubungkan Firebase Web (Sinkron APK)
+          </h3>
+          <button type="button" class="btn btn-outline btn-sm" data-close-modal="firebaseSetupModal">✕</button>
+        </div>
+
+        <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin-top: 0">
+          Untuk sinkronisasi Google Sign-In &amp; Firestore dua arah dengan APK Android di proyek
+          <code class="mono">gen-lang-client-0625297800</code>, masukkan Web API Key &amp; Web App ID dari
+          <strong>Firebase Console &rarr; Project Settings &rarr; Your apps (Web)</strong>, dan pastikan domain
+          <code class="mono" id="currentHostDomain">localhost</code> sudah ditambahkan di
+          <strong>Authentication &rarr; Settings &rarr; Authorized domains</strong>.
+        </p>
+
+        <form id="firebaseConfigForm" class="form-grid">
+          <div>
+            <label class="field-label" for="fbApiKeyInput">Web API Key</label>
+            <input
+              type="text"
+              id="fbApiKeyInput"
+              class="input mono"
+              placeholder="AIzaSy..."
+              required
+            />
+          </div>
+          <div>
+            <label class="field-label" for="fbAppIdInput">Web App ID</label>
+            <input
+              type="text"
+              id="fbAppIdInput"
+              class="input mono"
+              placeholder="1:707681832137:web:..."
+              required
+            />
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px">
+            <button type="button" id="clearFirebaseCfgBtn" class="btn btn-danger btn-sm">
+              Reset Konfigurasi Lokal
+            </button>
+            <div style="display: flex; gap: 8px">
+              <button type="button" class="btn btn-outline" data-close-modal="firebaseSetupModal">
+                <span data-i18n="btnCancel">Batal</span>
+              </button>
+              <button type="submit" class="btn btn-primary">Simpan &amp; Aktifkan</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: APK Install Guide -->
+    <div id="apkGuideModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="apkGuideTitle">
+      <div class="modal-card">
+        <div class="section-head">
+          <h3 id="apkGuideTitle" class="section-title">Panduan Pasang SakuPintar APK</h3>
+          <button type="button" class="btn btn-outline btn-sm" data-close-modal="apkGuideModal">✕</button>
+        </div>
+        <ol style="padding-left: 20px; display: grid; gap: 10px; font-size: 0.9rem; line-height: 1.55">
+          <li>
+            Tekan tombol <strong>Download APK Sekarang</strong> untuk mengunduh file rilis resmi terbaru dari GitHub Releases.
+          </li>
+          <li>
+            Buka file <code class="mono">.apk</code> yang selesai diunduh melalui notifikasi atau aplikasi <strong>Files</strong> di Android.
+          </li>
+          <li>
+            Jika Android meminta izin pemasangan, aktifkan <strong>Izinkan dari sumber ini (Install unknown apps)</strong> lalu lanjutkan instalasi.
+          </li>
+          <li>
+            Buka SakuPintar di HP Anda dan pilih <strong>Masuk dengan Google</strong> memakai akun Google yang sama dengan browser ini — semua transaksi, anggaran, dompet, dan celengan langsung tersinkron!
+          </li>
+        </ol>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px">
+          <a
+            id="guideApkBtn"
+            href="https://github.com/ramabilekk/Saku-Pintar/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-emerald"
+          >
+            📲 Download APK Sekarang
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Receipt Lightbox -->
+    <div id="receiptModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+      <div class="modal-card" style="max-width: 620px; text-align: center">
+        <div class="section-head">
+          <h3 id="receiptModalTitle" class="section-title">Foto Struk Transaksi</h3>
+          <button type="button" class="btn btn-outline btn-sm" data-close-modal="receiptModal">✕</button>
+        </div>
+        <img
+          id="receiptLightboxImg"
+          alt="Foto Struk Transaksi"
+          style="max-width: 100%; max-height: 70vh; border-radius: 16px; object-fit: contain"
+        />
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

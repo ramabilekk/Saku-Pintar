@@ -1,6 +1,7 @@
 package com.example.data.ai
 
 import android.graphics.Bitmap
+import android.os.Build
 import android.util.Log
 import com.example.data.budget.DailyBudgetInsight
 import com.example.data.model.Expense
@@ -13,6 +14,7 @@ import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.util.Formatters
 import com.google.firebase.Firebase
+import com.google.firebase.ai.GenerativeModel
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.content
@@ -21,6 +23,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
+import kotlin.math.roundToLong
 
 data class AiFinancialInsight(
   val headline: String,
@@ -45,15 +48,12 @@ class FinanceAiAssistant {
   private val insightSchema = Schema.obj(
     mapOf(
       "headline" to Schema.string("Short 1-sentence financial summary headline in the requested target language"),
-      "statusLevel" to Schema.enumeration(
-        values = listOf("AMAN", "PERHATIAN", "BOROS"),
-        description = "Monthly spending health status: AMAN (on track), PERHATIAN (near limit), BOROS (over budget)",
-      ),
+      "statusLevel" to Schema.string("Monthly spending health status: must be one of AMAN, PERHATIAN, or BOROS"),
       "summary" to Schema.string("2-3 sentence financial analysis summary in the requested target language"),
       "topCategoryHighlight" to Schema.string("Highlight of the highest or most notable spending category in the requested target language"),
       "actionTips" to Schema.array(
         items = Schema.string("Practical, concrete saving tip in the requested target language"),
-        description = "Exactly 3 realistic saving or budgeting recommendations in the requested target language",
+        description = "3 realistic saving or budgeting recommendations in the requested target language",
       ),
     ),
   )
@@ -62,55 +62,115 @@ class FinanceAiAssistant {
     mapOf(
       "title" to Schema.string("Concise, clear expense name in the user's language"),
       "amount" to Schema.integer("Total expense amount in the active currency (positive whole integer, e.g., 35000 or 25)"),
-      "category" to Schema.enumeration(
-        values = ExpenseCategory.entries.map { it.name },
-        description = "Best matching expense category",
-      ),
-      "paymentMethod" to Schema.enumeration(
-        values = PaymentMethod.entries.map { it.name },
-        description = "Detected payment method (default QRIS if unspecified)",
-      ),
+      "category" to Schema.string("Best matching expense category: one of FOOD, BILLS, TRANSPORT, HEALTH, SHOPPING, ENTERTAINMENT, OTHER"),
+      "paymentMethod" to Schema.string("Detected payment method: one of QRIS, CASH, TRANSFER, CARD (default QRIS if unspecified)"),
       "note" to Schema.string("Brief additional details if present, or empty string"),
     ),
   )
 
-  private val insightModel by lazy {
-    Firebase.ai.generativeModel(
-      modelName = MODEL_NAME,
-      generationConfig = generationConfig {
-        temperature = 0.4f
-        responseMimeType = "application/json"
-        responseSchema = insightSchema
-      },
-      systemInstruction = content {
-        text(
-          "You are SakuPintar's friendly, objective, practical personal finance advisor. " +
-            "Always respond in the EXACT target language specified in the user prompt. " +
-            "Analyze the user's monthly spending and budget data using the specified currency. " +
-            "Give concrete, helpful recommendations based solely on the real numbers provided without inventing figures. " +
-            "Keep statusLevel strictly one of AMAN, PERHATIAN, or BOROS."
-        )
-      },
+  private val insightSystemInstruction = content {
+    text(
+      "You are SakuPintar's friendly, objective, practical personal finance advisor. " +
+        "Always respond in the EXACT target language specified in the user prompt. " +
+        "Analyze the user's monthly spending and budget data using the specified currency. " +
+        "Give concrete, helpful recommendations based solely on the real numbers provided without inventing figures. " +
+        "Keep statusLevel strictly one of AMAN, PERHATIAN, or BOROS."
     )
   }
 
-  private val expenseParserModel by lazy {
-    Firebase.ai.generativeModel(
-      modelName = MODEL_NAME,
+  private val expenseSystemInstruction = content {
+    text(
+      "Extract a single expense transaction from the user's text or receipt image in ANY language. " +
+        "Convert shorthand amounts cleanly (e.g. Indonesian 'rb'/'ribu' * 1000, 'jt'/'juta' * 1000000; English 'k' * 1000; Chinese '万' * 10000). " +
+        "Round decimal currency amounts to the nearest whole integer if needed, or preserve whole units for currencies like IDR/JPY/KRW. " +
+        "If multiple items are mentioned in one transaction, sum the total amount and summarize items in title/note. " +
+        "Pick the best matching category (FOOD, BILLS, TRANSPORT, HEALTH, SHOPPING, ENTERTAINMENT, OTHER) and paymentMethod (QRIS, CASH, TRANSFER, CARD). Keep title and note in the requested target language."
+    )
+  }
+
+  private val primaryInsightModel by lazy {
+    createInsightModel(PRIMARY_MODEL_NAME, useSchema = true)
+  }
+
+  private val fallbackInsightModel by lazy {
+    createInsightModel(FALLBACK_MODEL_NAME, useSchema = true)
+  }
+
+  private val plainJsonInsightModel by lazy {
+    createInsightModel(FALLBACK_MODEL_NAME, useSchema = false)
+  }
+
+  private val primaryExpenseParserModel by lazy {
+    createExpenseParserModel(PRIMARY_MODEL_NAME, useSchema = true)
+  }
+
+  private val fallbackExpenseParserModel by lazy {
+    createExpenseParserModel(FALLBACK_MODEL_NAME, useSchema = true)
+  }
+
+  private val plainJsonExpenseParserModel by lazy {
+    createExpenseParserModel(FALLBACK_MODEL_NAME, useSchema = false)
+  }
+
+  private fun createInsightModel(modelName: String, useSchema: Boolean): GenerativeModel {
+    return Firebase.ai.generativeModel(
+      modelName = modelName,
+      generationConfig = generationConfig {
+        temperature = 0.4f
+        responseMimeType = "application/json"
+        if (useSchema) {
+          responseSchema = insightSchema
+        }
+      },
+      systemInstruction = insightSystemInstruction,
+    )
+  }
+
+  private fun createExpenseParserModel(modelName: String, useSchema: Boolean): GenerativeModel {
+    return Firebase.ai.generativeModel(
+      modelName = modelName,
       generationConfig = generationConfig {
         temperature = 0.1f
         responseMimeType = "application/json"
-        responseSchema = expenseParserSchema
+        if (useSchema) {
+          responseSchema = expenseParserSchema
+        }
       },
-      systemInstruction = content {
-        text(
-          "Extract a single expense transaction from the user's text or receipt image in ANY language. " +
-            "Convert shorthand amounts cleanly (e.g. Indonesian 'rb'/'ribu' * 1000, 'jt'/'juta' * 1000000; English 'k' * 1000; Chinese '万' * 10000). " +
-            "Round decimal currency amounts to the nearest whole integer if needed, or preserve whole units for currencies like IDR/JPY/KRW. " +
-            "If multiple items are mentioned in one transaction, sum the total amount and summarize items in title/note. " +
-            "Pick the best matching category enum and paymentMethod enum (default QRIS if unclear). Keep title and note in the requested target language."
-        )
-      },
+      systemInstruction = expenseSystemInstruction,
+    )
+  }
+
+  private suspend fun generateWithFallback(
+    models: List<GenerativeModel>,
+    action: suspend (GenerativeModel) -> String?,
+  ): String {
+    var lastError: Exception? = null
+    for ((index, model) in models.withIndex()) {
+      try {
+        val text = withTimeout(AI_TIMEOUT_MS) {
+          action(model)
+        }?.trim()
+        if (!text.isNullOrEmpty()) {
+          return text
+        }
+      } catch (e: CancellationException) {
+        if (e is TimeoutCancellationException) {
+          Log.w(TAG, "Model attempt ${index + 1} timed out", e)
+          lastError = e
+        } else {
+          throw e
+        }
+      } catch (e: Exception) {
+        Log.w(TAG, "Model attempt ${index + 1} failed: ${e.message}", e)
+        lastError = e
+      }
+    }
+    if (lastError is TimeoutCancellationException) {
+      throw FinanceAiException("AI request timed out. Please check your connection and try again.", lastError)
+    }
+    throw FinanceAiException(
+      lastError?.localizedMessage ?: "Failed to reach Gemini AI.",
+      lastError,
     )
   }
 
@@ -160,15 +220,17 @@ class FinanceAiAssistant {
       appendLine()
       appendLine("Recent transactions:")
       appendLine(recentItems)
+      appendLine()
+      appendLine("Return JSON with keys: headline (string), statusLevel (AMAN|PERHATIAN|BOROS), summary (string), topCategoryHighlight (string), actionTips (array of 3 strings).")
     }
 
     return try {
-      val response = withTimeout(AI_TIMEOUT_MS) {
-        insightModel.generateContent(prompt)
+      val raw = generateWithFallback(
+        listOf(primaryInsightModel, fallbackInsightModel, plainJsonInsightModel),
+      ) { model ->
+        model.generateContent(prompt).text
       }
-      val raw = response.text?.trim()
-        ?: throw FinanceAiException("Gemini AI returned empty analysis.")
-      val json = JSONObject(raw)
+      val json = extractJsonObject(raw)
       val tipsArray = json.optJSONArray("actionTips")
       val tips = buildList {
         if (tipsArray != null) {
@@ -178,16 +240,19 @@ class FinanceAiAssistant {
           }
         }
       }
+      val rawStatus = json.optString("statusLevel").uppercase().trim()
+      val normalizedStatus = when {
+        rawStatus.contains("BOROS") || rawStatus.contains("OVER") -> "BOROS"
+        rawStatus.contains("PERHATIAN") || rawStatus.contains("CAUTION") -> "PERHATIAN"
+        else -> "AMAN"
+      }
       AiFinancialInsight(
         headline = json.optString("headline").ifBlank { "Monthly Finance Summary" },
-        statusLevel = json.optString("statusLevel").ifBlank { "AMAN" },
+        statusLevel = normalizedStatus,
         summary = json.optString("summary").ifBlank { "Analysis generated for this month." },
         topCategoryHighlight = json.optString("topCategoryHighlight").ifBlank { "Monitor your highest spending category." },
         actionTips = tips.ifEmpty { listOf("Record every daily expense to keep your budget on track.") },
       )
-    } catch (e: TimeoutCancellationException) {
-      Log.w(TAG, "AI insight timed out", e)
-      throw FinanceAiException("AI analysis timed out. Please check your connection and try again.", e)
     } catch (e: CancellationException) {
       throw e
     } catch (e: FinanceAiException) {
@@ -209,18 +274,19 @@ class FinanceAiAssistant {
     }
 
     val targetLangName = language.aiLanguageInstructionName()
+    val prompt = "Target language for title/note: $targetLangName. Active currency: ${currency.code} (${currency.symbol}).\n" +
+      "User transaction text: \"$trimmed\"\n" +
+      "Return JSON with keys: title (string), amount (integer), category (FOOD|BILLS|TRANSPORT|HEALTH|SHOPPING|ENTERTAINMENT|OTHER), paymentMethod (QRIS|CASH|TRANSFER|CARD), note (string)."
+
     return try {
-      val response = withTimeout(AI_TIMEOUT_MS) {
-        expenseParserModel.generateContent(
-          "Target language for title/note: $targetLangName. Active currency: ${currency.code} (${currency.symbol}).\n" +
-            "User transaction text: \"$trimmed\""
-        )
+      val raw = generateWithFallback(
+        listOf(primaryExpenseParserModel, fallbackExpenseParserModel, plainJsonExpenseParserModel),
+      ) { model ->
+        model.generateContent(prompt).text
       }
-      val raw = response.text?.trim()
-        ?: throw FinanceAiException("Gemini AI did not return a parsed result.")
-      val json = JSONObject(raw)
+      val json = extractJsonObject(raw)
       val title = json.optString("title").trim()
-      val amount = json.optLong("amount", 0L)
+      val amount = parseFlexibleAmount(json, "amount")
       val category = ExpenseCategory.fromKey(json.optString("category"))
       val paymentMethod = PaymentMethod.fromKey(json.optString("paymentMethod"))
       val note = json.optString("note").trim()
@@ -236,9 +302,6 @@ class FinanceAiAssistant {
         paymentMethod = paymentMethod,
         note = note.take(200),
       )
-    } catch (e: TimeoutCancellationException) {
-      Log.w(TAG, "AI expense parse timed out", e)
-      throw FinanceAiException("AI parsing timed out. Please try again.", e)
     } catch (e: CancellationException) {
       throw e
     } catch (e: FinanceAiException) {
@@ -254,32 +317,39 @@ class FinanceAiAssistant {
     language: AppLanguage = LanguagePreferenceManager.currentLanguage,
     currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
   ): AiParsedExpense {
+    val safeBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bitmap.config == Bitmap.Config.HARDWARE) {
+      bitmap.copy(Bitmap.Config.ARGB_8888, false)
+    } else {
+      bitmap
+    }
     val targetLangName = language.aiLanguageInstructionName()
+    val promptText = "Read this shopping receipt or payment proof image. " +
+      "Target language for note/title: $targetLangName. Expected currency: ${currency.code} (${currency.symbol}). " +
+      "Extract the merchant/store name as title, final total paid as integer amount, " +
+      "best matching expense category (FOOD|BILLS|TRANSPORT|HEALTH|SHOPPING|ENTERTAINMENT|OTHER), " +
+      "payment method (QRIS|TRANSFER|CASH|CARD), and a brief item summary as note. " +
+      "Return JSON with keys: title, amount, category, paymentMethod, note."
+
     return try {
-      val response = withTimeout(AI_TIMEOUT_MS) {
-        expenseParserModel.generateContent(
+      val raw = generateWithFallback(
+        listOf(primaryExpenseParserModel, fallbackExpenseParserModel, plainJsonExpenseParserModel),
+      ) { model ->
+        model.generateContent(
           content {
-            image(bitmap)
-            text(
-              "Read this shopping receipt or payment proof image. " +
-                "Target language for note/title: $targetLangName. Expected currency: ${currency.code} (${currency.symbol}). " +
-                "Extract the merchant/store name as title, final total paid as integer amount, " +
-                "best matching expense category, payment method (QRIS/TRANSFER/CASH/CARD), and a brief item summary as note."
-            )
+            image(safeBitmap)
+            text(promptText)
           }
-        )
+        ).text
       }
-      val raw = response.text?.trim()
-        ?: throw FinanceAiException("Gemini AI did not return a receipt result.")
-      val json = JSONObject(raw)
-      val title = json.optString("title").trim()
-      val amount = json.optLong("amount", 0L)
+      val json = extractJsonObject(raw)
       val category = ExpenseCategory.fromKey(json.optString("category"))
+      val title = json.optString("title").trim().ifEmpty { "Receipt (${category.name})" }
+      val amount = parseFlexibleAmount(json, "amount")
       val paymentMethod = PaymentMethod.fromKey(json.optString("paymentMethod"))
       val note = json.optString("note").trim()
 
-      if (title.isEmpty() || amount <= 0L) {
-        throw FinanceAiException("Could not read merchant name or total clearly from receipt image. Try a clearer photo.")
+      if (amount <= 0L) {
+        throw FinanceAiException("Could not read total amount clearly from receipt image. Try a clearer photo.")
       }
 
       AiParsedExpense(
@@ -289,9 +359,6 @@ class FinanceAiAssistant {
         paymentMethod = paymentMethod,
         note = note.take(200),
       )
-    } catch (e: TimeoutCancellationException) {
-      Log.w(TAG, "AI receipt scan timed out", e)
-      throw FinanceAiException("AI receipt scan timed out. Please try again.", e)
     } catch (e: CancellationException) {
       throw e
     } catch (e: FinanceAiException) {
@@ -302,9 +369,41 @@ class FinanceAiAssistant {
     }
   }
 
+  private fun extractJsonObject(raw: String): JSONObject {
+    val cleaned = raw.trim()
+      .removePrefix("```json")
+      .removePrefix("```JSON")
+      .removePrefix("```")
+      .removeSuffix("```")
+      .trim()
+    val firstBrace = cleaned.indexOf('{')
+    val lastBrace = cleaned.lastIndexOf('}')
+    val jsonSlice = if (firstBrace >= 0 && lastBrace > firstBrace) {
+      cleaned.substring(firstBrace, lastBrace + 1)
+    } else {
+      cleaned
+    }
+    return JSONObject(jsonSlice)
+  }
+
+  private fun parseFlexibleAmount(json: JSONObject, key: String): Long {
+    val directLong = json.optLong(key, -1L)
+    if (directLong > 0L) return directLong
+    val directDouble = json.optDouble(key, -1.0)
+    if (!directDouble.isNaN() && directDouble > 0.0) return directDouble.roundToLong()
+    val rawStr = json.optString(key, "").trim()
+    if (rawStr.isNotEmpty()) {
+      val digits = rawStr.filter { it.isDigit() }
+      val parsed = digits.toLongOrNull()
+      if (parsed != null && parsed > 0L) return parsed
+    }
+    return 0L
+  }
+
   private companion object {
     const val TAG = "FinanceAiAssistant"
-    const val MODEL_NAME = "gemini-3.8-flash"
+    const val PRIMARY_MODEL_NAME = "gemini-3.8-flash"
+    const val FALLBACK_MODEL_NAME = "gemini-3.5-flash-lite"
     const val AI_TIMEOUT_MS = 60_000L
   }
 }

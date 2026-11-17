@@ -68,11 +68,17 @@
 
     <!-- Language & Currency -->
     <string name="language_section_title">Язык приложения</string>
-    <string name="language_section_subtitle">Индонезийский и 6 официальных языков ООН</string>
+    <string name="language_section_subtitle">Выберите предпочитаемый язык приложения</string>
     <string name="language_picker_title">Выберите язык приложения</string>
     <string name="language_auto">Авто (язык устройства)</string>
-    <string name="language_un_badge">Язык ООН</string>
     <string name="language_changed_status">Язык изменён на %1$s.</string>
+    <string name="month_picker_title">Выберите месяц и год</string>
+    <string name="month_picker_this_month">Текущий месяц</string>
+    <string name="calendar_section_title">Календарь месяца</string>
+    <string name="calendar_selected_date_filter">Дата: %1$s</string>
+    <string name="calendar_clear_filter">Показать все</string>
+    <string name="calendar_day_summary_none">Нажмите на дату для фильтрации расходов</string>
+    <string name="calendar_add_on_date">Добавить на эту дату</string>
     <string name="currency_section_title">Валюта</string>
     <string name="currency_section_subtitle">Выберите валюту отображения и ввода</string>
     <string name="currency_changed_status">Валюта изменена на %1$s.</string>
@@ -240,10 +246,12 @@
     <string name="reminder_subtitle">Уведомление, чтобы не забыть внести траты</string>
     <string name="reminder_notification_title">Пора записать траты за сегодня</string>
     <string name="reminder_notification_body">Уделите 10 секунд, чтобы отметить покупки в SakuPintar.</string>
-    <string name="reminder_enabled_status">Напоминание включено на %1$02d:00.</string>
+    <string name="reminder_enabled_status">Напоминание включено на %1$s.</string>
     <string name="reminder_disabled_status">Ежедневное напоминание выключено.</string>
     <string name="reminder_denied_status">Доступ к уведомлениям запрещён. Включите его в настройках.</string>
-    <string name="reminder_time_changed">Время напоминания изменено на %1$02d:00.</string>
+    <string name="reminder_time_changed">Время напоминания изменено на %1$s.</string>
+    <string name="reminder_custom_time_action">Выбрать время</string>
+    <string name="reminder_picker_title">Выберите время напоминания</string>
     <string name="theme_section_title">Тема оформления</string>
     <string name="theme_section_subtitle">Выберите светлую, тёмную или системную</string>
     <string name="theme_mode_system">Системная</string>
@@ -346,4 +354,24 @@
     <string name="report_banner_title">SakuPintar — Финансовый отчёт за месяц</string>
     <string name="report_period_printed">Период: %1$s  •  Дата печати: %2$s</string>
     <string name="report_page_footer">Стр. %1$d</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">Фото чека / счёта</string>
+    <string name="receipt_section_subtitle">Прикрепите фото кассового чека или счёта</string>
+    <string name="receipt_pick_gallery">Из галереи</string>
+    <string name="receipt_take_camera">Камера</string>
+    <string name="receipt_scan_ai_from_photo">Заполнить по чеку (ИИ)</string>
+    <string name="receipt_attached_badge">Чек прикреплён</string>
+    <string name="receipt_badge_short">Чек</string>
+    <string name="receipt_view_full">Открыть чек</string>
+    <string name="receipt_change_photo">Заменить</string>
+    <string name="receipt_remove_photo">Удалить</string>
+    <string name="receipt_viewer_title">Чек / Квитанция</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">Поддержка</string>
+    <string name="profile_support_title">Поддержать SakuPintar</string>
+    <string name="profile_support_subtitle">Поддержите развитие приложения на Trakteer</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">Не удалось открыть браузер. Перейдите на trakteer.id/ramabilekk/gift.</string>
 </resources>

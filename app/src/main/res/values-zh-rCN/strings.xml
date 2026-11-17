@@ -68,11 +68,17 @@
 
     <!-- Language & Currency -->
     <string name="language_section_title">应用语言</string>
-    <string name="language_section_subtitle">印度尼西亚语与联合国 6 种官方语言</string>
+    <string name="language_section_subtitle">选择您偏好的应用显示语言</string>
     <string name="language_picker_title">选择应用语言</string>
     <string name="language_auto">自动（跟随设备）</string>
-    <string name="language_un_badge">联合国官方</string>
     <string name="language_changed_status">语言已切换为 %1$s。</string>
+    <string name="month_picker_title">选择月份和年份</string>
+    <string name="month_picker_this_month">本月</string>
+    <string name="calendar_section_title">月度日历</string>
+    <string name="calendar_selected_date_filter">日期：%1$s</string>
+    <string name="calendar_clear_filter">显示全部</string>
+    <string name="calendar_day_summary_none">点击任意日期查看当日支出</string>
+    <string name="calendar_add_on_date">记录此日支出</string>
     <string name="currency_section_title">货币单位</string>
     <string name="currency_section_subtitle">选择显示与记账货币</string>
     <string name="currency_changed_status">货币已切换为 %1$s。</string>
@@ -240,10 +246,12 @@
     <string name="reminder_subtitle">每天定时提醒，避免遗漏账目</string>
     <string name="reminder_notification_title">该记录今天的支出啦</string>
     <string name="reminder_notification_body">只需 10 秒，在 SakuPintar 记录今天的花销。</string>
-    <string name="reminder_enabled_status">每日提醒已开启（%1$02d:00）。</string>
+    <string name="reminder_enabled_status">每日提醒已开启（%1$s）。</string>
     <string name="reminder_disabled_status">每日提醒已关闭。</string>
     <string name="reminder_denied_status">通知权限被拒绝，请在系统设置中开启。</string>
-    <string name="reminder_time_changed">提醒时间已调整为 %1$02d:00。</string>
+    <string name="reminder_time_changed">提醒时间已调整为 %1$s。</string>
+    <string name="reminder_custom_time_action">自定义时间</string>
+    <string name="reminder_picker_title">选择提醒时间</string>
     <string name="theme_section_title">界面主题</string>
     <string name="theme_section_subtitle">选择浅色、深色或跟随系统</string>
     <string name="theme_mode_system">跟随系统</string>
@@ -346,4 +354,24 @@
     <string name="report_banner_title">SakuPintar — 月度财务报表</string>
     <string name="report_period_printed">期间：%1$s  •  打印日期：%2$s</string>
     <string name="report_page_footer">第 %1$d 页</string>
+
+    <!-- Receipt / Invoice Photo Attachment -->
+    <string name="receipt_section_title">小票 / 发票照片</string>
+    <string name="receipt_section_subtitle">上传购物小票或付款发票凭证</string>
+    <string name="receipt_pick_gallery">从相册选择</string>
+    <string name="receipt_take_camera">拍照</string>
+    <string name="receipt_scan_ai_from_photo">AI 自动识别小票</string>
+    <string name="receipt_attached_badge">已附小票</string>
+    <string name="receipt_badge_short">小票</string>
+    <string name="receipt_view_full">查看小票</string>
+    <string name="receipt_change_photo">更换</string>
+    <string name="receipt_remove_photo">移除</string>
+    <string name="receipt_viewer_title">小票 / 发票凭证</string>
+
+    <!-- Profile Support / Donation -->
+    <string name="profile_group_support">支持开发者</string>
+    <string name="profile_support_title">支持 SakuPintar</string>
+    <string name="profile_support_subtitle">通过 Trakteer 赞助支持应用持续更新</string>
+    <string name="profile_support_button">Support</string>
+    <string name="profile_support_browser_error">无法打开浏览器，请访问 trakteer.id/ramabilekk/gift。</string>
 </resources>

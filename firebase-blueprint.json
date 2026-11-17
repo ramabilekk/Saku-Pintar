@@ -39,6 +39,10 @@
           "type": "string",
           "description": "Optional note (0..200 chars)."
         },
+        "receiptPhotoBase64": {
+          "type": "string",
+          "description": "Optional compressed JPEG receipt or invoice photo encoded in Base64 (<= 200000 chars)."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

@@ -128,6 +128,7 @@ class FinanceRepository(
     dateEpochDay: Long,
     monthKey: String,
     note: String = "",
+    receiptPhotoBase64: String = "",
   ): String {
     val uid = requireUserId()
     val docRef = db.collection("users").document(uid).collection("expenses").document()
@@ -140,6 +141,7 @@ class FinanceRepository(
       "dateEpochDay" to dateEpochDay,
       "monthKey" to monthKey,
       "note" to note.trim().take(200),
+      "receiptPhotoBase64" to receiptPhotoBase64.take(200_000),
       "createdAt" to FieldValue.serverTimestamp(),
       "updatedAt" to FieldValue.serverTimestamp(),
     )
@@ -165,6 +167,7 @@ class FinanceRepository(
           userId = uid,
           title = expense.title.trim().take(80),
           note = expense.note.trim().take(200),
+          receiptPhotoBase64 = expense.receiptPhotoBase64.take(200_000),
           updatedAt = null,
         )
       ).await()
