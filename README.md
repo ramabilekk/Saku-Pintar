@@ -32,48 +32,6 @@
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
-
-### Android App (`app/`)
-- **Bahasa & UI:** Kotlin, Jetpack Compose, Material Design 3 (Edge-to-Edge), Navigation Compose
-- **Backend & AI:** Firebase Auth (Google Sign-In via Jetpack Credential Manager), Cloud Firestore (Named Database), Firebase AI Logic, Firebase App Check
-- **Media & Build:** Coil, Gradle Kotlin DSL (`compileSdk 36`, `minSdk 24`, `targetSdk 36`), JDK 21
-- **Testing:** JUnit4, Robolectric, Kotlin Coroutines Test
-
-### Portal Web (`web/`)
-- **Frontend:** HTML5, CSS3 responsif (Light/Dark theme + Print/PDF styling), Vanilla JavaScript ES Modules, PWA Web Manifest
-- **Cloud Sync:** Firebase JS SDK v11 (Auth + Firestore `onSnapshot` real-time ke database bernama yang sama dengan APK)
-
-### Keamanan & Otomasi
-- **Firestore Security Rules (`firestore.rules`):** Zero-trust per-user isolation (`users/{userId}/...`), validasi tipe integer, batas panjang string, validasi format bulan (`YYYY-MM`), dan pemeriksaan `request.time`.
-- **GitHub Actions (`.github/workflows/`):**
-  - `build-apk.yml` — Otomatis membangun Debug APK (`v2.0.<run_number>`) dan menerbitkannya ke **GitHub Releases**.
-  - `deploy-web.yml` — Otomatis menerbitkan folder `web/` ke **GitHub Pages** dan menyuntikkan konfigurasi Firebase Web dari GitHub Secrets.
-
----
-
-## 📂 Struktur Direktori
-
-```text
-├── app/                     # Kode sumber aplikasi Android (Kotlin & Jetpack Compose)
-├── web/                     # Portal Web + Promosi APK (HTML, CSS, JS, PWA Manifest)
-│   ├── index.html
-│   ├── styles.css
-│   ├── app.js
-│   ├── firebase-config.js
-│   ├── icon.svg
-│   └── manifest.webmanifest
-├── .github/workflows/       # CI/CD otomatis Build APK Release & Deploy GitHub Pages
-│   ├── build-apk.yml
-│   └── deploy-web.yml
-├── firestore.rules          # Aturan keamanan Cloud Firestore
-├── firestore.test.js        # Pengujian aturan keamanan Firestore
-├── firebase.json            # Konfigurasi Firebase Hosting & Firestore Emulator
-└── gradle/                  # Gradle Version Catalog & konfigurasi build
-```
-
----
-
 ## 🚀 Cara Menjalankan & Mengakses
 
 ### 1. Menggunakan Versi Web (GitHub Pages)
@@ -107,25 +65,3 @@ Pastikan JDK 21 dan Android SDK tersedia, lalu jalankan:
 gradle assembleDebug
 gradle :app:testDebugUnitTest
 ```
-
----
-
-## ⚙️ Konfigurasi Firebase & GitHub Secrets
-
-Untuk mengaktifkan sinkronisasi penuh Google Sign-In dan Cloud Firestore pada build CI/CD:
-
-1. **GitHub Pages**
-   - Buka **Settings → Pages → Build and deployment → Source**, lalu pilih **`GitHub Actions`**.
-2. **GitHub Repository Secrets** (`Settings → Secrets and variables → Actions`)
-   - `FIREBASE_WEB_API_KEY` — Web API Key dari Firebase Web App (`</>`)
-   - `FIREBASE_WEB_APP_ID` — Web App ID dari Firebase Web App (`</>`)
-   - `GOOGLE_SERVICES_JSON` *(opsional untuk CI APK)* — Isi file `app/google-services.json` jika belum disertakan di repositori
-   - `DEBUG_KEYSTORE_BASE64` *(opsional untuk CI APK)* — Keystore debug terenkode Base64 agar SHA-1 signing APK tetap konsisten dengan Firebase
-3. **Firebase Authentication Authorized Domains**
-   - Di **Firebase Console → Authentication → Settings → Authorized domains**, tambahkan domain host web Anda (misalnya `ramabilekk.github.io`) agar login Google di browser diizinkan.
-
----
-
-## 📄 Catatan Keamanan
-- Jangan pernah menaruh API key atau file kredensial sensitif secara langsung ke dalam repositori publik.
-- Pengujian lokal aturan Firestore dapat dijalankan melalui konfigurasi emulator di `firebase.json` dan `firestore.test.js`.
