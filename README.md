@@ -26,7 +26,4 @@
 - **Personalisasi Tema, Bahasa & Mata Uang**
   - Pilihan **Tema Terang / Gelap**, dukungan dwibahasa **Indonesia (ID)** & **English (EN)**, serta pilihan berbagai simbol mata uang (`IDR`, `USD`, `EUR`, `SGD`, `MYR`, `JPY`, `SAR`, `AUD`).
 
-```bash
-gradle assembleDebug
-gradle :app:testDebugUnitTest
-```
+---
