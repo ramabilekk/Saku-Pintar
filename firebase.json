@@ -1,12 +1,4 @@
 {
-  "hosting": {
-    "public": "web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
-  },
   "firestore": [
     {
       "database": "ai-studio-android-sakupint-08a7bf75-99a1-4ee5-aa40-8cf441495ab6",
