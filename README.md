@@ -26,20 +26,6 @@
 - **Personalisasi Tema, Bahasa & Mata Uang**
   - Pilihan **Tema Terang / Gelap**, dukungan dwibahasa **Indonesia (ID)** & **English (EN)**, serta pilihan berbagai simbol mata uang (`IDR`, `USD`, `EUR`, `SGD`, `MYR`, `JPY`, `SAR`, `AUD`).
 
----
-
-## 🚀 Cara Mengunduh & Menjalankan Aplikasi Android (APK)
-
-### 1. Mengunduh File APK Siap Pakai
-Unduh rilis APK Android terbaru melalui halaman **GitHub Releases**:
-
-```text
-https://github.com/ramabilekk/Saku-Pintar/releases/latest
-```
-
-### 2. Build & Test APK Secara Lokal
-Pastikan JDK 21 dan Android SDK tersedia, lalu jalankan perintah berikut:
-
 ```bash
 gradle assembleDebug
 gradle :app:testDebugUnitTest
