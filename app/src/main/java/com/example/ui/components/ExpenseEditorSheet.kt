@@ -1,12 +1,17 @@
 package com.example.ui.components
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -45,6 +50,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -52,16 +58,21 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DocumentScanner
+import androidx.compose.material.icons.rounded.Label
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.ZoomIn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -101,6 +112,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.local.CustomCategory
+import com.example.data.local.CustomCategoryManager
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
@@ -109,6 +122,7 @@ import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.AiExpenseParseState
 import com.example.util.Formatters
@@ -138,12 +152,15 @@ fun ExpenseEditorSheet(
   ) -> Unit,
   initialEpochDay: Long? = null,
   onScanReceiptBase64: (String) -> Unit = {},
+  autoLaunchReceiptScan: Boolean = false,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val customCategories by CustomCategoryManager.observeCategories(context).collectAsStateWithLifecycle()
   val activeLocale = activeLanguage.toLocale()
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val today = remember { LocalDate.now() }
@@ -176,8 +193,20 @@ fun ExpenseEditorSheet(
   var aiPromptText by remember(existingExpense) { mutableStateOf("") }
   var showDatePicker by remember { mutableStateOf(false) }
   var validationError by remember { mutableStateOf<String?>(null) }
+  var aiScanSuccessDetectedDate by remember { mutableStateOf<Long?>(null) }
+  var showAiScanSuccessBanner by remember { mutableStateOf(false) }
+  var showQuickScanChooser by remember(autoLaunchReceiptScan) { mutableStateOf(autoLaunchReceiptScan) }
+  var showAddCustomCategoryDialog by remember { mutableStateOf(false) }
+  var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+  var pendingCameraTriggersAi by remember { mutableStateOf(false) }
 
-  // 1. Launcher for AI Scan + Auto Attach Receipt
+  fun createTempReceiptCameraUri(): Uri? = runCatching {
+    val camDir = File(context.cacheDir, "camera").apply { mkdirs() }
+    val photoFile = File(camDir, "receipt_${System.currentTimeMillis()}.jpg")
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+  }.getOrNull()
+
+  // 1. Launcher for AI Scan + Auto Attach Receipt from Gallery (Zero-permission Photo Picker)
   val aiReceiptScannerLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.PickVisualMedia(),
   ) { uri ->
@@ -186,7 +215,40 @@ fun ExpenseEditorSheet(
     }
   }
 
-  // 2. Launcher for Attaching Receipt Photo from Gallery
+  // 1b. Zero-permission Voice-to-Expense AI via system Speech Recognizer Intent
+  var voiceErrorText by remember { mutableStateOf<String?>(null) }
+  val voiceRecognizerLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.StartActivityForResult(),
+  ) { result ->
+    if (result.resultCode == Activity.RESULT_OK) {
+      val spoken = result.data
+        ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        ?.firstOrNull()
+        ?.trim()
+      if (!spoken.isNullOrBlank()) {
+        voiceErrorText = null
+        aiPromptText = spoken.take(160)
+        onParseWithAi(spoken.take(160))
+      }
+    }
+  }
+
+  fun launchVoiceExpenseAi() {
+    voiceErrorText = null
+    if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+      putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+      putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLocale.toLanguageTag())
+      putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.voice_ai_prompt))
+    }
+    runCatching {
+      voiceRecognizerLauncher.launch(intent)
+    }.onFailure {
+      voiceErrorText = context.getString(R.string.voice_ai_unavailable)
+    }
+  }
+
+  // 2. Launcher for Attaching Receipt Photo from Gallery (without auto AI scan)
   val attachGalleryLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.PickVisualMedia(),
   ) { uri ->
@@ -205,22 +267,47 @@ fun ExpenseEditorSheet(
     }
   }
 
-  // 3. Launcher for Taking Receipt Photo with Camera
-  val takeCameraLauncher = rememberLauncherForActivityResult(
-    contract = ActivityResultContracts.TakePicturePreview(),
-  ) { bitmap ->
-    if (bitmap != null) {
-      scope.launch {
-        isEncodingReceipt = true
-        try {
-          receiptPhotoBase64 = ImageUtils.encodeReceiptBitmapBase64(bitmap)
-          validationError = null
-        } catch (e: Exception) {
-          validationError = e.localizedMessage
-        } finally {
-          isEncodingReceipt = false
+  // 3. Full-HD Camera Capture via FileProvider (for sharp Vision AI OCR & receipt archiving)
+  val fullHdCameraLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.TakePicture(),
+  ) { success ->
+    val capturedUri = pendingCameraUri
+    val shouldScanWithAi = pendingCameraTriggersAi
+    pendingCameraUri = null
+    pendingCameraTriggersAi = false
+    if (success && capturedUri != null) {
+      if (shouldScanWithAi) {
+        onScanReceiptUri(capturedUri)
+      } else {
+        scope.launch {
+          isEncodingReceipt = true
+          try {
+            receiptPhotoBase64 = ImageUtils.encodeReceiptBase64(context.applicationContext, capturedUri)
+            validationError = null
+          } catch (e: Exception) {
+            validationError = e.localizedMessage
+          } finally {
+            isEncodingReceipt = false
+          }
         }
       }
+    }
+  }
+
+  fun startFullHdCameraCapture(triggerAiScan: Boolean) {
+    val uri = createTempReceiptCameraUri()
+    if (uri == null) {
+      validationError = context.getString(R.string.error_generic)
+      return
+    }
+    pendingCameraUri = uri
+    pendingCameraTriggersAi = triggerAiScan
+    runCatching {
+      fullHdCameraLauncher.launch(uri)
+    }.onFailure { err ->
+      pendingCameraUri = null
+      pendingCameraTriggersAi = false
+      validationError = err.localizedMessage
     }
   }
 
@@ -228,31 +315,26 @@ fun ExpenseEditorSheet(
     contract = ActivityResultContracts.RequestPermission(),
   ) { granted ->
     if (granted) {
-      runCatching {
-        takeCameraLauncher.launch(null)
-      }.onFailure { err ->
-        validationError = err.localizedMessage
-      }
+      startFullHdCameraCapture(triggerAiScan = pendingCameraTriggersAi)
     } else {
+      pendingCameraTriggersAi = false
       validationError = context.getString(R.string.camera_permission_denied)
     }
   }
 
-  fun launchReceiptCamera() {
+  fun launchReceiptCamera(triggerAiScan: Boolean = false) {
+    pendingCameraTriggersAi = triggerAiScan
     val hasCamPermission = ContextCompat.checkSelfPermission(
       context,
       Manifest.permission.CAMERA,
     ) == PackageManager.PERMISSION_GRANTED
     if (hasCamPermission) {
-      runCatching {
-        takeCameraLauncher.launch(null)
-      }.onFailure { err ->
-        validationError = err.localizedMessage
-      }
+      startFullHdCameraCapture(triggerAiScan = triggerAiScan)
     } else {
       runCatching {
         receiptCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
       }.onFailure { err ->
+        pendingCameraTriggersAi = false
         validationError = err.localizedMessage
       }
     }
@@ -265,12 +347,17 @@ fun ExpenseEditorSheet(
       amountText = parsed.amount.toString()
       selectedCategory = parsed.category
       selectedMethod = parsed.paymentMethod
+      if (parsed.detectedEpochDay != null) {
+        selectedEpochDay = parsed.detectedEpochDay
+      }
       if (parsed.note.isNotBlank()) {
         note = parsed.note
       }
       if (!aiParseState.receiptPhotoBase64.isNullOrBlank()) {
         receiptPhotoBase64 = aiParseState.receiptPhotoBase64
       }
+      aiScanSuccessDetectedDate = parsed.detectedEpochDay
+      showAiScanSuccessBanner = true
       validationError = null
       onClearAiParse()
     }
@@ -507,72 +594,49 @@ fun ExpenseEditorSheet(
               }
             }
 
-            OutlinedTextField(
-              value = aiPromptText,
-              onValueChange = {
-                aiPromptText = it.take(160)
-                if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
-              },
-              placeholder = { Text(stringResource(R.string.ai_quick_fill_hint)) },
-              maxLines = 2,
-              shape = RoundedCornerShape(14.dp),
-              modifier = Modifier
-                .fillMaxWidth()
-                .testTag("ai_quick_fill_input"),
-            )
-
-            AnimatedVisibility(
-              visible = aiParseState is AiExpenseParseState.Error,
-              enter = expandVertically() + fadeIn(),
-              exit = shrinkVertically() + fadeOut(),
-            ) {
-              if (aiParseState is AiExpenseParseState.Error) {
-                Text(
-                  text = aiParseState.message,
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.error,
-                )
-              }
-            }
-
+            // Primary AI Receipt Scanner Row: Full-HD Camera AI + Gallery AI
             Row(
               modifier = Modifier.fillMaxWidth(),
               horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-              FilledTonalButton(
-                onClick = { onParseWithAi(aiPromptText) },
-                enabled = aiParseState !is AiExpenseParseState.Loading && aiPromptText.isNotBlank(),
+              Button(
+                onClick = {
+                  if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
+                  launchReceiptCamera(triggerAiScan = true)
+                },
+                enabled = aiParseState !is AiExpenseParseState.Loading,
                 shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                  containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+                  contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+                ),
                 modifier = Modifier
                   .weight(1f)
                   .height(48.dp)
-                  .testTag("ai_quick_fill_button"),
+                  .testTag("ai_scan_camera_button"),
               ) {
                 if (aiParseState is AiExpenseParseState.Loading) {
                   CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                  )
-                  Spacer(modifier = Modifier.width(6.dp))
-                  Text(
-                    text = stringResource(R.string.ai_quick_fill_loading),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    color = if (isDarkTheme) ObsidianInk else Color.White,
                   )
                 } else {
                   Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
+                    imageVector = Icons.Rounded.PhotoCamera,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                   )
-                  Spacer(modifier = Modifier.width(6.dp))
-                  Text(
-                    text = stringResource(R.string.ai_quick_fill_action),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                  )
                 }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                  text = stringResource(R.string.ai_scan_camera_action),
+                  fontWeight = FontWeight.Bold,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
               }
+
               OutlinedButton(
                 onClick = {
                   if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
@@ -582,6 +646,7 @@ fun ExpenseEditorSheet(
                 },
                 enabled = aiParseState !is AiExpenseParseState.Loading,
                 shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 modifier = Modifier
                   .weight(1f)
                   .height(48.dp)
@@ -590,11 +655,144 @@ fun ExpenseEditorSheet(
                 Icon(
                   imageVector = Icons.Rounded.DocumentScanner,
                   contentDescription = null,
+                  tint = MaterialTheme.colorScheme.primary,
                   modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                  text = stringResource(R.string.ai_scan_receipt_action),
+                  text = stringResource(R.string.ai_scan_gallery_action),
+                  fontWeight = FontWeight.SemiBold,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+              }
+            }
+
+            AnimatedVisibility(
+              visible = showAiScanSuccessBanner,
+              enter = expandVertically() + fadeIn(),
+              exit = shrinkVertically() + fadeOut(),
+            ) {
+              Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = EmeraldSafe.copy(alpha = if (isDarkTheme) 0.18f else 0.12f),
+                border = BorderStroke(1.dp, EmeraldSafe.copy(alpha = 0.40f)),
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .testTag("ai_scan_success_banner"),
+              ) {
+                Row(
+                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                  Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = null,
+                    tint = EmeraldSafe,
+                    modifier = Modifier.size(18.dp),
+                  )
+                  Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                      text = stringResource(R.string.ai_scan_success_banner),
+                      style = MaterialTheme.typography.labelMedium,
+                      fontWeight = FontWeight.Bold,
+                      color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    aiScanSuccessDetectedDate?.let { epoch ->
+                      Text(
+                        text = stringResource(
+                          R.string.ai_scan_date_detected,
+                          Formatters.formatShortDate(epoch, activeLocale),
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = EmeraldSafe,
+                        fontWeight = FontWeight.SemiBold,
+                      )
+                    }
+                  }
+                }
+              }
+            }
+
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              OutlinedTextField(
+                value = aiPromptText,
+                onValueChange = {
+                  aiPromptText = it.take(160)
+                  voiceErrorText = null
+                  if (aiParseState is AiExpenseParseState.Error) onClearAiParse()
+                },
+                placeholder = { Text(stringResource(R.string.ai_quick_fill_hint)) },
+                maxLines = 2,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                  .weight(1f)
+                  .testTag("ai_quick_fill_input"),
+              )
+              FilledTonalIconButton(
+                onClick = { launchVoiceExpenseAi() },
+                enabled = aiParseState !is AiExpenseParseState.Loading,
+                modifier = Modifier
+                  .size(52.dp)
+                  .testTag("voice_ai_button"),
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Mic,
+                  contentDescription = stringResource(R.string.voice_ai_button_cd),
+                  tint = MaterialTheme.colorScheme.primary,
+                )
+              }
+            }
+
+            AnimatedVisibility(
+              visible = aiParseState is AiExpenseParseState.Error || !voiceErrorText.isNullOrBlank(),
+              enter = expandVertically() + fadeIn(),
+              exit = shrinkVertically() + fadeOut(),
+            ) {
+              val errMsg = (aiParseState as? AiExpenseParseState.Error)?.message ?: voiceErrorText
+              if (!errMsg.isNullOrBlank()) {
+                Text(
+                  text = errMsg,
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.error,
+                )
+              }
+            }
+
+            FilledTonalButton(
+              onClick = { onParseWithAi(aiPromptText) },
+              enabled = aiParseState !is AiExpenseParseState.Loading && aiPromptText.isNotBlank(),
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("ai_quick_fill_button"),
+            ) {
+              if (aiParseState is AiExpenseParseState.Loading) {
+                CircularProgressIndicator(
+                  modifier = Modifier.size(16.dp),
+                  strokeWidth = 2.dp,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                  text = stringResource(R.string.ai_quick_fill_loading),
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+              } else {
+                Icon(
+                  imageVector = Icons.Rounded.AutoAwesome,
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                  text = stringResource(R.string.ai_quick_fill_action),
                   maxLines = 1,
                   overflow = TextOverflow.Ellipsis,
                 )
@@ -957,7 +1155,7 @@ fun ExpenseEditorSheet(
                 }
 
                 OutlinedButton(
-                  onClick = { launchReceiptCamera() },
+                  onClick = { launchReceiptCamera(triggerAiScan = false) },
                   shape = RoundedCornerShape(12.dp),
                   modifier = Modifier
                     .weight(1f)
@@ -1027,6 +1225,90 @@ fun ExpenseEditorSheet(
                     ),
                     modifier = Modifier.testTag("category_chip_${category.name}"),
                   )
+                }
+              }
+
+              // Custom Categories Row (user-defined labels mapped cleanly to core budget groups)
+              Spacer(modifier = Modifier.height(4.dp))
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Text(
+                  text = stringResource(R.string.custom_cat_section_title),
+                  style = MaterialTheme.typography.labelLarge,
+                  fontWeight = FontWeight.SemiBold,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(
+                  onClick = { showAddCustomCategoryDialog = true },
+                  modifier = Modifier
+                    .height(40.dp)
+                    .testTag("add_custom_category_button"),
+                ) {
+                  Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                  )
+                  Spacer(modifier = Modifier.width(4.dp))
+                  Text(
+                    text = stringResource(R.string.custom_cat_add_action),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                  )
+                }
+              }
+              if (customCategories.isEmpty()) {
+                Text(
+                  text = stringResource(R.string.custom_cat_empty_hint),
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              } else {
+                FlowRow(
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                  customCategories.forEach { customCat ->
+                    val isApplied = note.contains(customCat.noteTag, ignoreCase = true)
+                    FilterChip(
+                      selected = isApplied,
+                      onClick = {
+                        selectedCategory = customCat.parentCategory
+                        if (title.isBlank()) {
+                          title = customCat.name
+                        }
+                        note = CustomCategoryManager.applyTagToNote(note, customCat)
+                      },
+                      label = { Text(customCat.name) },
+                      leadingIcon = {
+                        Icon(
+                          imageVector = Icons.Rounded.Label,
+                          contentDescription = null,
+                          tint = customCat.accentColor,
+                          modifier = Modifier.size(16.dp),
+                        )
+                      },
+                      trailingIcon = {
+                        Icon(
+                          imageVector = Icons.Rounded.Close,
+                          contentDescription = stringResource(R.string.action_delete),
+                          modifier = Modifier
+                            .size(15.dp)
+                            .clickable {
+                              CustomCategoryManager.deleteCategory(context, customCat.id)
+                            },
+                        )
+                      },
+                      colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = customCat.accentColor.copy(alpha = 0.16f),
+                        selectedLabelColor = customCat.accentColor,
+                      ),
+                      modifier = Modifier.testTag("custom_cat_chip_${customCat.id}"),
+                    )
+                  }
                 }
               }
             }
@@ -1153,12 +1435,16 @@ fun ExpenseEditorSheet(
         ) {
           OutlinedButton(
             onClick = onDismiss,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
               .weight(1f)
               .height(52.dp),
           ) {
-            Text(stringResource(R.string.action_cancel))
+            Text(
+              text = stringResource(R.string.action_cancel),
+              fontWeight = FontWeight.SemiBold,
+            )
           }
           Button(
             onClick = {
@@ -1178,7 +1464,11 @@ fun ExpenseEditorSheet(
               }
             },
             enabled = !isEncodingReceipt,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+            ),
             modifier = Modifier
               .weight(1.4f)
               .height(52.dp)
@@ -1191,11 +1481,12 @@ fun ExpenseEditorSheet(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              if (existingExpense == null) {
+              text = if (existingExpense == null) {
                 stringResource(R.string.action_save)
               } else {
                 stringResource(R.string.action_update)
-              }
+              },
+              fontWeight = FontWeight.Bold,
             )
           }
         }
@@ -1244,4 +1535,192 @@ fun ExpenseEditorSheet(
       DatePicker(state = datePickerState)
     }
   }
+
+  if (showQuickScanChooser) {
+    AlertDialog(
+      onDismissRequest = { showQuickScanChooser = false },
+      title = { Text(stringResource(R.string.ai_scan_chooser_title)) },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Text(
+            text = stringResource(R.string.ai_scan_chooser_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          Button(
+            onClick = {
+              showQuickScanChooser = false
+              launchReceiptCamera(triggerAiScan = true)
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+            ),
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(48.dp)
+              .testTag("chooser_camera_ai_button"),
+          ) {
+            Icon(imageVector = Icons.Rounded.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.ai_scan_camera_action), fontWeight = FontWeight.Bold)
+          }
+          OutlinedButton(
+            onClick = {
+              showQuickScanChooser = false
+              aiReceiptScannerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+              )
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(48.dp)
+              .testTag("chooser_gallery_ai_button"),
+          ) {
+            Icon(imageVector = Icons.Rounded.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.ai_scan_gallery_action), fontWeight = FontWeight.SemiBold)
+          }
+        }
+      },
+      confirmButton = {},
+      dismissButton = {
+        TextButton(onClick = { showQuickScanChooser = false }) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
+
+  if (showAddCustomCategoryDialog) {
+    AddCustomCategoryDialog(
+      onDismiss = { showAddCustomCategoryDialog = false },
+      onCreate = { name, parent, colorHex ->
+        val created = CustomCategoryManager.addCategory(context, name, parent, colorHex)
+        if (created != null) {
+          selectedCategory = created.parentCategory
+          if (title.isBlank()) title = created.name
+          note = CustomCategoryManager.applyTagToNote(note, created)
+        }
+        showAddCustomCategoryDialog = false
+      },
+    )
+  }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AddCustomCategoryDialog(
+  onDismiss: () -> Unit,
+  onCreate: (name: String, parent: ExpenseCategory, colorHex: Long) -> Unit,
+) {
+  val context = LocalContext.current
+  var name by remember { mutableStateOf("") }
+  var selectedParent by remember { mutableStateOf(ExpenseCategory.FOOD) }
+  var selectedColor by remember { mutableLongStateOf(CustomCategoryManager.presetColorPalette.first()) }
+  var errorText by remember { mutableStateOf<String?>(null) }
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(stringResource(R.string.custom_cat_dialog_title)) },
+    text = {
+      Column(
+        modifier = Modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+      ) {
+        OutlinedTextField(
+          value = name,
+          onValueChange = {
+            name = it.take(24)
+            errorText = null
+          },
+          label = { Text(stringResource(R.string.custom_cat_name_label)) },
+          placeholder = { Text(stringResource(R.string.custom_cat_name_hint)) },
+          singleLine = true,
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("custom_cat_name_input"),
+        )
+        Text(
+          text = stringResource(R.string.custom_cat_parent_label),
+          style = MaterialTheme.typography.labelLarge,
+          fontWeight = FontWeight.SemiBold,
+        )
+        FlowRow(
+          horizontalArrangement = Arrangement.spacedBy(6.dp),
+          verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+          ExpenseCategory.entries.forEach { cat ->
+            FilterChip(
+              selected = selectedParent == cat,
+              onClick = { selectedParent = cat },
+              label = { Text(stringResource(cat.shortLabelRes)) },
+            )
+          }
+        }
+        Text(
+          text = stringResource(R.string.custom_cat_color_label),
+          style = MaterialTheme.typography.labelLarge,
+          fontWeight = FontWeight.SemiBold,
+        )
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(10.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.horizontalScroll(rememberScrollState()),
+        ) {
+          CustomCategoryManager.presetColorPalette.forEach { hex ->
+            val isChosen = selectedColor == hex
+            Surface(
+              onClick = { selectedColor = hex },
+              shape = CircleShape,
+              color = Color(hex),
+              border = if (isChosen) BorderStroke(2.5.dp, MaterialTheme.colorScheme.onSurface) else null,
+              modifier = Modifier.size(32.dp),
+            ) {
+              if (isChosen) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                  )
+                }
+              }
+            }
+          }
+        }
+        if (errorText != null) {
+          Text(
+            text = errorText!!,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+          )
+        }
+      }
+    },
+    confirmButton = {
+      Button(
+        onClick = {
+          if (name.isBlank()) {
+            errorText = context.getString(R.string.custom_cat_error_name)
+          } else {
+            onCreate(name.trim(), selectedParent, selectedColor)
+          }
+        },
+        modifier = Modifier
+          .height(48.dp)
+          .testTag("save_custom_cat_button"),
+      ) {
+        Text(stringResource(R.string.action_save))
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss, modifier = Modifier.height(48.dp)) {
+        Text(stringResource(R.string.action_cancel))
+      }
+    },
+  )
 }

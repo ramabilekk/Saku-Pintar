@@ -57,6 +57,7 @@ class DailyReminderReceiver : BroadcastReceiver() {
       .build()
 
     NotificationManagerCompat.from(localized).notify(NOTIFICATION_ID, notification)
+    BillDueReminderManager.notifyDueBillsIfAny(context)
   }
 
   private companion object {

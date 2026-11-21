@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CreditCard
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FlightTakeoff
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LaptopMac
@@ -46,10 +48,12 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,23 +83,35 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.local.CashflowEntry
+import com.example.data.local.CashflowLedgerManager
+import com.example.data.local.CashflowType
+import com.example.data.local.SavingsHistoryManager
 import com.example.data.model.PaymentMethod
 import com.example.data.model.SavingsGoal
 import com.example.data.model.SavingsGoalCategory
 import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.security.PrivacySecurityManager
 import com.example.ui.components.CreateSavingsGoalDialog
 import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.EditSavingsGoalDialog
 import com.example.ui.components.MonthYearPickerDialog
+import com.example.ui.components.RecordIncomeDialog
+import com.example.ui.components.SavingsGoalHistorySheet
 import com.example.ui.components.SavingsTransactionDialog
 import com.example.ui.components.SculptedSurfaceCard
 import com.example.ui.components.WalletBalanceDialog
+import com.example.ui.components.WalletTransferDialog
+import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactileClickable
 import com.example.ui.theme.CoralDanger
+import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.SavingsUiData
 import com.example.util.Formatters
@@ -115,6 +131,17 @@ fun SavingsScreen(
   onWithdrawGoal: (SavingsGoal, Long) -> Unit,
   onDeleteGoal: (String) -> Unit,
   onSetWalletBalance: (PaymentMethod, Long) -> Unit,
+  onUpdateGoal: (
+    goalId: String,
+    title: String,
+    targetAmount: Long,
+    category: SavingsGoalCategory,
+    note: String,
+  ) -> Unit = { _, _, _, _, _ -> },
+  userId: String = "",
+  onRecordIncome: (title: String, amount: Long, targetWallet: PaymentMethod, note: String) -> Unit = { _, _, _, _ -> },
+  onTransferWallet: (from: PaymentMethod, to: PaymentMethod, amount: Long, note: String) -> Unit = { _, _, _, _ -> },
+  onDeleteCashflowEntry: (String) -> Unit = {},
   monthKey: String = Formatters.currentMonthKey(),
   onPreviousMonth: () -> Unit = {},
   onNextMonth: () -> Unit = {},
@@ -124,10 +151,23 @@ fun SavingsScreen(
   val context = LocalContext.current
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val hideBalances by PrivacySecurityManager.observeHideBalances(context).collectAsStateWithLifecycle()
+  val cashflowFlow = remember(context, userId) { CashflowLedgerManager.observeEntries(context, userId) }
+  val allCashflowEntries by cashflowFlow.collectAsStateWithLifecycle()
+  val historyFlow = remember(context, userId) { SavingsHistoryManager.observeEntries(context, userId) }
+  val allSavingsHistory by historyFlow.collectAsStateWithLifecycle()
+  val monthlyCashflow = remember(allCashflowEntries, monthKey) {
+    allCashflowEntries.filter { it.monthKey == monthKey }
+  }
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   var showCreateDialog by remember { mutableStateOf(false) }
+  var showIncomeDialog by remember { mutableStateOf(false) }
+  var showTransferDialog by remember { mutableStateOf(false) }
   var transactionTarget by remember { mutableStateOf<Pair<SavingsGoal, Boolean>?>(null) }
+  var editingGoal by remember { mutableStateOf<SavingsGoal?>(null) }
+  var historyGoal by remember { mutableStateOf<SavingsGoal?>(null) }
   var pendingDeleteGoal by remember { mutableStateOf<SavingsGoal?>(null) }
   var editingWallet by remember { mutableStateOf<PaymentMethod?>(null) }
 
@@ -139,7 +179,7 @@ fun SavingsScreen(
       modifier = Modifier
         .widthIn(max = 680.dp)
         .fillMaxSize(),
-      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
+      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 132.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       // 1. Hero Total Saved & Wallet Overview + Integrated Calendar Selector
@@ -149,10 +189,69 @@ fun SavingsScreen(
           monthKey = monthKey,
           currency = activeCurrency,
           locale = activeLocale,
+          hideBalances = hideBalances,
+          onToggleHideBalances = { PrivacySecurityManager.toggleHideBalances(context) },
           onPreviousMonth = onPreviousMonth,
           onNextMonth = onNextMonth,
           onSelectMonth = onSelectMonth,
         )
+      }
+
+      // 1b. Quick Cashflow Actions: Catat Pemasukan & Transfer Antar-Dompet
+      item {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+          Button(
+            onClick = { showIncomeDialog = true },
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+              containerColor = EmeraldSafe,
+              contentColor = Color.White,
+            ),
+            modifier = Modifier
+              .weight(1f)
+              .height(48.dp)
+              .testTag("record_income_button"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.ArrowDownward,
+              contentDescription = null,
+              modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+              text = stringResource(R.string.cashflow_record_income_action),
+              fontWeight = FontWeight.Bold,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+            )
+          }
+          OutlinedButton(
+            onClick = { showTransferDialog = true },
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+            modifier = Modifier
+              .weight(1f)
+              .height(48.dp)
+              .testTag("wallet_transfer_button"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.SwapHoriz,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+              text = stringResource(R.string.cashflow_transfer_action),
+              fontWeight = FontWeight.SemiBold,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+            )
+          }
+        }
       }
 
       // 2. Wallet Balances Section
@@ -176,12 +275,26 @@ fun SavingsScreen(
                   paymentMethod = method,
                   balance = balance,
                   currency = activeCurrency,
+                  hideBalances = hideBalances,
                   onClick = { editingWallet = method },
                   modifier = Modifier.weight(1f),
                 )
               }
             }
           }
+        }
+      }
+
+      // 2b. Monthly Cashflow History (Incomes & Wallet Transfers)
+      if (monthlyCashflow.isNotEmpty()) {
+        item {
+          MonthlyCashflowHistoryCard(
+            entries = monthlyCashflow,
+            currency = activeCurrency,
+            locale = activeLocale,
+            hideBalances = hideBalances,
+            onDeleteEntry = onDeleteCashflowEntry,
+          )
         }
       }
 
@@ -205,9 +318,13 @@ fun SavingsScreen(
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
-          FilledTonalButton(
+          Button(
             onClick = { showCreateDialog = true },
             shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+            ),
             modifier = Modifier
               .height(48.dp)
               .testTag("add_savings_goal_button"),
@@ -218,7 +335,10 @@ fun SavingsScreen(
               modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(stringResource(R.string.savings_new_goal_button))
+            Text(
+              text = stringResource(R.string.savings_new_goal_button),
+              fontWeight = FontWeight.SemiBold,
+            )
           }
         }
       }
@@ -227,8 +347,7 @@ fun SavingsScreen(
       if (data.goals.isEmpty()) {
         item {
           SculptedSurfaceCard(
-            accentColor = GoldAccent,
-            cornerRadius = 22,
+            cornerRadius = 20,
           ) {
             Column(
               modifier = Modifier
@@ -239,8 +358,8 @@ fun SavingsScreen(
             ) {
               Surface(
                 shape = CircleShape,
-                color = GoldAccent.copy(alpha = 0.16f),
-                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.35f)),
+                color = GoldAccent.copy(alpha = 0.14f),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.28f)),
                 modifier = Modifier.size(56.dp),
               ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -266,6 +385,10 @@ fun SavingsScreen(
               Button(
                 onClick = { showCreateDialog = true },
                 shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                  containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+                  contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+                ),
                 modifier = Modifier
                   .height(48.dp)
                   .testTag("empty_create_goal_button"),
@@ -276,7 +399,10 @@ fun SavingsScreen(
                   modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.savings_empty_cta))
+                Text(
+                  text = stringResource(R.string.savings_empty_cta),
+                  fontWeight = FontWeight.SemiBold,
+                )
               }
             }
           }
@@ -287,8 +413,11 @@ fun SavingsScreen(
             goal = goal,
             currency = activeCurrency,
             locale = activeLocale,
+            hideBalances = hideBalances,
             onDeposit = { transactionTarget = goal to true },
             onWithdraw = { transactionTarget = goal to false },
+            onEdit = { editingGoal = goal },
+            onViewHistory = { historyGoal = goal },
             onDelete = { pendingDeleteGoal = goal },
           )
         }
@@ -298,7 +427,8 @@ fun SavingsScreen(
       item {
         Surface(
           shape = RoundedCornerShape(16.dp),
-          color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+          color = MaterialTheme.colorScheme.surface,
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
           modifier = Modifier.fillMaxWidth(),
         ) {
           Row(
@@ -330,6 +460,28 @@ fun SavingsScreen(
         showCreateDialog = false
       },
       onDismiss = { showCreateDialog = false },
+    )
+  }
+
+  if (showIncomeDialog) {
+    RecordIncomeDialog(
+      currency = activeCurrency,
+      onSaveIncome = { title, amount, targetWallet, note ->
+        onRecordIncome(title, amount, targetWallet, note)
+      },
+      onDismiss = { showIncomeDialog = false },
+    )
+  }
+
+  if (showTransferDialog) {
+    WalletTransferDialog(
+      walletBalances = data.walletBalances,
+      currency = activeCurrency,
+      hideBalances = hideBalances,
+      onConfirmTransfer = { from, to, amount, note ->
+        onTransferWallet(from, to, amount, note)
+      },
+      onDismiss = { showTransferDialog = false },
     )
   }
 
@@ -391,6 +543,32 @@ fun SavingsScreen(
       },
     )
   }
+
+  editingGoal?.let { targetGoal ->
+    EditSavingsGoalDialog(
+      goal = targetGoal,
+      onConfirm = { title, targetAmount, category, note ->
+        onUpdateGoal(targetGoal.id, title, targetAmount, category, note)
+        editingGoal = null
+      },
+      onDismiss = { editingGoal = null },
+    )
+  }
+
+  historyGoal?.let { targetGoal ->
+    val liveGoal = data.goals.firstOrNull { it.id == targetGoal.id } ?: targetGoal
+    val goalEntries = remember(allSavingsHistory, liveGoal.id) {
+      allSavingsHistory.filter { it.goalId == liveGoal.id }
+    }
+    SavingsGoalHistorySheet(
+      goal = liveGoal,
+      entries = goalEntries,
+      hideBalances = hideBalances,
+      onDepositClick = { transactionTarget = liveGoal to true },
+      onEditClick = { editingGoal = liveGoal },
+      onDismiss = { historyGoal = null },
+    )
+  }
 }
 
 @Composable
@@ -399,6 +577,8 @@ private fun SavingsHeroCard(
   monthKey: String,
   currency: AppCurrency,
   locale: Locale,
+  hideBalances: Boolean,
+  onToggleHideBalances: () -> Unit,
   onPreviousMonth: () -> Unit,
   onNextMonth: () -> Unit,
   onSelectMonth: (String) -> Unit,
@@ -515,14 +695,46 @@ private fun SavingsHeroCard(
       }
 
       Column {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Text(
+            text = stringResource(R.string.savings_hero_total),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White.copy(alpha = 0.85f),
+          )
+          IconButton(
+            onClick = {
+              tactile.tick()
+              onToggleHideBalances()
+            },
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("privacy_eye_toggle_savings"),
+          ) {
+            Surface(
+              shape = CircleShape,
+              color = Color.White.copy(alpha = 0.16f),
+              border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.28f)),
+              modifier = Modifier.size(34.dp),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = if (hideBalances) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                  contentDescription = stringResource(
+                    if (hideBalances) R.string.privacy_toggle_show_cd else R.string.privacy_toggle_hide_cd,
+                  ),
+                  tint = Color.White,
+                  modifier = Modifier.size(18.dp),
+                )
+              }
+            }
+          }
+        }
         Text(
-          text = stringResource(R.string.savings_hero_total),
-          style = MaterialTheme.typography.labelLarge,
-          color = Color.White.copy(alpha = 0.85f),
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-          text = Formatters.formatMoney(data.totalSaved, currency),
+          text = Formatters.formatMoneyMasked(data.totalSaved, currency, hideBalances),
           style = MaterialTheme.typography.displaySmall,
           fontFamily = JetBrainsMonoFontFamily,
           fontWeight = FontWeight.ExtraBold,
@@ -553,7 +765,7 @@ private fun SavingsHeroCard(
           Text(
             text = stringResource(
               R.string.savings_hero_target,
-              Formatters.formatMoneyCompact(data.totalTarget, currency, locale),
+              Formatters.formatMoneyCompactMasked(data.totalTarget, currency, locale, hideBalances),
             ),
             style = MaterialTheme.typography.labelSmall,
             color = Color.White.copy(alpha = 0.85f),
@@ -589,7 +801,7 @@ private fun SavingsHeroCard(
             )
           }
           Text(
-            text = Formatters.formatMoney(data.totalWalletBalance, currency),
+            text = Formatters.formatMoneyMasked(data.totalWalletBalance, currency, hideBalances),
             style = MaterialTheme.typography.titleSmall,
             fontFamily = JetBrainsMonoFontFamily,
             fontWeight = FontWeight.Bold,
@@ -618,6 +830,7 @@ private fun WalletCard(
   paymentMethod: PaymentMethod,
   balance: Long,
   currency: AppCurrency,
+  hideBalances: Boolean,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -629,7 +842,6 @@ private fun WalletCard(
     PaymentMethod.CARD -> MaterialTheme.colorScheme.secondary
   }
   SculptedSurfaceCard(
-    accentColor = accentColor,
     cornerRadius = 18,
     onClick = onClick,
     modifier = modifier.testTag("wallet_card_${paymentMethod.name}"),
@@ -678,7 +890,7 @@ private fun WalletCard(
         )
       }
       Text(
-        text = Formatters.formatMoney(balance, currency),
+        text = Formatters.formatMoneyMasked(balance, currency, hideBalances),
         style = MaterialTheme.typography.titleSmall,
         fontFamily = JetBrainsMonoFontFamily,
         fontWeight = FontWeight.Bold,
@@ -690,12 +902,131 @@ private fun WalletCard(
 }
 
 @Composable
+private fun MonthlyCashflowHistoryCard(
+  entries: List<CashflowEntry>,
+  currency: AppCurrency,
+  locale: Locale,
+  hideBalances: Boolean,
+  onDeleteEntry: (String) -> Unit,
+) {
+  SculptedSurfaceCard(
+    accentColor = EmeraldSafe,
+    cornerRadius = 20,
+    modifier = Modifier.testTag("monthly_cashflow_history_card"),
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(16.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      Text(
+        text = stringResource(R.string.cashflow_history_title),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.onSurface,
+      )
+      entries.take(8).forEach { entry ->
+        val isIncome = entry.type == CashflowType.INCOME
+        val accent = if (isIncome) EmeraldSafe else MaterialTheme.colorScheme.primary
+        val subtitle = if (isIncome) {
+          "${Formatters.formatShortDate(entry.dateEpochDay, locale)} • ${stringResource(entry.targetWallet.labelRes)}"
+        } else {
+          val fromLabel = entry.sourceWallet?.let { stringResource(it.labelRes) } ?: ""
+          val toLabel = stringResource(entry.targetWallet.labelRes)
+          "${Formatters.formatShortDate(entry.dateEpochDay, locale)} • $fromLabel → $toLabel"
+        }
+
+        Surface(
+          shape = RoundedCornerShape(14.dp),
+          color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+          border = BorderStroke(1.dp, accent.copy(alpha = 0.24f)),
+        ) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+          ) {
+            Surface(
+              shape = RoundedCornerShape(10.dp),
+              color = accent.copy(alpha = 0.16f),
+              modifier = Modifier.size(34.dp),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = if (isIncome) Icons.Rounded.ArrowDownward else Icons.Rounded.SwapHoriz,
+                  contentDescription = null,
+                  tint = accent,
+                  modifier = Modifier.size(18.dp),
+                )
+              }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+              Text(
+                text = entry.title.ifBlank {
+                  stringResource(
+                    if (isIncome) R.string.cashflow_history_income_badge else R.string.cashflow_history_transfer_badge,
+                  )
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+              Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+            Text(
+              text = if (hideBalances) {
+                Formatters.formatMoneyMasked(entry.amount, currency, true)
+              } else if (isIncome) {
+                "+${Formatters.formatMoney(entry.amount, currency)}"
+              } else {
+                Formatters.formatMoney(entry.amount, currency)
+              },
+              style = MaterialTheme.typography.labelLarge,
+              fontFamily = JetBrainsMonoFontFamily,
+              fontWeight = FontWeight.ExtraBold,
+              color = accent,
+            )
+            IconButton(
+              onClick = { onDeleteEntry(entry.id) },
+              modifier = Modifier
+                .size(48.dp)
+                .testTag("delete_cashflow_${entry.id}"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.DeleteOutline,
+                contentDescription = stringResource(R.string.action_delete),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
 private fun SavingsGoalCard(
   goal: SavingsGoal,
   currency: AppCurrency,
   locale: Locale,
+  hideBalances: Boolean,
   onDeposit: () -> Unit,
   onWithdraw: () -> Unit,
+  onEdit: () -> Unit,
+  onViewHistory: () -> Unit,
   onDelete: () -> Unit,
 ) {
   val category = goal.categoryEnum
@@ -706,9 +1037,11 @@ private fun SavingsGoalCard(
     label = "goal_progress_${goal.id}",
   )
 
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
+
   SculptedSurfaceCard(
-    accentColor = category.accentColor,
     cornerRadius = 20,
+    onClick = onViewHistory,
     modifier = Modifier.testTag("savings_goal_card_${goal.id}"),
   ) {
     Column(
@@ -720,7 +1053,7 @@ private fun SavingsGoalCard(
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
       ) {
         Surface(
           shape = RoundedCornerShape(14.dp),
@@ -766,17 +1099,46 @@ private fun SavingsGoalCard(
             overflow = TextOverflow.Ellipsis,
           )
         }
-        IconButton(
-          onClick = onDelete,
-          modifier = Modifier
-            .size(48.dp)
-            .testTag("delete_goal_${goal.id}"),
-        ) {
-          Icon(
-            imageVector = Icons.Rounded.DeleteOutline,
-            contentDescription = "${stringResource(R.string.action_delete)} ${goal.title}",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          IconButton(
+            onClick = onViewHistory,
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("history_goal_${goal.id}"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.History,
+              contentDescription = stringResource(R.string.savings_history_cd),
+              tint = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.size(20.dp),
+            )
+          }
+          IconButton(
+            onClick = onEdit,
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("edit_goal_${goal.id}"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.Edit,
+              contentDescription = stringResource(R.string.savings_edit_cd),
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(19.dp),
+            )
+          }
+          IconButton(
+            onClick = onDelete,
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("delete_goal_${goal.id}"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.DeleteOutline,
+              contentDescription = "${stringResource(R.string.action_delete)} ${goal.title}",
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(20.dp),
+            )
+          }
         }
       }
 
@@ -786,7 +1148,7 @@ private fun SavingsGoalCard(
           horizontalArrangement = Arrangement.SpaceBetween,
         ) {
           Text(
-            text = Formatters.formatMoney(goal.savedAmount, currency),
+            text = Formatters.formatMoneyMasked(goal.savedAmount, currency, hideBalances),
             style = MaterialTheme.typography.titleSmall,
             fontFamily = JetBrainsMonoFontFamily,
             fontWeight = FontWeight.Bold,
@@ -795,7 +1157,7 @@ private fun SavingsGoalCard(
           Text(
             text = stringResource(
               R.string.savings_card_target,
-              Formatters.formatMoneyCompact(goal.targetAmount, currency, locale),
+              Formatters.formatMoneyCompactMasked(goal.targetAmount, currency, locale, hideBalances),
               (goal.progressFraction * 100).toInt(),
             ),
             style = MaterialTheme.typography.labelMedium,
@@ -816,7 +1178,7 @@ private fun SavingsGoalCard(
           Text(
             text = stringResource(
               R.string.savings_card_remaining,
-              Formatters.formatMoney(goal.remainingAmount, currency),
+              Formatters.formatMoneyMasked(goal.remainingAmount, currency, hideBalances),
             ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -828,9 +1190,13 @@ private fun SavingsGoalCard(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
       ) {
-        FilledTonalButton(
+        Button(
           onClick = onDeposit,
           shape = RoundedCornerShape(12.dp),
+          colors = ButtonDefaults.buttonColors(
+            containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+            contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+          ),
           modifier = Modifier
             .weight(1f)
             .height(48.dp)
@@ -842,12 +1208,16 @@ private fun SavingsGoalCard(
             modifier = Modifier.size(18.dp),
           )
           Spacer(modifier = Modifier.width(6.dp))
-          Text(stringResource(R.string.savings_deposit))
+          Text(
+            text = stringResource(R.string.savings_deposit),
+            fontWeight = FontWeight.SemiBold,
+          )
         }
         OutlinedButton(
           onClick = onWithdraw,
           enabled = goal.savedAmount > 0L,
           shape = RoundedCornerShape(12.dp),
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
           modifier = Modifier
             .weight(1f)
             .height(48.dp)
@@ -859,7 +1229,10 @@ private fun SavingsGoalCard(
             modifier = Modifier.size(18.dp),
           )
           Spacer(modifier = Modifier.width(6.dp))
-          Text(stringResource(R.string.savings_withdraw))
+          Text(
+            text = stringResource(R.string.savings_withdraw),
+            fontWeight = FontWeight.SemiBold,
+          )
         }
       }
     }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
@@ -22,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,9 +33,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.example.R
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.GoldAccent
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.AiInsightUiState
 
@@ -42,11 +46,12 @@ fun AiInsightCard(
   state: AiInsightUiState,
   currentMonthKey: String,
   onAnalyzeClick: () -> Unit,
+  onOpenAiChat: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
   SculptedSurfaceCard(
-    accentColor = MaterialTheme.colorScheme.secondary,
-    cornerRadius = 22,
+    cornerRadius = 20,
     modifier = modifier.fillMaxWidth(),
   ) {
     Column(
@@ -252,48 +257,104 @@ fun AiInsightCard(
             }
           }
 
-          FilledTonalButton(
-            onClick = onAnalyzeClick,
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(48.dp)
-              .testTag("ai_insight_refresh_button"),
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Icon(
-              imageVector = Icons.Rounded.Refresh,
-              contentDescription = null,
-              modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.ai_insight_refresh))
+            FilledTonalButton(
+              onClick = onAnalyzeClick,
+              shape = RoundedCornerShape(14.dp),
+              modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .testTag("ai_insight_refresh_button"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(stringResource(R.string.ai_insight_refresh))
+            }
+            if (onOpenAiChat != null) {
+              Button(
+                onClick = onOpenAiChat,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                  containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+                  contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+                ),
+                modifier = Modifier
+                  .weight(1f)
+                  .height(48.dp)
+                  .testTag("ai_chat_card_open_button"),
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Forum,
+                  contentDescription = null,
+                  modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(stringResource(R.string.ai_chat_open_button), fontWeight = FontWeight.Bold)
+              }
+            }
           }
         }
 
         else -> {
-          Button(
-            onClick = onAnalyzeClick,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.primary,
-              contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(48.dp)
-              .testTag("ai_insight_analyze_button"),
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Icon(
-              imageVector = Icons.Rounded.AutoAwesome,
-              contentDescription = null,
-              modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-              text = stringResource(R.string.ai_insight_button),
-              fontWeight = FontWeight.SemiBold,
-            )
+            Button(
+              onClick = onAnalyzeClick,
+              shape = RoundedCornerShape(12.dp),
+              colors = ButtonDefaults.buttonColors(
+                containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+                contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+              ),
+              modifier = Modifier
+                .weight(1.25f)
+                .height(48.dp)
+                .testTag("ai_insight_analyze_button"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.ai_insight_button),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+              )
+            }
+            if (onOpenAiChat != null) {
+              OutlinedButton(
+                onClick = onOpenAiChat,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                modifier = Modifier
+                  .weight(0.95f)
+                  .height(48.dp)
+                  .testTag("ai_chat_card_open_button"),
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Forum,
+                  contentDescription = null,
+                  tint = MaterialTheme.colorScheme.primary,
+                  modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                  text = stringResource(R.string.ai_chat_open_button),
+                  fontWeight = FontWeight.Bold,
+                  maxLines = 1,
+                )
+              }
+            }
           }
         }
       }

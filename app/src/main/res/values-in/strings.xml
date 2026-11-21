@@ -416,4 +416,242 @@
     <string name="topbar_budget_subtitle">Alokasi pintar 50/30/20 &amp; target batas harian</string>
     <string name="topbar_savings_title">Celengan &amp; Saldo Dompet</string>
     <string name="topbar_savings_subtitle">Pantau tabungan impian &amp; sumber dana aktif</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">Masuk ke Akun Anda</string>
+    <string name="auth_simple_signin_subtitle">Kelola keuangan dan pengeluaran harian Anda.</string>
+    <string name="auth_simple_google_continue">Masuk dengan Google</string>
+    <string name="auth_or_divider">atau</string>
+    <string name="auth_guest_simple_cta">Masuk sebagai Guest</string>
+    <string name="auth_simple_divider_signin">atau akses cepat</string>
+    <string name="auth_simple_guest_name_label">Nama Tampilan (Opsional)</string>
+    <string name="auth_simple_guest_name_placeholder">Contoh: Budi</string>
+    <string name="auth_simple_help_link">Kendala masuk?</string>
+    <string name="auth_simple_guest_cta">Masuk sebagai Pengunjung</string>
+    <string name="auth_simple_no_account_prompt">Belum punya akun?</string>
+    <string name="auth_simple_register_action">Daftar</string>
+    <string name="auth_simple_signup_title">Mulai dengan SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">Catat transaksi dan atur anggaran bulanan Anda dengan mudah.</string>
+    <string name="auth_simple_divider_signup">atau coba langsung</string>
+    <string name="auth_simple_guest_signup_cta">Coba Mode Pengunjung</string>
+    <string name="auth_simple_have_account_prompt">Sudah punya akun?</string>
+    <string name="auth_simple_login_action">Masuk ke akun</string>
+    <string name="auth_simple_feature_cloud">Sinkronisasi otomatis ke Cloud Google</string>
+    <string name="auth_simple_feature_budget">Perencana anggaran 50/30/20 otomatis</string>
+    <string name="auth_simple_feature_ai">Scan struk &amp; analisis keuangan AI</string>
+    <string name="auth_help_back">Kembali ke halaman Masuk</string>
+    <string name="auth_help_title">Kendala Masuk Akun?</string>
+    <string name="auth_help_body">SakuPintar menggunakan akun Google sehingga Anda tidak perlu kata sandi tambahan. Jika lupa akses Google, pulihkan akun Anda melalui tautan di bawah.</string>
+    <string name="auth_help_recover_cta">Pulihkan Akun Google</string>
+    <string name="auth_help_retry_google">Coba Masuk dengan Google</string>
+    <string name="auth_help_footer_prompt">Ingin langsung mencoba?</string>
+    <string name="auth_help_footer_action">Gunakan Mode Pengunjung</string>
+    <string name="auth_help_browser_error">Tidak dapat membuka browser. Kunjungi accounts.google.com/signin/recovery.</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">Scan Struk AI</string>
+    <string name="ai_scan_quick_subtitle">Foto atau pilih struk, otomatis terisi</string>
+    <string name="ai_scan_camera_action">Kamera AI</string>
+    <string name="ai_scan_gallery_action">Galeri AI</string>
+    <string name="ai_scan_chooser_title">Pindai Struk dengan AI</string>
+    <string name="ai_scan_chooser_subtitle">Foto langsung atau pilih gambar struk dari galeri. AI akan membaca nama toko, total, tanggal, dan kategori otomatis.</string>
+    <string name="ai_scan_success_banner">Struk berhasil dibaca AI — periksa detail di bawah</string>
+    <string name="ai_scan_date_detected">Tanggal struk terdeteksi: %1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">Pindahkan Data Tamu ke Google</string>
+    <string name="guest_sync_card_subtitle">Cadangkan %1$d data lokal Anda ke Cloud Google agar aman di semua perangkat.</string>
+    <string name="guest_sync_card_subtitle_empty">Hubungkan akun Google untuk cadangan cloud otomatis di semua perangkat.</string>
+    <string name="guest_sync_cta">Hubungkan Google &amp; Pindahkan</string>
+    <string name="guest_sync_in_progress">Memindahkan data ke Cloud Google…</string>
+    <string name="guest_sync_success">Terhubung ke Google! %1$d data berhasil dipindahkan ke cloud.</string>
+    <string name="guest_sync_partial">Terhubung ke Google! %1$d data pindah, %2$d gagal diunggah.</string>
+    <string name="guest_sync_connected_empty">Berhasil terhubung ke Cloud Google!</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">Kategori Kustom</string>
+    <string name="custom_cat_add_action">Tambah Kustom</string>
+    <string name="custom_cat_dialog_title">Buat Kategori Kustom</string>
+    <string name="custom_cat_name_label">Nama Kategori</string>
+    <string name="custom_cat_name_hint">Contoh: Kopi, Cicilan, Skincare</string>
+    <string name="custom_cat_parent_label">Kelompok Anggaran</string>
+    <string name="custom_cat_color_label">Warna Aksen</string>
+    <string name="custom_cat_empty_hint">Buat label sendiri seperti Kopi atau Skincare</string>
+    <string name="custom_cat_error_name">Nama kategori wajib diisi.</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">Tanggal Jatuh Tempo Bulanan (Opsional)</string>
+    <string name="bill_due_day_none">Tanpa jatuh tempo</string>
+    <string name="bill_due_day_format">Tgl %1$d</string>
+    <string name="bill_due_today_badge">Jatuh tempo hari ini!</string>
+    <string name="bill_due_in_days_badge">H-%1$d jatuh tempo</string>
+    <string name="bill_due_upcoming_title">Tagihan Mendekati Jatuh Tempo</string>
+    <string name="bill_due_pay_now">Bayar &amp; Catat</string>
+    <string name="bill_due_notif_title">Pengingat Jatuh Tempo Tagihan</string>
+    <string name="bill_due_notif_channel_desc">Notifikasi untuk tagihan rutin yang mendekati jatuh tempo</string>
+    <string name="bill_due_notif_today">Tagihan %1$s jatuh tempo hari ini. Ketuk untuk mencatat di SakuPintar.</string>
+    <string name="bill_due_notif_tomorrow">Tagihan %1$s jatuh tempo besok. Siapkan anggaran Anda di SakuPintar.</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">SakuPintar Catat Cepat</string>
+    <string name="widget_description">Lihat batas aman hari ini dan catat pengeluaran atau scan struk dalam 1 ketukan</string>
+    <string name="widget_safe_limit_label">Batas Aman Hari Ini</string>
+    <string name="widget_today_spent_format">Terpakai hari ini: %1$s</string>
+    <string name="widget_action_add">+ Catat</string>
+    <string name="widget_action_scan">Scan AI</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">Sembunyikan saldo</string>
+    <string name="privacy_toggle_show_cd">Tampilkan saldo</string>
+    <string name="privacy_security_section_title">Privasi &amp; Keamanan</string>
+    <string name="privacy_hide_balances_title">Sembunyikan Saldo</string>
+    <string name="privacy_hide_balances_subtitle">Samarkan angka nominal menjadi ••••••</string>
+    <string name="app_lock_title">Kunci Aplikasi (PIN / Biometrik)</string>
+    <string name="app_lock_subtitle_on">Terkunci otomatis saat membuka SakuPintar</string>
+    <string name="app_lock_subtitle_off">Minta PIN atau sidik jari saat membuka aplikasi</string>
+    <string name="app_lock_setup_title">Buat PIN Aplikasi 4 Digit</string>
+    <string name="app_lock_setup_subtitle">Masukkan 4 angka PIN untuk melindungi data keuangan Anda.</string>
+    <string name="app_lock_setup_confirm">Ulangi 4 digit PIN untuk konfirmasi</string>
+    <string name="app_lock_pin_mismatch">PIN tidak cocok. Coba lagi.</string>
+    <string name="app_lock_pin_saved">Kunci Aplikasi aktif!</string>
+    <string name="app_lock_disabled_status">Kunci Aplikasi dinonaktifkan.</string>
+    <string name="app_lock_screen_title">SakuPintar Terkunci</string>
+    <string name="app_lock_screen_subtitle">Masukkan 4 digit PIN untuk melanjutkan</string>
+    <string name="app_lock_wrong_pin">PIN salah. Silakan coba lagi.</string>
+    <string name="app_lock_use_biometric">Buka dengan Sidik Jari / Kunci Layar</string>
+    <string name="app_lock_change_pin">Ubah PIN</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">Potong Saldo Dompet Otomatis</string>
+    <string name="wallet_auto_deduct_subtitle">Saldo dompet berkurang otomatis saat mencatat pengeluaran</string>
+    <string name="cashflow_record_income_action">Catat Pemasukan</string>
+    <string name="cashflow_transfer_action">Transfer Dompet</string>
+    <string name="cashflow_income_dialog_title">Catat Pemasukan</string>
+    <string name="cashflow_income_source_label">Sumber Pemasukan</string>
+    <string name="cashflow_income_source_hint">Contoh: Gaji, Bonus, Freelance</string>
+    <string name="cashflow_income_target_wallet">Masuk ke Dompet</string>
+    <string name="cashflow_income_saved">Pemasukan %1$s masuk ke %2$s!</string>
+    <string name="cashflow_transfer_dialog_title">Transfer Antar-Dompet</string>
+    <string name="cashflow_transfer_from_label">Dari Dompet</string>
+    <string name="cashflow_transfer_to_label">Ke Dompet</string>
+    <string name="cashflow_transfer_same_wallet_error">Pilih dua dompet yang berbeda.</string>
+    <string name="cashflow_transfer_insufficient">Saldo di %1$s tidak mencukupi.</string>
+    <string name="cashflow_transfer_saved">Berhasil transfer %1$s dari %2$s ke %3$s!</string>
+    <string name="cashflow_history_title">Riwayat Arus Kas Bulan Ini</string>
+    <string name="cashflow_history_income_badge">Pemasukan</string>
+    <string name="cashflow_history_transfer_badge">Transfer</string>
+    <string name="cashflow_entry_deleted">Catatan arus kas dihapus.</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">Proporsi Pengeluaran</string>
+    <string name="analytics_donut_total_label">Total Terpakai</string>
+    <string name="analytics_mom_lower">%1$d%% lebih hemat dari bulan lalu</string>
+    <string name="analytics_mom_higher">%1$d%% lebih tinggi dari bulan lalu</string>
+    <string name="analytics_mom_same">Pengeluaran setara dengan bulan lalu</string>
+    <string name="analytics_mom_no_prev">Belum ada data bulan sebelumnya</string>
+    <string name="analytics_top_expense_label">Pengeluaran terbesar bulan ini</string>
+    <string name="budget_alert_over">Peringatan anggaran: %1$s melewati batas (%2$d%%)!</string>
+    <string name="budget_alert_caution">Perhatian: Anggaran %1$s sudah terpakai %2$d%%.</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">Catat pakai suara AI</string>
+    <string name="voice_ai_prompt">Ucapkan pengeluaran, misal Makan siang 35 ribu pakai QRIS</string>
+    <string name="voice_ai_unavailable">Fitur suara belum tersedia di perangkat ini.</string>
+    <string name="action_undo">Batalkan</string>
+    <string name="expense_restored_status">Pengeluaran dikembalikan.</string>
+    <string name="expense_duplicated_status">\"%1$s\" diduplikat untuk hari ini!</string>
+    <string name="duplicate_expense_cd">Duplikat transaksi</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">Mulai Cepat SakuPintar</string>
+    <string name="onboarding_progress_format">%1$d dari 3 selesai</string>
+    <string name="onboarding_step_budget_title">Atur Anggaran Bulanan</string>
+    <string name="onboarding_step_budget_sub">Hitung batas aman harian otomatis</string>
+    <string name="onboarding_step_wallet_title">Isi Saldo Dompet</string>
+    <string name="onboarding_step_wallet_sub">Pantau Tunai, QRIS, Bank &amp; Kartu otomatis</string>
+    <string name="onboarding_step_expense_title">Scan / Catat Transaksi Pertama</string>
+    <string name="onboarding_step_expense_sub">Coba Scan Struk AI atau catat cepat</string>
+    <string name="onboarding_dismiss">Sembunyikan</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">Siklus Tanggal Gajian</string>
+    <string name="payday_default_subtitle">Tanggal 1 setiap bulan (Kalender normal)</string>
+    <string name="payday_custom_subtitle">Mulai setiap tanggal %1$d</string>
+    <string name="payday_cycle_desc">Sesuaikan awal periode anggaran dan batas aman harian dengan tanggal gajianmu.</string>
+    <string name="payday_preset_1">Tgl 1</string>
+    <string name="payday_preset_25">Tgl 25</string>
+    <string name="payday_preset_28">Tgl 28</string>
+    <string name="payday_day_label">Tanggal mulai siklus: %1$d</string>
+    <string name="payday_preview_label">Periode aktif: %1$s</string>
+    <string name="payday_saved_status">Siklus gajian diubah ke tanggal %1$d.</string>
+    <string name="payday_badge_label">Siklus %1$s</string>
+    <string name="payday_change_action">Ubah</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">Semua Metode</string>
+    <string name="filter_with_receipt">Ada Struk</string>
+    <string name="filter_reset">Reset</string>
+    <string name="sort_label_prefix">Urut:</string>
+    <string name="sort_newest">Terbaru</string>
+    <string name="sort_highest">Terbesar</string>
+    <string name="sort_lowest">Terkecil</string>
+    <string name="sort_title_az">Nama A–Z</string>
+    <string name="filter_sort_cd">Urutkan transaksi</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">Tren Pengeluaran &amp; Pemasukan</string>
+    <string name="trend_6_months">6 Bln</string>
+    <string name="trend_12_months">12 Bln</string>
+    <string name="trend_legend_spending">Pengeluaran</string>
+    <string name="trend_legend_income">Pemasukan</string>
+    <string name="trend_tap_hint">Ketuk batang grafik untuk lihat rincian bulan</string>
+    <string name="trend_total_spent">Total Keluar</string>
+    <string name="trend_total_income">Total Masuk</string>
+    <string name="trend_avg_monthly">Rata-rata / Bln</string>
+    <string name="trend_net_cashflow">Arus Kas Bersih</string>
+    <string name="trend_lowest_month">Paling Hemat: %1$s (%2$s)</string>
+    <string name="trend_highest_month">Paling Tinggi: %1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d transaksi</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">Edit Target Tabungan</string>
+    <string name="savings_edit_save">Simpan Perubahan</string>
+    <string name="savings_edit_cd">Edit target tabungan</string>
+    <string name="savings_history_cd">Lihat riwayat setoran</string>
+    <string name="savings_history_button">Riwayat</string>
+    <string name="savings_goal_updated">Target \"%1$s\" berhasil diperbarui!</string>
+    <string name="savings_history_sheet_title">Progres &amp; Riwayat Tabungan</string>
+    <string name="savings_history_total_deposits">Total Setoran</string>
+    <string name="savings_history_total_withdrawals">Total Penarikan</string>
+    <string name="savings_history_eta_label">Estimasi Tercapai</string>
+    <string name="savings_history_eta_done">Target sudah tercapai! 🎉</string>
+    <string name="savings_history_eta_days">Sekitar %1$d hari lagi (%2$s)</string>
+    <string name="savings_history_eta_months">Sekitar %1$d bulan lagi (%2$s)</string>
+    <string name="savings_history_eta_need_more">Lakukan setoran rutin agar estimasi waktu tercapai bisa dihitung otomatis.</string>
+    <string name="savings_history_empty">Belum ada catatan setoran atau penarikan untuk target ini.</string>
+    <string name="savings_history_initial_label">Saldo Awal</string>
+    <string name="savings_history_deposit_label">Setoran</string>
+    <string name="savings_history_withdraw_label">Penarikan</string>
+    <string name="savings_history_balance_after">Saldo: %1$s</string>
+
+    <!-- Tanya SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">Tanya SakuPintar AI</string>
+    <string name="ai_chat_subtitle">Asisten keuangan pribadi berbasis data aslimu</string>
+    <string name="ai_chat_open_button">Tanya AI</string>
+    <string name="ai_chat_open_cd">Buka chat Tanya SakuPintar AI</string>
+    <string name="ai_chat_reset_cd">Ulangi percakapan</string>
+    <string name="ai_chat_close_cd">Tutup chat AI</string>
+    <string name="ai_chat_input_hint">Tanya apa saja soal pengeluaran, anggaran, atau tabunganmu…</string>
+    <string name="ai_chat_send_cd">Kirim pertanyaan</string>
+    <string name="ai_chat_welcome_title">Halo! Saya SakuPintar AI</string>
+    <string name="ai_chat_welcome_body">Tanyakan apa saja tentang pola pengeluaranmu, batas aman harian, target tabungan, atau strategi hemat bulan ini.</string>
+    <string name="ai_chat_chip_1">Kategori mana yang paling boros periode ini?</string>
+    <string name="ai_chat_chip_2">Beri strategi hemat untuk sisa siklus gajian ini</string>
+    <string name="ai_chat_chip_3">Bagaimana progres tabunganku &amp; biar lebih cepat tercapai?</string>
+    <string name="ai_chat_chip_4">Bandingkan tren pengeluaranku beberapa bulan terakhir</string>
+    <string name="ai_chat_typing">SakuPintar AI sedang menganalisis…</string>
+    <string name="ai_chat_retry">Coba Lagi</string>
+    <string name="ai_chat_context_badge">Data aktif: %1$s</string>
 </resources>
+
+

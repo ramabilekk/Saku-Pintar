@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -45,23 +46,32 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ai.configureAppCheck
 import com.example.auth.AccountSecurityOtpManager
 import com.example.auth.authStateFlow
+import com.example.auth.onGoogleSignInClicked
+import com.example.data.local.GuestToGoogleMigrationManager
+import com.example.data.repository.FinanceRepository
+import com.example.data.repository.SavingsRepository
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.security.PrivacySecurityManager
 import com.example.ui.LocalAccountScaffold
 import com.example.ui.MainAppScaffold
 import com.example.ui.auth.AuthScreen
+import com.example.ui.components.AppLockGateScreen
 import com.example.ui.components.ForceUpdateScreen
 import com.example.ui.components.UpdateCheckingSplash
 import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.SakuPintarTheme
 import com.example.ui.theme.ThemePreferenceManager
 import com.example.update.AppUpdateChecker
+import com.example.widget.WidgetQuickActions
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+  private var pendingWidgetActionState by mutableStateOf<String?>(null)
+
   override fun attachBaseContext(newBase: Context) {
     super.attachBaseContext(LanguagePreferenceManager.wrapActivityContext(newBase))
   }
@@ -70,6 +80,7 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     configureAppCheck(this, intent)
+    pendingWidgetActionState = intent?.getStringExtra(WidgetQuickActions.EXTRA_WIDGET_ACTION)
     setContent {
       val themeMode by ThemePreferenceManager.observeThemeMode(applicationContext)
         .collectAsStateWithLifecycle()
@@ -98,6 +109,31 @@ class MainActivity : ComponentActivity() {
         insetsController.isAppearanceLightNavigationBars = !useDarkTheme
       }
 
+      val appLockEnabled by PrivacySecurityManager.observeAppLockEnabled(applicationContext)
+        .collectAsStateWithLifecycle()
+      var isAppLocked by remember {
+        mutableStateOf(PrivacySecurityManager.isAppLockEnabled(applicationContext))
+      }
+      val activityLifecycleOwner = LocalLifecycleOwner.current
+
+      LaunchedEffect(appLockEnabled) {
+        if (!appLockEnabled) {
+          isAppLocked = false
+        }
+      }
+
+      DisposableEffect(activityLifecycleOwner, appLockEnabled) {
+        val lockObserver = LifecycleEventObserver { _, event ->
+          if (event == Lifecycle.Event.ON_STOP && appLockEnabled) {
+            isAppLocked = true
+          }
+        }
+        activityLifecycleOwner.lifecycle.addObserver(lockObserver)
+        onDispose {
+          activityLifecycleOwner.lifecycle.removeObserver(lockObserver)
+        }
+      }
+
       CompositionLocalProvider(
         LocalContext provides localizedContext,
         LocalConfiguration provides localizedContext.resources.configuration,
@@ -105,7 +141,17 @@ class MainActivity : ComponentActivity() {
         LocalActivityResultRegistryOwner provides this@MainActivity,
       ) {
         SakuPintarTheme(darkTheme = useDarkTheme) {
-          AppRoot()
+          Box(modifier = Modifier.fillMaxSize()) {
+            AppRoot(
+              pendingWidgetAction = pendingWidgetActionState,
+              onConsumeWidgetAction = { pendingWidgetActionState = null },
+            )
+            if (appLockEnabled && isAppLocked) {
+              AppLockGateScreen(
+                onUnlocked = { isAppLocked = false },
+              )
+            }
+          }
         }
       }
     }
@@ -115,11 +161,18 @@ class MainActivity : ComponentActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     configureAppCheck(this, intent)
+    val widgetAction = intent.getStringExtra(WidgetQuickActions.EXTRA_WIDGET_ACTION)
+    if (!widgetAction.isNullOrBlank()) {
+      pendingWidgetActionState = widgetAction
+    }
   }
 }
 
 @Composable
-private fun AppRoot() {
+private fun AppRoot(
+  pendingWidgetAction: String?,
+  onConsumeWidgetAction: () -> Unit,
+) {
   val context = LocalContext.current
   val lifecycleOwner = LocalLifecycleOwner.current
   val coroutineScope = rememberCoroutineScope()
@@ -217,6 +270,10 @@ private fun AppRoot() {
   val auth = Firebase.auth
   val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
   val altSession by AccountSecurityOtpManager.observeAltSession(context).collectAsStateWithLifecycle()
+  val credentialManager = remember(context) { CredentialManager.create(context) }
+
+  var isMigratingGuestData by remember { mutableStateOf(false) }
+  var pendingMigrationBanner by remember { mutableStateOf<String?>(null) }
 
   val user = currentUser
   if (user == null) {
@@ -227,6 +284,61 @@ private fun AppRoot() {
           session = activeAlt,
           onSignedOut = {
             AccountSecurityOtpManager.clearAltSession(context)
+          },
+          pendingWidgetAction = pendingWidgetAction,
+          onConsumeWidgetAction = onConsumeWidgetAction,
+          initialStatusMessage = pendingMigrationBanner,
+          onConsumeInitialStatus = { pendingMigrationBanner = null },
+          isMigratingGuestData = isMigratingGuestData,
+          onConnectGoogleAndMigrate = {
+            if (isMigratingGuestData) return@LocalAccountScaffold
+            val guestUserId = activeAlt.userId
+            val appCtx = context.applicationContext
+            isMigratingGuestData = true
+            onGoogleSignInClicked(
+              context = context,
+              credentialManager = credentialManager,
+              scope = coroutineScope,
+              onAuthSuccess = {
+                coroutineScope.launch {
+                  try {
+                    val result = GuestToGoogleMigrationManager.migrateGuestToGoogle(
+                      context = appCtx,
+                      guestUserId = guestUserId,
+                      financeRepository = FinanceRepository(appCtx),
+                      savingsRepository = SavingsRepository(appCtx),
+                    )
+                    AccountSecurityOtpManager.clearAltSession(appCtx)
+                    val localized = LanguagePreferenceManager.localizedContext(appCtx)
+                    pendingMigrationBanner = when {
+                      result.totalMigrated == 0 && result.failedCount == 0 ->
+                        localized.getString(R.string.guest_sync_connected_empty)
+                      result.failedCount > 0 ->
+                        localized.getString(
+                          R.string.guest_sync_partial,
+                          result.totalMigrated,
+                          result.failedCount,
+                        )
+                      else ->
+                        localized.getString(R.string.guest_sync_success, result.totalMigrated)
+                    }
+                  } catch (e: Exception) {
+                    val localized = LanguagePreferenceManager.localizedContext(appCtx)
+                    pendingMigrationBanner =
+                      e.localizedMessage ?: localized.getString(R.string.error_generic)
+                  } finally {
+                    isMigratingGuestData = false
+                  }
+                }
+              },
+              onAuthError = { errMsg ->
+                isMigratingGuestData = false
+                pendingMigrationBanner = errMsg
+              },
+              onAuthCancelled = {
+                isMigratingGuestData = false
+              },
+            )
           },
         )
       }
@@ -240,6 +352,10 @@ private fun AppRoot() {
       MainAppScaffold(
         currentUser = user,
         onSignedOut = {},
+        pendingWidgetAction = pendingWidgetAction,
+        onConsumeWidgetAction = onConsumeWidgetAction,
+        initialStatusMessage = pendingMigrationBanner,
+        onConsumeInitialStatus = { pendingMigrationBanner = null },
       )
     }
   }

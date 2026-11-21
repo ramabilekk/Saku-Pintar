@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -53,7 +54,9 @@ import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
 import com.example.data.model.RecurringTemplate
 import com.example.i18n.CurrencyPreferenceManager
+import com.example.notifications.BillDueReminderManager
 import com.example.ui.theme.CoralDanger
+import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.util.Formatters
 
@@ -67,12 +70,14 @@ fun RecurringTemplatesSection(
     category: ExpenseCategory,
     paymentMethod: PaymentMethod,
     note: String,
+    dueDayOfMonth: Int?,
   ) -> Unit,
   onDeleteTemplate: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val dueSchedules by BillDueReminderManager.observeSchedules(context).collectAsStateWithLifecycle()
   var showAddDialog by remember { mutableStateOf(false) }
   var pendingDelete by remember { mutableStateOf<RecurringTemplate?>(null) }
 
@@ -172,11 +177,40 @@ fun RecurringTemplatesSection(
                   color = MaterialTheme.colorScheme.primary,
                   maxLines = 1,
                 )
-                Text(
-                  text = stringResource(R.string.recurring_tap_to_log),
-                  style = MaterialTheme.typography.labelSmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                val schedule = dueSchedules[template.id]
+                if (schedule != null) {
+                  val daysLeft = schedule.daysUntilDue()
+                  val (badgeText, badgeColor) = when {
+                    daysLeft == 0 -> stringResource(R.string.bill_due_today_badge) to CoralDanger
+                    daysLeft <= 3 -> stringResource(R.string.bill_due_in_days_badge, daysLeft) to GoldAccent
+                    else -> stringResource(R.string.bill_due_day_format, schedule.dueDayOfMonth) to MaterialTheme.colorScheme.primary
+                  }
+                  Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.NotificationsActive,
+                      contentDescription = null,
+                      tint = badgeColor,
+                      modifier = Modifier.size(12.dp),
+                    )
+                    Text(
+                      text = badgeText,
+                      style = MaterialTheme.typography.labelSmall,
+                      fontWeight = FontWeight.SemiBold,
+                      color = badgeColor,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                  }
+                } else {
+                  Text(
+                    text = stringResource(R.string.recurring_tap_to_log),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                }
               }
               IconButton(
                 onClick = { pendingDelete = template },
@@ -201,8 +235,8 @@ fun RecurringTemplatesSection(
   if (showAddDialog) {
     AddRecurringTemplateDialog(
       onDismiss = { showAddDialog = false },
-      onSave = { title, amount, category, method, note ->
-        onAddTemplate(title, amount, category, method, note)
+      onSave = { title, amount, category, method, note, dueDay ->
+        onAddTemplate(title, amount, category, method, note, dueDay)
         showAddDialog = false
       },
     )
@@ -250,6 +284,7 @@ private fun AddRecurringTemplateDialog(
     category: ExpenseCategory,
     paymentMethod: PaymentMethod,
     note: String,
+    dueDayOfMonth: Int?,
   ) -> Unit,
 ) {
   val context = LocalContext.current
@@ -260,6 +295,7 @@ private fun AddRecurringTemplateDialog(
   var selectedCategory by remember { mutableStateOf(ExpenseCategory.BILLS) }
   var selectedMethod by remember { mutableStateOf(PaymentMethod.TRANSFER) }
   var note by remember { mutableStateOf("") }
+  var dueDayText by remember { mutableStateOf("") }
   var validationError by remember { mutableStateOf<String?>(null) }
 
   AlertDialog(
@@ -334,6 +370,37 @@ private fun AddRecurringTemplateDialog(
           }
         }
         OutlinedTextField(
+          value = dueDayText,
+          onValueChange = { input ->
+            val digits = input.filter { it.isDigit() }.take(2)
+            val parsed = digits.toIntOrNull()
+            dueDayText = if (parsed != null && parsed > 31) "31" else digits
+          },
+          label = { Text(stringResource(R.string.bill_due_day_label)) },
+          placeholder = { Text("1 – 31") },
+          singleLine = true,
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("recurring_due_day_input"),
+        )
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+          horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+          listOf(1, 5, 10, 15, 20, 25, 28).forEach { day ->
+            FilterChip(
+              selected = dueDayText.toIntOrNull() == day,
+              onClick = {
+                dueDayText = if (dueDayText.toIntOrNull() == day) "" else day.toString()
+              },
+              label = { Text(stringResource(R.string.bill_due_day_format, day)) },
+            )
+          }
+        }
+        OutlinedTextField(
           value = note,
           onValueChange = { note = it.take(200) },
           label = { Text(stringResource(R.string.label_optional_note)) },
@@ -353,10 +420,11 @@ private fun AddRecurringTemplateDialog(
       Button(
         onClick = {
           val parsed = amountText.toLongOrNull() ?: 0L
+          val dueDay = dueDayText.toIntOrNull()?.takeIf { it in 1..31 }
           when {
             title.isBlank() -> validationError = context.getString(R.string.recurring_error_name)
             parsed <= 0L -> validationError = context.getString(R.string.recurring_error_amount)
-            else -> onSave(title.trim(), parsed, selectedCategory, selectedMethod, note.trim())
+            else -> onSave(title.trim(), parsed, selectedCategory, selectedMethod, note.trim(), dueDay)
           }
         },
         modifier = Modifier

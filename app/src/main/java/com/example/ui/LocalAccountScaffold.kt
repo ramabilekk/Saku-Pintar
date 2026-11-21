@@ -16,11 +16,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,6 +27,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -40,11 +41,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -58,13 +60,16 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,8 +79,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -98,8 +106,14 @@ import com.example.R
 import com.example.auth.AccountSecurityOtpManager
 import com.example.auth.AltAuthSession
 import com.example.auth.AuthMethodType
+import com.example.data.ai.AiFinanceContextSnapshot
 import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
+import com.example.data.budget.PaydayCycleManager
+import com.example.data.local.CashflowLedgerManager
+import com.example.data.local.LocalAccountVault
+import com.example.data.local.SavingsHistoryManager
+import com.example.data.local.SavingsHistoryType
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
@@ -109,19 +123,25 @@ import com.example.data.model.SavingsGoal
 import com.example.data.model.SavingsGoalCategory
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.notifications.BillDueReminderManager
 import com.example.notifications.DailyReminderManager
+import com.example.security.PrivacySecurityManager
 import com.example.ui.components.AccountProfileDialog
+import com.example.ui.components.AiFinanceChatDialog
 import com.example.ui.components.AppAmbientBackdrop
 import com.example.ui.components.ExpenseEditorSheet
 import com.example.ui.components.ExportReportSheet
-import com.example.ui.components.MonthSelectorBar
+import com.example.ui.components.FloatingNavItem
+import com.example.ui.components.FloatingPillBottomBar
 import com.example.ui.components.ProfileAvatar
+import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactilePressScale
 import com.example.ui.screens.AutoBudgetScreen
 import com.example.ui.screens.DailyExpensesScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.SavingsScreen
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.ThemePreferenceManager
 import com.example.ui.viewmodel.AiExpenseParseState
 import com.example.ui.viewmodel.AiInsightUiState
@@ -130,47 +150,39 @@ import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.ui.viewmodel.SavingsUiData
 import com.example.util.Formatters
 import com.example.util.ImageUtils
+import com.example.widget.WidgetQuickActions
+import com.example.widget.WidgetSnapshotStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.LocalDate
 import java.util.UUID
 
 private val LocalPageSlideEasing = CubicBezierEasing(0.22f, 1.0f, 0.36f, 1.0f)
 
-private data class LocalNavTab(
-  val route: String,
-  val labelRes: Int,
-  val selectedIcon: ImageVector,
-  val unselectedIcon: ImageVector,
-  val testTag: String,
-)
-
 private val localNavTabs = listOf(
-  LocalNavTab(
+  FloatingNavItem(
     route = ROUTE_DASHBOARD,
     labelRes = R.string.nav_home,
-    selectedIcon = Icons.Rounded.Dashboard,
-    unselectedIcon = Icons.Outlined.Dashboard,
+    selectedIcon = Icons.Rounded.Home,
+    unselectedIcon = Icons.Outlined.Home,
     testTag = "nav_tab_dashboard",
   ),
-  LocalNavTab(
+  FloatingNavItem(
     route = ROUTE_EXPENSES,
     labelRes = R.string.nav_expenses,
     selectedIcon = Icons.AutoMirrored.Rounded.ReceiptLong,
     unselectedIcon = Icons.AutoMirrored.Outlined.ReceiptLong,
     testTag = "nav_tab_expenses",
   ),
-  LocalNavTab(
+  FloatingNavItem(
     route = ROUTE_SAVINGS,
     labelRes = R.string.nav_savings,
     selectedIcon = Icons.Rounded.Savings,
     unselectedIcon = Icons.Outlined.Savings,
     testTag = "nav_tab_savings",
   ),
-  LocalNavTab(
+  FloatingNavItem(
     route = ROUTE_BUDGET,
     labelRes = R.string.nav_budget,
     selectedIcon = Icons.Rounded.AutoAwesome,
@@ -184,6 +196,12 @@ private val localNavTabs = listOf(
 fun LocalAccountScaffold(
   session: AltAuthSession,
   onSignedOut: () -> Unit,
+  pendingWidgetAction: String? = null,
+  onConsumeWidgetAction: () -> Unit = {},
+  initialStatusMessage: String? = null,
+  onConsumeInitialStatus: () -> Unit = {},
+  isMigratingGuestData: Boolean = false,
+  onConnectGoogleAndMigrate: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -192,40 +210,39 @@ fun LocalAccountScaffold(
   val aiAssistant = remember { FinanceAiAssistant() }
 
   val themeMode by ThemePreferenceManager.observeThemeMode(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val paydayStartDay by PaydayCycleManager.observePaydayStartDay(context).collectAsStateWithLifecycle()
+  val cashflowEntries by CashflowLedgerManager.observeEntries(context, session.userId).collectAsStateWithLifecycle()
   var reminderSettings by remember(context) {
     mutableStateOf(DailyReminderManager.getSettings(context))
   }
 
-  var selectedMonthKey by remember { mutableStateOf(Formatters.currentMonthKey()) }
+  var selectedMonthKey by remember {
+    mutableStateOf(
+      PaydayCycleManager.currentCycleMonthKey(
+        paydayStartDay = paydayStartDay,
+      ),
+    )
+  }
   var selectedCategoryFilter by remember { mutableStateOf<ExpenseCategory?>(null) }
   var searchQuery by remember { mutableStateOf("") }
 
   val isGuestVisitor = session.method == AuthMethodType.GUEST
 
-  var allExpenses by remember(session.userId, isGuestVisitor) {
-    mutableStateOf(
-      if (isGuestVisitor) emptyList() else LocalVaultStorage.loadExpenses(context, session.userId)
-    )
+  var allExpenses by remember(session.userId) {
+    mutableStateOf(LocalAccountVault.loadExpenses(context, session.userId))
   }
-  var budgetsByMonth by remember(session.userId, isGuestVisitor) {
-    mutableStateOf(
-      if (isGuestVisitor) emptyMap() else LocalVaultStorage.loadBudgets(context, session.userId)
-    )
+  var budgetsByMonth by remember(session.userId) {
+    mutableStateOf(LocalAccountVault.loadBudgets(context, session.userId))
   }
-  var recurringTemplates by remember(session.userId, isGuestVisitor) {
-    mutableStateOf(
-      if (isGuestVisitor) emptyList() else LocalVaultStorage.loadRecurring(context, session.userId)
-    )
+  var recurringTemplates by remember(session.userId) {
+    mutableStateOf(LocalAccountVault.loadRecurring(context, session.userId))
   }
-  var savingsGoals by remember(session.userId, isGuestVisitor) {
-    mutableStateOf(
-      if (isGuestVisitor) emptyList() else LocalVaultStorage.loadGoals(context, session.userId)
-    )
+  var savingsGoals by remember(session.userId) {
+    mutableStateOf(LocalAccountVault.loadGoals(context, session.userId))
   }
-  var walletBalances by remember(session.userId, isGuestVisitor) {
-    mutableStateOf(
-      if (isGuestVisitor) emptyMap() else LocalVaultStorage.loadWallets(context, session.userId)
-    )
+  var walletBalances by remember(session.userId) {
+    mutableStateOf(LocalAccountVault.loadWallets(context, session.userId))
   }
 
   var aiInsightState by remember { mutableStateOf<AiInsightUiState>(AiInsightUiState.Idle) }
@@ -233,10 +250,12 @@ fun LocalAccountScaffold(
   var isSaving by remember { mutableStateOf(false) }
 
   var showExpenseSheet by remember { mutableStateOf(false) }
+  var autoLaunchReceiptScan by remember { mutableStateOf(false) }
   var editingExpense by remember { mutableStateOf<Expense?>(null) }
   var prefillEpochDay by remember { mutableStateOf<Long?>(null) }
   var showAccountDialog by remember { mutableStateOf(false) }
   var showExportSheet by remember { mutableStateOf(false) }
+  var showAiChatDialog by remember { mutableStateOf(false) }
 
   fun showToastMessage(msg: String) {
     scope.launch {
@@ -244,16 +263,145 @@ fun LocalAccountScaffold(
     }
   }
 
-  val monthExpenses = remember(allExpenses, selectedMonthKey) {
-    allExpenses.filter { it.monthKey == selectedMonthKey }
-      .sortedByDescending { it.dateEpochDay }
+  fun adjustLocalWallet(method: PaymentMethod, delta: Long) {
+    if (delta == 0L) return
+    val current = walletBalances[method] ?: 0L
+    if (delta < 0L && current == 0L) return
+    val next = (current + delta).coerceAtLeast(0L)
+    walletBalances = walletBalances + (method to next)
+    LocalAccountVault.saveWallets(context, session.userId, walletBalances)
+  }
+
+  fun computeLocalBudgetAlert(category: ExpenseCategory, addedAmount: Long, monthKey: String): String? {
+    val budget = budgetsByMonth[monthKey] ?: return null
+    val limit = budget.limitFor(category)
+    if (limit <= 0L) return null
+    val spentSoFar = allExpenses
+      .filter { it.monthKey == monthKey && it.categoryEnum == category }
+      .sumOf { it.amount }
+    val newSpent = spentSoFar + addedAmount
+    val pct = ((newSpent * 100L) / limit).toInt()
+    val catLabel = category.label(context)
+    return when {
+      newSpent >= limit -> context.getString(R.string.budget_alert_over, catLabel, pct)
+      pct >= 80 -> context.getString(R.string.budget_alert_caution, catLabel, pct)
+      else -> null
+    }
+  }
+
+  fun logRecurringTemplateItem(template: RecurringTemplate) {
+    val today = LocalDate.now()
+    val monthKey = Formatters.currentMonthKey(today)
+    val alertMsg = computeLocalBudgetAlert(template.categoryEnum, template.amount, monthKey)
+    val newExpense = Expense(
+      id = UUID.randomUUID().toString(),
+      userId = session.userId,
+      title = template.title,
+      amount = template.amount,
+      category = template.category,
+      paymentMethod = template.paymentMethod,
+      dateEpochDay = today.toEpochDay(),
+      monthKey = monthKey,
+      note = template.note,
+    )
+    allExpenses = listOf(newExpense) + allExpenses
+    selectedMonthKey = monthKey
+    LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+    if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
+      adjustLocalWallet(template.paymentMethodEnum, -template.amount)
+    }
+    showToastMessage(alertMsg ?: context.getString(R.string.vm_expense_added))
+  }
+
+  fun handleLocalDuplicateExpense(expense: Expense) {
+    val today = LocalDate.now()
+    val monthKey = Formatters.currentMonthKey(today)
+    val alertMsg = computeLocalBudgetAlert(expense.categoryEnum, expense.amount, monthKey)
+    val copy = expense.copy(
+      id = UUID.randomUUID().toString(),
+      dateEpochDay = today.toEpochDay(),
+      monthKey = monthKey,
+      receiptPhotoBase64 = "",
+    )
+    allExpenses = listOf(copy) + allExpenses
+    selectedMonthKey = monthKey
+    LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+    if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
+      adjustLocalWallet(expense.paymentMethodEnum, -expense.amount)
+    }
+    showToastMessage(
+      alertMsg ?: context.getString(R.string.expense_duplicated_status, expense.title),
+    )
+  }
+
+  fun handleLocalDeleteWithUndo(expense: Expense) {
+    val autoDeduct = PrivacySecurityManager.isAutoDeductWalletEnabled(context)
+    allExpenses = allExpenses.filterNot { it.id == expense.id }
+    LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+    if (autoDeduct) {
+      adjustLocalWallet(expense.paymentMethodEnum, +expense.amount)
+    }
+    scope.launch {
+      snackbarHostState.currentSnackbarData?.dismiss()
+      val result = snackbarHostState.showSnackbar(
+        message = context.getString(R.string.vm_expense_deleted),
+        actionLabel = context.getString(R.string.action_undo),
+        duration = SnackbarDuration.Long,
+      )
+      if (result == SnackbarResult.ActionPerformed) {
+        allExpenses = listOf(expense) + allExpenses
+        LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+        if (autoDeduct) {
+          adjustLocalWallet(expense.paymentMethodEnum, -expense.amount)
+        }
+        showToastMessage(context.getString(R.string.expense_restored_status))
+      }
+    }
+  }
+
+  LaunchedEffect(initialStatusMessage) {
+    initialStatusMessage?.let { msg ->
+      snackbarHostState.showSnackbar(msg)
+      onConsumeInitialStatus()
+    }
+  }
+
+  LaunchedEffect(pendingWidgetAction) {
+    when (pendingWidgetAction) {
+      WidgetQuickActions.ACTION_QUICK_ADD -> {
+        editingExpense = null
+        prefillEpochDay = null
+        autoLaunchReceiptScan = false
+        showExpenseSheet = true
+        onConsumeWidgetAction()
+      }
+      WidgetQuickActions.ACTION_QUICK_SCAN -> {
+        editingExpense = null
+        prefillEpochDay = null
+        autoLaunchReceiptScan = true
+        showExpenseSheet = true
+        onConsumeWidgetAction()
+      }
+    }
+  }
+
+  val monthExpenses = remember(allExpenses, selectedMonthKey, paydayStartDay) {
+    if (paydayStartDay <= 1) {
+      allExpenses.filter { it.monthKey == selectedMonthKey }
+        .sortedByDescending { it.dateEpochDay }
+    } else {
+      val cycle = PaydayCycleManager.resolveCycle(selectedMonthKey, paydayStartDay)
+      allExpenses.filter { cycle.contains(it.dateEpochDay) }
+        .sortedByDescending { it.dateEpochDay }
+    }
   }
   val activeBudget = budgetsByMonth[selectedMonthKey]
-  val dailyInsight = remember(activeBudget, monthExpenses, selectedMonthKey) {
+  val dailyInsight = remember(activeBudget, monthExpenses, selectedMonthKey, paydayStartDay) {
     BudgetAutoComposer.calculateDailyInsight(
       budget = activeBudget,
       monthExpenses = monthExpenses,
       monthKey = selectedMonthKey,
+      paydayStartDay = paydayStartDay,
     )
   }
   val categoryBreakdown = remember(monthExpenses, activeBudget) {
@@ -281,6 +429,7 @@ fun LocalAccountScaffold(
 
   val dashboardData = remember(
     selectedMonthKey,
+    paydayStartDay,
     monthExpenses,
     filteredExpenses,
     allExpenses,
@@ -293,6 +442,7 @@ fun LocalAccountScaffold(
   ) {
     FinanceDashboardData(
       monthKey = selectedMonthKey,
+      paydayStartDay = paydayStartDay,
       expenses = monthExpenses,
       filteredExpenses = filteredExpenses,
       allHistoricalExpenses = allExpenses,
@@ -312,11 +462,23 @@ fun LocalAccountScaffold(
     )
   }
 
+  LaunchedEffect(dashboardData, activeCurrency) {
+    WidgetSnapshotStore.updateSnapshot(
+      context = context,
+      dailySafeLimit = dashboardData.dailyInsight.dailySafeLimit,
+      todaySpent = dashboardData.dailyInsight.todaySpent,
+      remainingBudget = dashboardData.dailyInsight.remainingBudget,
+      hasBudget = dashboardData.budget != null,
+      monthKey = dashboardData.monthKey,
+    )
+  }
+
   val navController = rememberNavController()
   val backStackEntry by navController.currentBackStackEntryAsState()
   val currentDestination = backStackEntry?.destination
   val currentRoute = currentDestination?.route ?: ROUTE_DASHBOARD
   val tactile = rememberTactileFeedback()
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   fun navigateToTab(route: String) {
     tactile.navigation()
@@ -334,6 +496,14 @@ fun LocalAccountScaffold(
     selectedMonthKey = Formatters.shiftMonthKey(selectedMonthKey, offsetMonths)
   }
 
+  fun openQuickReceiptScanner() {
+    tactile.confirm()
+    editingExpense = null
+    prefillEpochDay = null
+    autoLaunchReceiptScan = true
+    showExpenseSheet = true
+  }
+
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val useNavigationRail = maxWidth >= 600.dp
 
@@ -341,9 +511,15 @@ fun LocalAccountScaffold(
       if (useNavigationRail) {
         NavigationRail(
           containerColor = MaterialTheme.colorScheme.surface,
+          header = {
+            Spacer(modifier = Modifier.height(8.dp))
+            CenterScanRailButton(
+              onClick = ::openQuickReceiptScanner,
+            )
+          },
           modifier = Modifier.fillMaxHeight(),
         ) {
-          Spacer(modifier = Modifier.height(16.dp))
+          Spacer(modifier = Modifier.height(12.dp))
           localNavTabs.forEach { tab ->
             val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
             val label = stringResource(tab.labelRes)
@@ -396,7 +572,7 @@ fun LocalAccountScaffold(
             ),
             title = {
               AnimatedContent(
-                targetState = currentRoute ?: ROUTE_DASHBOARD,
+                targetState = currentRoute,
                 transitionSpec = {
                   val forward = navRouteOrder(targetState) >= navRouteOrder(initialState)
                   (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
@@ -537,18 +713,16 @@ fun LocalAccountScaffold(
                     ) {
                       Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.size(38.dp),
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.Dashboard,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Image(
+                          painter = painterResource(id = R.drawable.img_sakupintar_logo),
+                          contentDescription = stringResource(R.string.app_name),
+                          contentScale = ContentScale.Crop,
+                          modifier = Modifier.fillMaxSize(),
+                        )
                       }
                       Column {
                         Text(
@@ -574,6 +748,42 @@ fun LocalAccountScaffold(
               }
             },
             actions = {
+              val aiChatDesc = stringResource(R.string.ai_chat_open_cd)
+              val aiChatInteractionSource = remember { MutableInteractionSource() }
+              IconButton(
+                onClick = {
+                  tactile.tick()
+                  showAiChatDialog = true
+                },
+                interactionSource = aiChatInteractionSource,
+                modifier = Modifier
+                  .size(48.dp)
+                  .tactilePressScale(
+                    interactionSource = aiChatInteractionSource,
+                    pressedScale = 0.90f,
+                    enablePressHaptic = false,
+                  )
+                  .semantics { contentDescription = aiChatDesc }
+                  .testTag("topbar_ai_chat_button"),
+              ) {
+                Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                ) {
+                  Box(
+                    modifier = Modifier.size(36.dp),
+                    contentAlignment = Alignment.Center,
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Forum,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.size(18.dp),
+                    )
+                  }
+                }
+              }
               val profileDesc = stringResource(R.string.profile_cd, session.displayName)
               val profileInteractionSource = remember { MutableInteractionSource() }
               IconButton(
@@ -594,8 +804,8 @@ fun LocalAccountScaffold(
               ) {
                 Surface(
                   shape = CircleShape,
-                  color = Color.Transparent,
-                  border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+                  color = MaterialTheme.colorScheme.surface,
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                   Box(modifier = Modifier.padding(2.dp)) {
                     ProfileAvatar(
@@ -612,63 +822,12 @@ fun LocalAccountScaffold(
         },
         bottomBar = {
           if (!useNavigationRail) {
-            Column {
-              HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-              )
-              NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-              ) {
-                localNavTabs.forEach { tab ->
-                  val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                  val label = stringResource(tab.labelRes)
-                  val tabInteractionSource = remember { MutableInteractionSource() }
-                  val iconScale by animateFloatAsState(
-                    targetValue = if (selected) 1.12f else 1.0f,
-                    animationSpec = spring(
-                      dampingRatio = Spring.DampingRatioMediumBouncy,
-                      stiffness = Spring.StiffnessMediumLow,
-                    ),
-                    label = "nav_icon_scale_${tab.route}",
-                  )
-                  NavigationBarItem(
-                    selected = selected,
-                    onClick = { navigateToTab(tab.route) },
-                    interactionSource = tabInteractionSource,
-                    icon = {
-                      Icon(
-                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                        contentDescription = label,
-                        modifier = Modifier.graphicsLayer {
-                          scaleX = iconScale
-                          scaleY = iconScale
-                        },
-                      )
-                    },
-                    label = {
-                      Text(
-                        text = label,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                      )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                      selectedIconColor = MaterialTheme.colorScheme.primary,
-                      selectedTextColor = MaterialTheme.colorScheme.primary,
-                      indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                    ),
-                    modifier = Modifier
-                      .tactilePressScale(
-                        interactionSource = tabInteractionSource,
-                        pressedScale = 0.92f,
-                        enablePressHaptic = false,
-                      )
-                      .testTag(tab.testTag),
-                  )
-                }
-              }
-            }
+            FloatingPillBottomBar(
+              tabs = localNavTabs,
+              currentRoute = currentRoute,
+              onSelectTab = ::navigateToTab,
+              onQuickScanClick = ::openQuickReceiptScanner,
+            )
           }
         },
         floatingActionButton = {
@@ -689,12 +848,13 @@ fun LocalAccountScaffold(
                 tactile.confirm()
                 editingExpense = null
                 prefillEpochDay = null
+                autoLaunchReceiptScan = false
                 showExpenseSheet = true
               },
               interactionSource = fabInteractionSource,
-              containerColor = MaterialTheme.colorScheme.primary,
-              contentColor = MaterialTheme.colorScheme.onPrimary,
-              shape = RoundedCornerShape(18.dp),
+              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+              shape = RoundedCornerShape(16.dp),
               icon = {
                 Icon(
                   imageVector = Icons.Rounded.Add,
@@ -723,15 +883,21 @@ fun LocalAccountScaffold(
           Column(
             modifier = Modifier
               .fillMaxSize()
-              .padding(innerPadding),
+              .padding(
+                top = innerPadding.calculateTopPadding(),
+                start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = if (useNavigationRail) innerPadding.calculateBottomPadding() else 0.dp,
+              ),
           ) {
             if (isGuestVisitor) {
               Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                onClick = { showAccountDialog = true },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
                   width = 1.dp,
-                  color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.32f),
+                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
                 ),
                 modifier = Modifier
                   .fillMaxWidth()
@@ -746,14 +912,14 @@ fun LocalAccountScaffold(
                   Icon(
                     imageVector = Icons.Rounded.PersonOutline,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                   )
                   Text(
                     text = stringResource(R.string.guest_visitor_banner),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                   )
@@ -840,11 +1006,16 @@ fun LocalAccountScaffold(
                 onEditExpense = { expense ->
                   editingExpense = expense
                   prefillEpochDay = null
+                  autoLaunchReceiptScan = false
                   showExpenseSheet = true
                 },
                 onPreviousMonth = { shiftMonth(-1L) },
                 onNextMonth = { shiftMonth(1L) },
                 onSelectMonth = { selectedMonthKey = it },
+                onQuickScanReceipt = ::openQuickReceiptScanner,
+                onLogRecurringTemplate = ::logRecurringTemplateItem,
+                userId = session.userId,
+                onOpenAiChat = { showAiChatDialog = true },
               )
             }
             composable(ROUTE_EXPENSES) {
@@ -855,32 +1026,18 @@ fun LocalAccountScaffold(
                 onEditExpense = { expense ->
                   editingExpense = expense
                   prefillEpochDay = null
+                  autoLaunchReceiptScan = false
                   showExpenseSheet = true
                 },
                 onDeleteExpense = { id ->
                   allExpenses = allExpenses.filterNot { it.id == id }
-                  LocalVaultStorage.saveExpenses(context, session.userId, allExpenses)
+                  LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
                   showToastMessage(context.getString(R.string.vm_expense_deleted))
                 },
-                onLogRecurringTemplate = { template ->
-                  val today = LocalDate.now()
-                  val monthKey = Formatters.currentMonthKey(today)
-                  val newExpense = Expense(
-                    id = UUID.randomUUID().toString(),
-                    userId = session.userId,
-                    title = template.title,
-                    amount = template.amount,
-                    category = template.category,
-                    paymentMethod = template.paymentMethod,
-                    dateEpochDay = today.toEpochDay(),
-                    monthKey = monthKey,
-                    note = template.note,
-                  )
-                  allExpenses = listOf(newExpense) + allExpenses
-                  LocalVaultStorage.saveExpenses(context, session.userId, allExpenses)
-                  showToastMessage(context.getString(R.string.vm_expense_added, template.title))
-                },
-                onAddRecurringTemplate = { title, amount, category, method, note ->
+                onDeleteExpenseWithUndo = ::handleLocalDeleteWithUndo,
+                onDuplicateExpense = ::handleLocalDuplicateExpense,
+                onLogRecurringTemplate = ::logRecurringTemplateItem,
+                onAddRecurringTemplate = { title, amount, category, method, note, dueDayOfMonth ->
                   val item = RecurringTemplate(
                     id = UUID.randomUUID().toString(),
                     userId = session.userId,
@@ -891,12 +1048,21 @@ fun LocalAccountScaffold(
                     note = note.trim().take(200),
                   )
                   recurringTemplates = recurringTemplates + item
-                  LocalVaultStorage.saveRecurring(context, session.userId, recurringTemplates)
+                  LocalAccountVault.saveRecurring(context, session.userId, recurringTemplates)
+                  if (dueDayOfMonth != null) {
+                    BillDueReminderManager.setDueSchedule(
+                      context = context,
+                      templateId = item.id,
+                      title = item.title,
+                      dueDayOfMonth = dueDayOfMonth,
+                    )
+                  }
                   showToastMessage(context.getString(R.string.vm_recurring_added))
                 },
                 onDeleteRecurringTemplate = { id ->
                   recurringTemplates = recurringTemplates.filterNot { it.id == id }
-                  LocalVaultStorage.saveRecurring(context, session.userId, recurringTemplates)
+                  LocalAccountVault.saveRecurring(context, session.userId, recurringTemplates)
+                  BillDueReminderManager.removeDueSchedule(context, id)
                   showToastMessage(context.getString(R.string.vm_recurring_deleted))
                 },
                 onOpenExportReport = { showExportSheet = true },
@@ -906,8 +1072,10 @@ fun LocalAccountScaffold(
                 onAddExpenseOnDate = { epochDay ->
                   editingExpense = null
                   prefillEpochDay = epochDay
+                  autoLaunchReceiptScan = false
                   showExpenseSheet = true
                 },
+                onQuickScanReceipt = ::openQuickReceiptScanner,
               )
             }
             composable(ROUTE_SAVINGS) {
@@ -924,33 +1092,139 @@ fun LocalAccountScaffold(
                     note = note.trim().take(120),
                   )
                   savingsGoals = savingsGoals + goal
-                  LocalVaultStorage.saveGoals(context, session.userId, savingsGoals)
+                  LocalAccountVault.saveGoals(context, session.userId, savingsGoals)
+                  if (goal.savedAmount > 0L) {
+                    SavingsHistoryManager.recordEvent(
+                      context = context,
+                      userId = session.userId,
+                      goalId = goal.id,
+                      type = SavingsHistoryType.INITIAL,
+                      amount = goal.savedAmount,
+                      balanceAfter = goal.savedAmount,
+                    )
+                  }
                   showToastMessage(context.getString(R.string.vm_goal_created, goal.title))
+                },
+                onUpdateGoal = { goalId, title, targetAmount, cat, note ->
+                  savingsGoals = savingsGoals.map { existing ->
+                    if (existing.id == goalId) {
+                      existing.copy(
+                        title = title.trim().take(60),
+                        targetAmount = targetAmount.coerceAtLeast(1L),
+                        category = cat.name,
+                        note = note.trim().take(120),
+                      )
+                    } else {
+                      existing
+                    }
+                  }
+                  LocalAccountVault.saveGoals(context, session.userId, savingsGoals)
+                  showToastMessage(context.getString(R.string.savings_goal_updated))
                 },
                 onDepositGoal = { goal, amount ->
                   val updatedAmount = (goal.savedAmount + amount).coerceAtLeast(0L)
                   savingsGoals = savingsGoals.map {
                     if (it.id == goal.id) it.copy(savedAmount = updatedAmount) else it
                   }
-                  LocalVaultStorage.saveGoals(context, session.userId, savingsGoals)
-                  showToastMessage(context.getString(R.string.vm_goal_deposited, amount.toString(), goal.title))
+                  LocalAccountVault.saveGoals(context, session.userId, savingsGoals)
+                  SavingsHistoryManager.recordEvent(
+                    context = context,
+                    userId = session.userId,
+                    goalId = goal.id,
+                    type = SavingsHistoryType.DEPOSIT,
+                    amount = amount,
+                    balanceAfter = updatedAmount,
+                  )
+                  val msg = if (goal.targetAmount > 0L && updatedAmount >= goal.targetAmount) {
+                    context.getString(R.string.vm_goal_reached, goal.title)
+                  } else {
+                    val formatted = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+                    context.getString(R.string.vm_goal_deposited, formatted, goal.title)
+                  }
+                  showToastMessage(msg)
                 },
                 onWithdrawGoal = { goal, amount ->
                   val updatedAmount = (goal.savedAmount - amount).coerceAtLeast(0L)
                   savingsGoals = savingsGoals.map {
                     if (it.id == goal.id) it.copy(savedAmount = updatedAmount) else it
                   }
-                  LocalVaultStorage.saveGoals(context, session.userId, savingsGoals)
-                  showToastMessage(context.getString(R.string.vm_goal_withdrawn, amount.toString(), goal.title))
+                  LocalAccountVault.saveGoals(context, session.userId, savingsGoals)
+                  SavingsHistoryManager.recordEvent(
+                    context = context,
+                    userId = session.userId,
+                    goalId = goal.id,
+                    type = SavingsHistoryType.WITHDRAW,
+                    amount = amount,
+                    balanceAfter = updatedAmount,
+                  )
+                  val formatted = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+                  showToastMessage(context.getString(R.string.vm_goal_withdrawn, formatted, goal.title))
                 },
                 onDeleteGoal = { id ->
                   savingsGoals = savingsGoals.filterNot { it.id == id }
-                  LocalVaultStorage.saveGoals(context, session.userId, savingsGoals)
+                  LocalAccountVault.saveGoals(context, session.userId, savingsGoals)
+                  SavingsHistoryManager.deleteHistoryForGoal(context, session.userId, id)
                   showToastMessage(context.getString(R.string.vm_goal_deleted))
                 },
                 onSetWalletBalance = { method, balance ->
-                  walletBalances = walletBalances + (method to balance.coerceAtLeast(0L))
-                  LocalVaultStorage.saveWallets(context, session.userId, walletBalances)
+                  val cleanBalance = balance.coerceAtLeast(0L)
+                  walletBalances = walletBalances + (method to cleanBalance)
+                  LocalAccountVault.saveWallets(context, session.userId, walletBalances)
+                  val formatted = Formatters.formatMoney(cleanBalance, CurrencyPreferenceManager.currentCurrency)
+                  showToastMessage(context.getString(R.string.vm_wallet_updated, method.label(context), formatted))
+                },
+                userId = session.userId,
+                onRecordIncome = { title, amount, targetWallet, note ->
+                  val nextBal = (walletBalances[targetWallet] ?: 0L) + amount
+                  walletBalances = walletBalances + (targetWallet to nextBal)
+                  LocalAccountVault.saveWallets(context, session.userId, walletBalances)
+                  CashflowLedgerManager.recordIncome(
+                    context = context,
+                    userId = session.userId,
+                    title = title,
+                    amount = amount,
+                    targetWallet = targetWallet,
+                    note = note,
+                  )
+                  val formatted = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+                  showToastMessage(context.getString(R.string.cashflow_income_saved, formatted, targetWallet.label(context)))
+                },
+                onTransferWallet = { from, to, amount, note ->
+                  if (from == to) {
+                    showToastMessage(context.getString(R.string.cashflow_transfer_same_wallet_error))
+                  } else {
+                    val fromBal = walletBalances[from] ?: 0L
+                    val toBal = walletBalances[to] ?: 0L
+                    if (amount > fromBal) {
+                      showToastMessage(context.getString(R.string.cashflow_transfer_insufficient, from.label(context)))
+                    } else {
+                      walletBalances = walletBalances +
+                        (from to (fromBal - amount).coerceAtLeast(0L)) +
+                        (to to (toBal + amount))
+                      LocalAccountVault.saveWallets(context, session.userId, walletBalances)
+                      CashflowLedgerManager.recordTransfer(
+                        context = context,
+                        userId = session.userId,
+                        fromWallet = from,
+                        toWallet = to,
+                        amount = amount,
+                        note = note,
+                      )
+                      val formatted = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+                      showToastMessage(
+                        context.getString(
+                          R.string.cashflow_transfer_saved,
+                          formatted,
+                          from.label(context),
+                          to.label(context),
+                        ),
+                      )
+                    }
+                  }
+                },
+                onDeleteCashflowEntry = { entryId ->
+                  CashflowLedgerManager.deleteEntry(context, session.userId, entryId)
+                  showToastMessage(context.getString(R.string.cashflow_entry_deleted))
                 },
                 monthKey = selectedMonthKey,
                 onPreviousMonth = { shiftMonth(-1L) },
@@ -966,7 +1240,7 @@ fun LocalAccountScaffold(
                 onSaveBudget = { budget ->
                   val updated = budget.copy(userId = session.userId, monthKey = selectedMonthKey)
                   budgetsByMonth = budgetsByMonth + (selectedMonthKey to updated)
-                  LocalVaultStorage.saveBudgets(context, session.userId, budgetsByMonth)
+                  LocalAccountVault.saveBudgets(context, session.userId, budgetsByMonth)
                   showToastMessage(context.getString(R.string.vm_budget_saved))
                 },
                 onPreviousMonth = { shiftMonth(-1L) },
@@ -985,6 +1259,7 @@ fun LocalAccountScaffold(
     ExpenseEditorSheet(
       existingExpense = editingExpense,
       initialEpochDay = prefillEpochDay,
+      autoLaunchReceiptScan = autoLaunchReceiptScan,
       aiParseState = aiParseState,
       onParseWithAi = { raw ->
         scope.launch {
@@ -1045,13 +1320,16 @@ fun LocalAccountScaffold(
       onDismiss = {
         aiParseState = AiExpenseParseState.Idle
         showExpenseSheet = false
+        autoLaunchReceiptScan = false
         editingExpense = null
         prefillEpochDay = null
       },
       onSave = { title, amount, category, method, epochDay, note, receiptPhotoBase64 ->
         val monthKey = Formatters.currentMonthKey(LocalDate.ofEpochDay(epochDay))
         val currentEdit = editingExpense
+        val autoDeduct = PrivacySecurityManager.isAutoDeductWalletEnabled(context)
         if (currentEdit == null) {
+          val alertMsg = computeLocalBudgetAlert(category, amount, monthKey)
           val added = Expense(
             id = UUID.randomUUID().toString(),
             userId = session.userId,
@@ -1066,8 +1344,11 @@ fun LocalAccountScaffold(
           )
           allExpenses = listOf(added) + allExpenses
           selectedMonthKey = monthKey
-          LocalVaultStorage.saveExpenses(context, session.userId, allExpenses)
-          showToastMessage(context.getString(R.string.vm_expense_added, added.title))
+          LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+          if (autoDeduct) {
+            adjustLocalWallet(method, -amount)
+          }
+          showToastMessage(alertMsg ?: context.getString(R.string.vm_expense_added))
         } else {
           val updated = currentEdit.copy(
             title = title.trim().take(80),
@@ -1081,11 +1362,21 @@ fun LocalAccountScaffold(
           )
           allExpenses = allExpenses.map { if (it.id == updated.id) updated else it }
           selectedMonthKey = monthKey
-          LocalVaultStorage.saveExpenses(context, session.userId, allExpenses)
+          LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+          if (autoDeduct) {
+            if (currentEdit.paymentMethodEnum == method) {
+              val diff = currentEdit.amount - amount
+              if (diff != 0L) adjustLocalWallet(method, diff)
+            } else {
+              adjustLocalWallet(currentEdit.paymentMethodEnum, +currentEdit.amount)
+              adjustLocalWallet(method, -amount)
+            }
+          }
           showToastMessage(context.getString(R.string.vm_expense_updated))
         }
         aiParseState = AiExpenseParseState.Idle
         showExpenseSheet = false
+        autoLaunchReceiptScan = false
         editingExpense = null
         prefillEpochDay = null
       },
@@ -1093,6 +1384,20 @@ fun LocalAccountScaffold(
   }
 
   if (showAccountDialog) {
+    val guestLocalRecordCount = remember(
+      allExpenses,
+      budgetsByMonth,
+      recurringTemplates,
+      savingsGoals,
+      walletBalances,
+    ) {
+      allExpenses.size +
+        budgetsByMonth.size +
+        recurringTemplates.size +
+        savingsGoals.size +
+        walletBalances.values.count { it > 0L }
+    }
+
     AccountProfileDialog(
       displayName = session.displayName,
       email = session.identifierLabel,
@@ -1113,6 +1418,8 @@ fun LocalAccountScaffold(
             val encoded = ImageUtils.encodeAvatarBase64(context.applicationContext, uri)
             AccountSecurityOtpManager.updateAltSessionProfile(context, customPhotoBase64 = encoded)
             showToastMessage(context.getString(R.string.vm_profile_photo_saved))
+          } catch (e: Exception) {
+            showToastMessage(e.localizedMessage ?: context.getString(R.string.error_generic))
           } finally {
             isSaving = false
           }
@@ -1127,6 +1434,8 @@ fun LocalAccountScaffold(
             }
             AccountSecurityOtpManager.updateAltSessionProfile(context, customPhotoBase64 = encoded)
             showToastMessage(context.getString(R.string.vm_profile_photo_saved))
+          } catch (e: Exception) {
+            showToastMessage(e.localizedMessage ?: context.getString(R.string.error_generic))
           } finally {
             isSaving = false
           }
@@ -1142,6 +1451,10 @@ fun LocalAccountScaffold(
         onSignedOut()
       },
       onDismiss = { showAccountDialog = false },
+      isGuestMode = isGuestVisitor,
+      guestLocalRecordCount = guestLocalRecordCount,
+      isMigratingGuestData = isMigratingGuestData,
+      onConnectGoogleAndMigrate = onConnectGoogleAndMigrate,
     )
   }
 
@@ -1152,217 +1465,22 @@ fun LocalAccountScaffold(
       onDismiss = { showExportSheet = false },
     )
   }
-}
 
-private object LocalVaultStorage {
-  private const val PREF_PREFIX = "sakupintar_local_vault_"
-
-  private fun isGuestVisitor(userId: String): Boolean =
-    userId.startsWith("guest_")
-
-  private fun prefs(context: Context, userId: String) =
-    context.applicationContext.getSharedPreferences(PREF_PREFIX + userId, Context.MODE_PRIVATE)
-
-  fun loadExpenses(context: Context, userId: String): List<Expense> {
-    if (isGuestVisitor(userId)) return emptyList()
-    val raw = prefs(context, userId).getString("expenses", null) ?: return emptyList()
-    return runCatching {
-      val arr = JSONArray(raw)
-      buildList {
-        for (i in 0 until arr.length()) {
-          val obj = arr.optJSONObject(i) ?: continue
-          add(
-            Expense(
-              id = obj.optString("id"),
-              userId = userId,
-              title = obj.optString("title"),
-              amount = obj.optLong("amount", 0L),
-              category = obj.optString("category", ExpenseCategory.FOOD.name),
-              paymentMethod = obj.optString("paymentMethod", PaymentMethod.QRIS.name),
-              dateEpochDay = obj.optLong("dateEpochDay", LocalDate.now().toEpochDay()),
-              monthKey = obj.optString("monthKey", Formatters.currentMonthKey()),
-              note = obj.optString("note", ""),
-              receiptPhotoBase64 = obj.optString("receiptPhotoBase64", ""),
-            )
-          )
-        }
-      }
-    }.getOrDefault(emptyList())
-  }
-
-  fun saveExpenses(context: Context, userId: String, list: List<Expense>) {
-    if (isGuestVisitor(userId)) return
-    val arr = JSONArray()
-    list.forEach { item ->
-      arr.put(
-        JSONObject().apply {
-          put("id", item.id)
-          put("title", item.title)
-          put("amount", item.amount)
-          put("category", item.category)
-          put("paymentMethod", item.paymentMethod)
-          put("dateEpochDay", item.dateEpochDay)
-          put("monthKey", item.monthKey)
-          put("note", item.note)
-          put("receiptPhotoBase64", item.receiptPhotoBase64)
-        }
-      )
-    }
-    prefs(context, userId).edit().putString("expenses", arr.toString()).apply()
-  }
-
-  fun loadBudgets(context: Context, userId: String): Map<String, MonthlyBudget> {
-    if (isGuestVisitor(userId)) return emptyMap()
-    val raw = prefs(context, userId).getString("budgets", null) ?: return emptyMap()
-    return runCatching {
-      val arr = JSONArray(raw)
-      buildMap {
-        for (i in 0 until arr.length()) {
-          val obj = arr.optJSONObject(i) ?: continue
-          val monthKey = obj.optString("monthKey")
-          val catObj = obj.optJSONObject("categoryBudgets")
-          val catMap = mutableMapOf<String, Long>()
-          if (catObj != null) {
-            catObj.keys().forEach { k -> catMap[k] = catObj.optLong(k, 0L) }
-          }
-          put(
-            monthKey,
-            MonthlyBudget(
-              userId = userId,
-              monthKey = monthKey,
-              monthlyIncome = obj.optLong("monthlyIncome", 0L),
-              strategy = obj.optString("strategy", "BALANCED_50_30_20"),
-              savingsTarget = obj.optLong("savingsTarget", 0L),
-              needsPercent = obj.optLong("needsPercent", 50L),
-              wantsPercent = obj.optLong("wantsPercent", 30L),
-              savingsPercent = obj.optLong("savingsPercent", 20L),
-              categoryBudgets = catMap,
-            )
-          )
-        }
-      }
-    }.getOrDefault(emptyMap())
-  }
-
-  fun saveBudgets(context: Context, userId: String, map: Map<String, MonthlyBudget>) {
-    if (isGuestVisitor(userId)) return
-    val arr = JSONArray()
-    map.values.forEach { b ->
-      val catObj = JSONObject()
-      b.categoryBudgets.forEach { (k, v) -> catObj.put(k, v) }
-      arr.put(
-        JSONObject().apply {
-          put("monthKey", b.monthKey)
-          put("monthlyIncome", b.monthlyIncome)
-          put("strategy", b.strategy)
-          put("savingsTarget", b.savingsTarget)
-          put("needsPercent", b.needsPercent)
-          put("wantsPercent", b.wantsPercent)
-          put("savingsPercent", b.savingsPercent)
-          put("categoryBudgets", catObj)
-        }
-      )
-    }
-    prefs(context, userId).edit().putString("budgets", arr.toString()).apply()
-  }
-
-  fun loadRecurring(context: Context, userId: String): List<RecurringTemplate> {
-    if (isGuestVisitor(userId)) return emptyList()
-    val raw = prefs(context, userId).getString("recurring", null) ?: return emptyList()
-    return runCatching {
-      val arr = JSONArray(raw)
-      buildList {
-        for (i in 0 until arr.length()) {
-          val obj = arr.optJSONObject(i) ?: continue
-          add(
-            RecurringTemplate(
-              id = obj.optString("id"),
-              userId = userId,
-              title = obj.optString("title"),
-              amount = obj.optLong("amount", 0L),
-              category = obj.optString("category", ExpenseCategory.BILLS.name),
-              paymentMethod = obj.optString("paymentMethod", PaymentMethod.TRANSFER.name),
-              note = obj.optString("note", ""),
-            )
-          )
-        }
-      }
-    }.getOrDefault(emptyList())
-  }
-
-  fun saveRecurring(context: Context, userId: String, list: List<RecurringTemplate>) {
-    if (isGuestVisitor(userId)) return
-    val arr = JSONArray()
-    list.forEach { item ->
-      arr.put(
-        JSONObject().apply {
-          put("id", item.id)
-          put("title", item.title)
-          put("amount", item.amount)
-          put("category", item.category)
-          put("paymentMethod", item.paymentMethod)
-          put("note", item.note)
-        }
-      )
-    }
-    prefs(context, userId).edit().putString("recurring", arr.toString()).apply()
-  }
-
-  fun loadGoals(context: Context, userId: String): List<SavingsGoal> {
-    if (isGuestVisitor(userId)) return emptyList()
-    val raw = prefs(context, userId).getString("goals", null) ?: return emptyList()
-    return runCatching {
-      val arr = JSONArray(raw)
-      buildList {
-        for (i in 0 until arr.length()) {
-          val obj = arr.optJSONObject(i) ?: continue
-          add(
-            SavingsGoal(
-              id = obj.optString("id"),
-              userId = userId,
-              title = obj.optString("title"),
-              targetAmount = obj.optLong("targetAmount", 0L),
-              savedAmount = obj.optLong("savedAmount", 0L),
-              category = obj.optString("category", SavingsGoalCategory.EMERGENCY.name),
-              note = obj.optString("note", ""),
-            )
-          )
-        }
-      }
-    }.getOrDefault(emptyList())
-  }
-
-  fun saveGoals(context: Context, userId: String, list: List<SavingsGoal>) {
-    if (isGuestVisitor(userId)) return
-    val arr = JSONArray()
-    list.forEach { g ->
-      arr.put(
-        JSONObject().apply {
-          put("id", g.id)
-          put("title", g.title)
-          put("targetAmount", g.targetAmount)
-          put("savedAmount", g.savedAmount)
-          put("category", g.category)
-          put("note", g.note)
-        }
-      )
-    }
-    prefs(context, userId).edit().putString("goals", arr.toString()).apply()
-  }
-
-  fun loadWallets(context: Context, userId: String): Map<PaymentMethod, Long> {
-    if (isGuestVisitor(userId)) return emptyMap()
-    val raw = prefs(context, userId).getString("wallets", null) ?: return emptyMap()
-    return runCatching {
-      val obj = JSONObject(raw)
-      PaymentMethod.entries.associateWith { m -> obj.optLong(m.name, 0L) }
-    }.getOrDefault(emptyMap())
-  }
-
-  fun saveWallets(context: Context, userId: String, map: Map<PaymentMethod, Long>) {
-    if (isGuestVisitor(userId)) return
-    val obj = JSONObject()
-    map.forEach { (m, b) -> obj.put(m.name, b) }
-    prefs(context, userId).edit().putString("wallets", obj.toString()).apply()
+  if (showAiChatDialog) {
+    AiFinanceChatDialog(
+      aiAssistant = aiAssistant,
+      snapshot = AiFinanceContextSnapshot(
+        monthKey = dashboardData.monthKey,
+        paydayStartDay = dashboardData.paydayStartDay,
+        periodExpenses = dashboardData.expenses,
+        allHistoricalExpenses = dashboardData.allHistoricalExpenses,
+        budget = dashboardData.budget,
+        dailyInsight = dashboardData.dailyInsight,
+        walletBalances = walletBalances,
+        savingsGoals = savingsGoals,
+        cashflowEntries = cashflowEntries,
+      ),
+      onDismiss = { showAiChatDialog = false },
+    )
   }
 }

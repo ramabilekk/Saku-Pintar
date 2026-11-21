@@ -6,10 +6,14 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.R
+import com.example.data.local.CashflowLedgerManager
+import com.example.data.local.SavingsHistoryManager
+import com.example.data.local.SavingsHistoryType
 import com.example.data.model.PaymentMethod
 import com.example.data.model.SavingsGoal
 import com.example.data.model.SavingsGoalCategory
 import com.example.data.repository.SavingsRepository
+import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.util.Formatters
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -97,19 +101,64 @@ class SavingsViewModel(
     viewModelScope.launch {
       _isSaving.value = true
       try {
-        repository.createSavingsGoal(
+        val createdId = repository.createSavingsGoal(
           title = title,
           targetAmount = targetAmount,
           initialSavedAmount = initialSavedAmount,
           category = category,
           note = note,
         )
+        if (initialSavedAmount > 0L) {
+          appContext?.let { ctx ->
+            SavingsHistoryManager.recordEvent(
+              context = ctx,
+              userId = currentUserId,
+              goalId = createdId,
+              type = SavingsHistoryType.INITIAL,
+              amount = initialSavedAmount,
+              balanceAfter = initialSavedAmount,
+            )
+          }
+        }
         _actionStatus.value = str(R.string.vm_goal_created, "Savings goal \"%1\$s\" created!", title.trim())
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
         val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
         _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to save: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun updateGoal(
+    goalId: String,
+    title: String,
+    targetAmount: Long,
+    category: SavingsGoalCategory,
+    note: String,
+  ) {
+    if (title.isBlank() || targetAmount <= 0L) {
+      _actionStatus.value = str(R.string.vm_goal_validation, "Goal name and target amount are required.")
+      return
+    }
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.updateSavingsGoal(
+          goalId = goalId,
+          title = title,
+          targetAmount = targetAmount,
+          category = category,
+          note = note,
+        )
+        _actionStatus.value = str(R.string.savings_goal_updated, "Savings goal \"%1\$s\" updated!", title.trim())
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to update: %1\$s", err)
       } finally {
         _isSaving.value = false
       }
@@ -125,10 +174,21 @@ class SavingsViewModel(
       _isSaving.value = true
       try {
         val nextSaved = repository.adjustSavingsGoalAmount(goal.id, amount)
+        appContext?.let { ctx ->
+          SavingsHistoryManager.recordEvent(
+            context = ctx,
+            userId = currentUserId,
+            goalId = goal.id,
+            type = SavingsHistoryType.DEPOSIT,
+            amount = amount,
+            balanceAfter = nextSaved,
+          )
+        }
         val statusPrefix = if (goal.targetAmount > 0L && nextSaved >= goal.targetAmount) {
           str(R.string.vm_goal_reached, "Congrats! Goal \"%1\$s\" reached!", goal.title)
         } else {
-          str(R.string.vm_goal_deposited, "Deposited %1\$s to %2\$s.", Formatters.formatRupiah(amount), goal.title)
+          val formattedAmount = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+          str(R.string.vm_goal_deposited, "Deposited %1\$s to %2\$s.", formattedAmount, goal.title)
         }
         _actionStatus.value = statusPrefix
       } catch (e: CancellationException) {
@@ -148,14 +208,26 @@ class SavingsViewModel(
       return
     }
     if (amount > goal.savedAmount) {
-      _actionStatus.value = str(R.string.savings_tx_exceeds, "Exceeds saved balance (%1\$s)", Formatters.formatRupiah(goal.savedAmount))
+      val formattedSaved = Formatters.formatMoney(goal.savedAmount, CurrencyPreferenceManager.currentCurrency)
+      _actionStatus.value = str(R.string.savings_tx_exceeds, "Exceeds saved balance (%1\$s)", formattedSaved)
       return
     }
     viewModelScope.launch {
       _isSaving.value = true
       try {
-        repository.adjustSavingsGoalAmount(goal.id, -amount)
-        _actionStatus.value = str(R.string.vm_goal_withdrawn, "Recorded withdrawal of %1\$s from %2\$s.", Formatters.formatRupiah(amount), goal.title)
+        val nextSaved = repository.adjustSavingsGoalAmount(goal.id, -amount)
+        appContext?.let { ctx ->
+          SavingsHistoryManager.recordEvent(
+            context = ctx,
+            userId = currentUserId,
+            goalId = goal.id,
+            type = SavingsHistoryType.WITHDRAW,
+            amount = amount,
+            balanceAfter = nextSaved,
+          )
+        }
+        val formattedWithdraw = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+        _actionStatus.value = str(R.string.vm_goal_withdrawn, "Recorded withdrawal of %1\$s from %2\$s.", formattedWithdraw, goal.title)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -171,6 +243,9 @@ class SavingsViewModel(
     viewModelScope.launch {
       try {
         repository.deleteSavingsGoal(goalId)
+        appContext?.let { ctx ->
+          SavingsHistoryManager.deleteHistoryForGoal(ctx, currentUserId, goalId)
+        }
         _actionStatus.value = str(R.string.vm_goal_deleted, "Savings goal deleted.")
       } catch (e: CancellationException) {
         throw e
@@ -191,7 +266,8 @@ class SavingsViewModel(
       try {
         repository.setWalletBalance(paymentMethod, newBalance)
         val methodLabel = paymentMethod.label(localizedCtx())
-        _actionStatus.value = str(R.string.vm_wallet_updated, "%1\$s balance updated: %2\$s", methodLabel, Formatters.formatRupiah(newBalance))
+        val formattedBalance = Formatters.formatMoney(newBalance, CurrencyPreferenceManager.currentCurrency)
+        _actionStatus.value = str(R.string.vm_wallet_updated, "%1\$s balance updated: %2\$s", methodLabel, formattedBalance)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -200,6 +276,134 @@ class SavingsViewModel(
       } finally {
         _isSaving.value = false
       }
+    }
+  }
+
+  fun adjustWalletBalance(paymentMethod: PaymentMethod, delta: Long) {
+    if (delta == 0L) return
+    val currentData = (uiState.value as? UiState.Success)?.data ?: return
+    val currentBal = currentData.walletBalances[paymentMethod] ?: 0L
+    if (delta < 0L && currentBal == 0L) return
+    val nextBal = (currentBal + delta).coerceAtLeast(0L)
+    viewModelScope.launch {
+      runCatching {
+        repository.setWalletBalance(paymentMethod, nextBal)
+      }.onFailure { err ->
+        if (err is CancellationException) throw err
+        Log.w(TAG, "Auto wallet adjustment skipped", err)
+      }
+    }
+  }
+
+  fun recordIncomeToWallet(
+    title: String,
+    amount: Long,
+    targetWallet: PaymentMethod,
+    note: String,
+  ) {
+    if (title.isBlank() || amount <= 0L) {
+      _actionStatus.value = str(R.string.editor_error_amount, "Enter a valid amount.")
+      return
+    }
+    val currentData = (uiState.value as? UiState.Success)?.data
+    val currentBal = currentData?.walletBalances?.get(targetWallet) ?: 0L
+    val nextBal = currentBal + amount
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.setWalletBalance(targetWallet, nextBal)
+        appContext?.let { ctx ->
+          CashflowLedgerManager.recordIncome(
+            context = ctx,
+            userId = currentUserId,
+            title = title,
+            amount = amount,
+            targetWallet = targetWallet,
+            note = note,
+          )
+        }
+        val formattedAmt = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+        val walletLabel = targetWallet.label(localizedCtx())
+        _actionStatus.value = str(
+          R.string.cashflow_income_saved,
+          "Income %1\$s added to %2\$s!",
+          formattedAmt,
+          walletLabel,
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to save: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun transferBetweenWallets(
+    fromWallet: PaymentMethod,
+    toWallet: PaymentMethod,
+    amount: Long,
+    note: String,
+  ) {
+    if (fromWallet == toWallet) {
+      _actionStatus.value = str(R.string.cashflow_transfer_same_wallet_error, "Choose two different wallets.")
+      return
+    }
+    if (amount <= 0L) {
+      _actionStatus.value = str(R.string.editor_error_amount, "Enter an amount greater than 0.")
+      return
+    }
+    val currentData = (uiState.value as? UiState.Success)?.data
+    val fromBal = currentData?.walletBalances?.get(fromWallet) ?: 0L
+    val toBal = currentData?.walletBalances?.get(toWallet) ?: 0L
+    if (amount > fromBal) {
+      _actionStatus.value = str(
+        R.string.cashflow_transfer_insufficient,
+        "Insufficient balance in %1\$s.",
+        fromWallet.label(localizedCtx()),
+      )
+      return
+    }
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.setWalletBalance(fromWallet, (fromBal - amount).coerceAtLeast(0L))
+        repository.setWalletBalance(toWallet, toBal + amount)
+        appContext?.let { ctx ->
+          CashflowLedgerManager.recordTransfer(
+            context = ctx,
+            userId = currentUserId,
+            fromWallet = fromWallet,
+            toWallet = toWallet,
+            amount = amount,
+            note = note,
+          )
+        }
+        val formattedAmt = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
+        _actionStatus.value = str(
+          R.string.cashflow_transfer_saved,
+          "Transferred %1\$s from %2\$s to %3\$s!",
+          formattedAmt,
+          fromWallet.label(localizedCtx()),
+          toWallet.label(localizedCtx()),
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to transfer: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun deleteCashflowEntry(entryId: String) {
+    appContext?.let { ctx ->
+      CashflowLedgerManager.deleteEntry(ctx, currentUserId, entryId)
+      _actionStatus.value = str(R.string.cashflow_entry_deleted, "Cashflow entry removed.")
     }
   }
 

@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.i18n.CurrencyPreferenceManager
+import com.example.i18n.LanguagePreferenceManager
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -80,6 +81,8 @@ fun ExportReportSheet(
 ) {
   val context = LocalContext.current
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
+  val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
   val scope = rememberCoroutineScope()
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val latestData by rememberUpdatedState(data)
@@ -174,7 +177,7 @@ fun ExportReportSheet(
       }
       isWorking = false
       uriResult.onSuccess { uri ->
-        val monthTitle = Formatters.formatMonthTitle(snapshot.monthKey)
+        val monthTitle = Formatters.formatMonthTitle(snapshot.monthKey, activeLocale)
         val subject = context.getString(R.string.export_subject, monthTitle)
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
           type = format.mimeType
@@ -210,7 +213,7 @@ fun ExportReportSheet(
       context = context,
       currency = activeCurrency,
     )
-    val monthTitle = Formatters.formatMonthTitle(snapshot.monthKey)
+    val monthTitle = Formatters.formatMonthTitle(snapshot.monthKey, activeLocale)
     val shareIntent = Intent(Intent.ACTION_SEND).apply {
       type = "text/plain"
       putExtra(
@@ -263,7 +266,7 @@ fun ExportReportSheet(
                   color = Color.White,
                 )
                 Text(
-                  text = Formatters.formatMonthTitle(data.monthKey),
+                  text = Formatters.formatMonthTitle(data.monthKey, activeLocale),
                   style = MaterialTheme.typography.bodyMedium,
                   color = Color.White.copy(alpha = 0.82f),
                 )
@@ -283,7 +286,7 @@ fun ExportReportSheet(
                     color = Color.White.copy(alpha = 0.85f),
                   )
                   Text(
-                    text = Formatters.formatMoneyCompact(data.expenses.sumOf { it.amount }, activeCurrency),
+                    text = Formatters.formatMoneyCompact(data.expenses.sumOf { it.amount }, activeCurrency, activeLocale),
                     style = MaterialTheme.typography.labelLarge,
                     fontFamily = JetBrainsMonoFontFamily,
                     fontWeight = FontWeight.ExtraBold,
@@ -397,7 +400,7 @@ fun ExportReportSheet(
                           overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                          text = Formatters.formatMoneyCompact(exp.amount, activeCurrency),
+                          text = Formatters.formatMoneyCompact(exp.amount, activeCurrency, activeLocale),
                           style = MaterialTheme.typography.labelSmall,
                           fontFamily = JetBrainsMonoFontFamily,
                           color = EmeraldSafe,
@@ -552,7 +555,7 @@ fun ExportReportSheet(
       ReceiptPhotoViewerDialog(
         receiptPhotoBase64 = exp.receiptPhotoBase64,
         title = exp.title,
-        subtitle = Formatters.formatShortDate(exp.dateEpochDay),
+        subtitle = Formatters.formatShortDate(exp.dateEpochDay, activeLocale),
         amountFormatted = Formatters.formatMoney(exp.amount, activeCurrency),
         onDismiss = { previewingReceiptExpense = null },
       )
@@ -573,7 +576,6 @@ private fun ExportFormatCard(
   modifier: Modifier = Modifier,
 ) {
   SculptedSurfaceCard(
-    accentColor = accentColor,
     cornerRadius = 18,
     onClick = if (enabled) onClick else null,
     modifier = modifier,

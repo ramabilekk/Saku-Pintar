@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/sakupintar_app_icon_1794739414831"
+        android:drawable="@drawable/img_sakupintar_logo"
         android:gravity="center" />
 </layer-list>

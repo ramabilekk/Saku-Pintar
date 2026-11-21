@@ -36,16 +36,18 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.budget.BudgetAutoComposer
+import com.example.data.budget.PaydayCycleManager
 import com.example.data.model.BudgetStrategy
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
@@ -79,10 +82,12 @@ import com.example.ui.components.CategoryIconBadge
 import com.example.ui.components.DimensionalVaultCard
 import com.example.ui.components.MonthYearPickerDialog
 import com.example.ui.components.SculptedSurfaceCard
+import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactileClickable
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.util.Formatters
@@ -103,8 +108,14 @@ fun AutoBudgetScreen(
   val tactile = rememberTactileFeedback()
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val paydayStartDay by PaydayCycleManager.observePaydayStartDay(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
   var showMonthPicker by remember { mutableStateOf(false) }
+  var showPaydayPicker by remember { mutableStateOf(false) }
+  val activeCycle = remember(data.monthKey, paydayStartDay) {
+    PaydayCycleManager.resolveCycle(data.monthKey, paydayStartDay)
+  }
 
   val existingBudget = data.budget
   var incomeText by remember(data.monthKey, existingBudget?.monthlyIncome, activeCurrency) {
@@ -155,7 +166,7 @@ fun AutoBudgetScreen(
 
   val spendableTotal = composedDraft.totalAllocatedSpendBudget
   val savingsAmount = (parsedIncome - spendableTotal).coerceAtLeast(0L)
-  val daysInMonth = runCatching { YearMonth.parse(data.monthKey).lengthOfMonth() }.getOrElse { 30 }
+  val daysInMonth = activeCycle.totalDays
   val estimatedDailyLimit = if (daysInMonth > 0) spendableTotal / daysInMonth else 0L
 
   Box(
@@ -166,7 +177,7 @@ fun AutoBudgetScreen(
       modifier = Modifier
         .widthIn(max = 680.dp)
         .fillMaxSize(),
-      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 104.dp),
+      contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 132.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       // 1. Header & Monthly Income Input
@@ -218,11 +229,11 @@ fun AutoBudgetScreen(
 
             // Integrated Full-Width Calendar / Month Selector Bar inside Budget Builder Card
             Surface(
-              shape = RoundedCornerShape(16.dp),
-              color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
+              shape = RoundedCornerShape(14.dp),
+              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
               border = BorderStroke(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                color = MaterialTheme.colorScheme.outlineVariant,
               ),
               modifier = Modifier.fillMaxWidth(),
             ) {
@@ -299,6 +310,46 @@ fun AutoBudgetScreen(
               }
             }
 
+            // Custom Payday Cycle Indicator + Quick Change
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+              border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+              onClick = { showPaydayPicker = true },
+              modifier = Modifier
+                .fillMaxWidth()
+                .testTag("budget_payday_cycle_button"),
+            ) {
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Text(
+                    text = stringResource(R.string.payday_section_title),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                  )
+                  Text(
+                    text = stringResource(R.string.payday_preview_label, activeCycle.formatRangeLabel(activeLocale)),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                  )
+                }
+                Text(
+                  text = stringResource(R.string.payday_change_action),
+                  style = MaterialTheme.typography.labelMedium,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.primary,
+                )
+              }
+            }
+
             OutlinedTextField(
               value = incomeText,
               onValueChange = { raw ->
@@ -318,7 +369,11 @@ fun AutoBudgetScreen(
               },
               singleLine = true,
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-              shape = RoundedCornerShape(14.dp),
+              shape = RoundedCornerShape(12.dp),
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+              ),
               modifier = Modifier
                 .fillMaxWidth()
                 .testTag("monthly_income_input"),
@@ -364,9 +419,9 @@ fun AutoBudgetScreen(
           ).forEach { strategy ->
             val selected = selectedStrategy == strategy
             Surface(
-              shape = RoundedCornerShape(18.dp),
+              shape = RoundedCornerShape(16.dp),
               color = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
               } else {
                 MaterialTheme.colorScheme.surface
               },
@@ -374,8 +429,8 @@ fun AutoBudgetScreen(
                 .fillMaxWidth()
                 .border(
                   width = if (selected) 1.5.dp else 1.dp,
-                  color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                  shape = RoundedCornerShape(18.dp),
+                  color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                  shape = RoundedCornerShape(16.dp),
                 )
                 .clickable {
                   selectedStrategy = strategy
@@ -620,16 +675,20 @@ fun AutoBudgetScreen(
             )
           },
           enabled = !isSaving && parsedIncome > 0L,
-          shape = RoundedCornerShape(16.dp),
+          shape = RoundedCornerShape(14.dp),
+          colors = ButtonDefaults.buttonColors(
+            containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+            contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+          ),
           modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(54.dp)
             .testTag("save_auto_budget_button"),
         ) {
           if (isSaving) {
             CircularProgressIndicator(
               modifier = Modifier.size(22.dp),
-              color = MaterialTheme.colorScheme.onPrimary,
+              color = if (isDarkTheme) ObsidianInk else Color.White,
               strokeWidth = 2.5.dp,
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -644,7 +703,7 @@ fun AutoBudgetScreen(
             Text(
               text = stringResource(R.string.budget_apply_button),
               style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.SemiBold,
+              fontWeight = FontWeight.Bold,
             )
           }
         }
@@ -663,6 +722,96 @@ fun AutoBudgetScreen(
       onDismiss = { showMonthPicker = false },
     )
   }
+
+  if (showPaydayPicker) {
+    var draftDay by remember(paydayStartDay) { mutableStateOf(paydayStartDay) }
+    val previewCycle = remember(data.monthKey, draftDay) {
+      PaydayCycleManager.resolveCycle(data.monthKey, draftDay)
+    }
+    AlertDialog(
+      onDismissRequest = { showPaydayPicker = false },
+      title = { Text(stringResource(R.string.payday_section_title)) },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Text(
+            text = stringResource(R.string.payday_cycle_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+          ) {
+            listOf(
+              1 to stringResource(R.string.payday_preset_1),
+              25 to stringResource(R.string.payday_preset_25),
+              28 to stringResource(R.string.payday_preset_28),
+            ).forEach { (day, label) ->
+              FilterChip(
+                selected = draftDay == day,
+                onClick = { draftDay = day },
+                label = { Text(label) },
+              )
+            }
+          }
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Text(
+              text = stringResource(R.string.payday_day_label, draftDay),
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.Bold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+              OutlinedButton(
+                onClick = { draftDay = (draftDay - 1).coerceIn(1, 28) },
+                enabled = draftDay > 1,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(44.dp),
+              ) {
+                Icon(imageVector = Icons.Rounded.Remove, contentDescription = "-")
+              }
+              OutlinedButton(
+                onClick = { draftDay = (draftDay + 1).coerceIn(1, 28) },
+                enabled = draftDay < 28,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(44.dp),
+              ) {
+                Icon(imageVector = Icons.Rounded.Add, contentDescription = "+")
+              }
+            }
+          }
+          Text(
+            text = stringResource(R.string.payday_preview_label, previewCycle.formatRangeLabel(activeLocale)),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+          )
+        }
+      },
+      confirmButton = {
+        Button(
+          onClick = {
+            PaydayCycleManager.setPaydayStartDay(context, draftDay)
+            showPaydayPicker = false
+          },
+          modifier = Modifier.height(48.dp),
+        ) {
+          Text(stringResource(R.string.action_save))
+        }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showPaydayPicker = false },
+          modifier = Modifier.height(48.dp),
+        ) {
+          Text(stringResource(R.string.action_cancel))
+        }
+      },
+    )
+  }
 }
 
 @Composable
@@ -677,7 +826,6 @@ private fun CategoryBudgetAdjustCard(
   val stepLabel = currency.budgetStepCompactLabel
 
   SculptedSurfaceCard(
-    accentColor = category.accentColor,
     cornerRadius = 18,
   ) {
     Column(
@@ -744,6 +892,10 @@ private fun CategoryBudgetAdjustCard(
           ),
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           shape = RoundedCornerShape(12.dp),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+          ),
           modifier = Modifier
             .weight(1f)
             .testTag("budget_input_${category.name}"),
@@ -753,6 +905,7 @@ private fun CategoryBudgetAdjustCard(
           onClick = { onAmountChange((amount - stepAmount).coerceAtLeast(0L)) },
           enabled = amount > 0L,
           shape = RoundedCornerShape(12.dp),
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
           contentPadding = PaddingValues(horizontal = 10.dp),
           modifier = Modifier
             .height(52.dp)

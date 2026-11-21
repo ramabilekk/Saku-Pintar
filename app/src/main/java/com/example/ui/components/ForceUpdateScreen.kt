@@ -51,7 +51,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
 import com.example.R
+import com.example.ui.theme.ObsidianInk
 import com.example.update.AppUpdateInfo
 
 @Composable
@@ -65,6 +68,7 @@ fun ForceUpdateScreen(
   BackHandler(enabled = true) {}
 
   val context = LocalContext.current
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   fun openExternalUrl(url: String) {
     val safeUrl = url.takeIf { it.startsWith("https://") } ?: updateInfo.releasePageUrl
@@ -108,7 +112,7 @@ fun ForceUpdateScreen(
             modifier = Modifier.size(84.dp),
           ) {
             Image(
-              painter = painterResource(id = R.drawable.sakupintar_app_icon_1794739414831),
+              painter = painterResource(id = R.drawable.img_sakupintar_logo),
               contentDescription = stringResource(R.string.app_name),
               contentScale = ContentScale.Crop,
               modifier = Modifier
@@ -169,11 +173,10 @@ fun ForceUpdateScreen(
 
         Spacer(modifier = Modifier.height(22.dp))
 
-        Card(
+        Surface(
           shape = RoundedCornerShape(20.dp),
-          colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-          ),
+          color = MaterialTheme.colorScheme.surface,
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
           modifier = Modifier.fillMaxWidth(),
         ) {
           Column(
@@ -237,14 +240,14 @@ fun ForceUpdateScreen(
 
         Button(
           onClick = { openExternalUrl(updateInfo.downloadUrl) },
-          shape = RoundedCornerShape(16.dp),
+          shape = RoundedCornerShape(14.dp),
           colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+            contentColor = if (isDarkTheme) ObsidianInk else Color.White,
           ),
           modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(54.dp)
             .testTag("force_update_download_button"),
         ) {
           Icon(
@@ -256,7 +259,7 @@ fun ForceUpdateScreen(
           Text(
             text = "${stringResource(R.string.force_update_download_action)} (${updateInfo.latestVersionTag})",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
           )
         }
 
@@ -265,7 +268,8 @@ fun ForceUpdateScreen(
         OutlinedButton(
           onClick = onRecheck,
           enabled = !isRechecking,
-          shape = RoundedCornerShape(16.dp),
+          shape = RoundedCornerShape(14.dp),
+          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
           modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
@@ -328,7 +332,7 @@ fun UpdateCheckingSplash(modifier: Modifier = Modifier) {
         modifier = Modifier.size(72.dp),
       ) {
         Image(
-          painter = painterResource(id = R.drawable.sakupintar_app_icon_1794739414831),
+          painter = painterResource(id = R.drawable.img_sakupintar_logo),
           contentDescription = stringResource(R.string.app_name),
           contentScale = ContentScale.Crop,
           modifier = Modifier

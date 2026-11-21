@@ -152,6 +152,37 @@ class SavingsRepository(
     }
   }
 
+  suspend fun updateSavingsGoal(
+    goalId: String,
+    title: String,
+    targetAmount: Long,
+    category: SavingsGoalCategory,
+    note: String = "",
+  ) {
+    val uid = requireUserId()
+    require(goalId.isNotBlank()) { "ID target tabungan tidak boleh kosong." }
+    val cleanTitle = title.trim().take(60)
+    require(cleanTitle.isNotEmpty()) { "Nama target tabungan harus diisi." }
+    require(targetAmount > 0L) { "Target nominal harus lebih dari 0." }
+
+    val docRef = db.collection("users").document(uid).collection("savingsGoals").document(goalId)
+    val updates = mapOf(
+      "title" to cleanTitle,
+      "targetAmount" to targetAmount,
+      "category" to category.name,
+      "note" to note.trim().take(120),
+      "updatedAt" to FieldValue.serverTimestamp(),
+    )
+    try {
+      docRef.update(updates).await()
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.UPDATE, docRef.path, auth)
+      throw e
+    }
+  }
+
   suspend fun deleteSavingsGoal(goalId: String) {
     val uid = requireUserId()
     val docRef = db.collection("users").document(uid).collection("savingsGoals").document(goalId)

@@ -150,7 +150,7 @@ fun signOutUser(
 }
 
 private fun resolveDefaultWebClientId(context: Context): String? {
-  val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
-  if (resId == 0) return null
-  return runCatching { context.getString(resId) }.getOrNull()?.takeIf { it.isNotBlank() }
+  return runCatching { context.getString(R.string.default_web_client_id) }
+    .getOrNull()
+    ?.takeIf { it.isNotBlank() }
 }

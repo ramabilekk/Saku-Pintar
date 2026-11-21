@@ -196,8 +196,7 @@ fun rememberIsEffectiveDarkTheme(): Boolean {
 }
 
 /**
- * Subtle multi-layered atmospheric background mesh with radial glow orbs and perspective grid lines
- * used across the inner app screens to match the dimensional login screen aesthetic.
+ * Ultra-subtle atmospheric canvas wash so the crisp white cards remain the focal point.
  */
 @Composable
 fun AppAmbientBackdrop(
@@ -206,106 +205,49 @@ fun AppAmbientBackdrop(
   val isDarkTheme = rememberIsEffectiveDarkTheme()
   val primary = MaterialTheme.colorScheme.primary
   val secondary = MaterialTheme.colorScheme.secondary
-  val tertiary = MaterialTheme.colorScheme.tertiary
 
-  val topOrbAlpha by animateFloatAsState(
-    targetValue = if (isDarkTheme) 0.20f else 0.11f,
+  val topWashAlpha by animateFloatAsState(
+    targetValue = if (isDarkTheme) 0.10f else 0.075f,
     animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "backdrop_top_alpha",
-  )
-  val rightOrbAlpha by animateFloatAsState(
-    targetValue = if (isDarkTheme) 0.16f else 0.09f,
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "backdrop_right_alpha",
-  )
-  val bottomOrbAlpha by animateFloatAsState(
-    targetValue = if (isDarkTheme) 0.13f else 0.07f,
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "backdrop_bottom_alpha",
-  )
-  val gridColor by animateColorAsState(
-    targetValue = if (isDarkTheme) {
-      Color.White.copy(alpha = 0.028f)
-    } else {
-      primary.copy(alpha = 0.036f)
-    },
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "backdrop_grid_color",
+    label = "backdrop_top_wash",
   )
 
   Canvas(modifier = modifier.fillMaxSize()) {
     if (size.width <= 1f || size.height <= 1f) return@Canvas
-
-    val topRadius = (size.width * 0.70f).coerceAtLeast(1f)
+    val radius = (size.width * 0.90f).coerceAtLeast(1f)
     drawCircle(
       brush = Brush.radialGradient(
         colors = listOf(
-          primary.copy(alpha = topOrbAlpha),
+          primary.copy(alpha = topWashAlpha),
           Color.Transparent,
         ),
-        center = Offset(size.width * 0.10f, size.height * 0.06f),
-        radius = topRadius,
+        center = Offset(size.width * 0.45f, 0f),
+        radius = radius,
       ),
-      radius = topRadius,
-      center = Offset(size.width * 0.10f, size.height * 0.06f),
+      radius = radius,
+      center = Offset(size.width * 0.45f, 0f),
     )
-
-    val rightRadius = (size.width * 0.65f).coerceAtLeast(1f)
-    drawCircle(
-      brush = Brush.radialGradient(
-        colors = listOf(
-          secondary.copy(alpha = rightOrbAlpha),
-          Color.Transparent,
+    if (!isDarkTheme) {
+      val secondaryRadius = (size.width * 0.65f).coerceAtLeast(1f)
+      drawCircle(
+        brush = Brush.radialGradient(
+          colors = listOf(
+            secondary.copy(alpha = 0.045f),
+            Color.Transparent,
+          ),
+          center = Offset(size.width * 0.95f, size.height * 0.14f),
+          radius = secondaryRadius,
         ),
-        center = Offset(size.width * 0.92f, size.height * 0.34f),
-        radius = rightRadius,
-      ),
-      radius = rightRadius,
-      center = Offset(size.width * 0.92f, size.height * 0.34f),
-    )
-
-    val bottomRadius = (size.width * 0.62f).coerceAtLeast(1f)
-    drawCircle(
-      brush = Brush.radialGradient(
-        colors = listOf(
-          tertiary.copy(alpha = bottomOrbAlpha),
-          Color.Transparent,
-        ),
-        center = Offset(size.width * 0.16f, size.height * 0.86f),
-        radius = bottomRadius,
-      ),
-      radius = bottomRadius,
-      center = Offset(size.width * 0.16f, size.height * 0.86f),
-    )
-
-    val step = 40.dp.toPx().coerceAtLeast(8f)
-    val maxGridY = size.height * 0.38f
-    var x = step
-    while (x < size.width) {
-      drawLine(
-        color = gridColor,
-        start = Offset(x, 0f),
-        end = Offset(x, maxGridY),
-        strokeWidth = 1.dp.toPx(),
+        radius = secondaryRadius,
+        center = Offset(size.width * 0.95f, size.height * 0.14f),
       )
-      x += step
-    }
-    var y = step
-    while (y < maxGridY) {
-      drawLine(
-        color = gridColor,
-        start = Offset(0f, y),
-        end = Offset(size.width, y),
-        strokeWidth = 1.dp.toPx(),
-      )
-      y += step
     }
   }
 }
 
 /**
- * 3D-layered hero vault card with a tilted rear perspective layer, royal indigo-violet diagonal
- * gradient, luminous internal radial orbs, and a 1.dp specular highlight border.
+ * Sleek Executive hero card: Deep Forest-Teal in Light Mode and Midnight Obsidian in Dark Mode,
+ * with subtle specular hairline border and delicate luminous corner aura.
  */
 @Composable
 fun DimensionalVaultCard(
@@ -313,126 +255,102 @@ fun DimensionalVaultCard(
   content: @Composable BoxScope.() -> Unit,
 ) {
   val isDarkTheme = rememberIsEffectiveDarkTheme()
-
-  val rearTopColor by animateColorAsState(
-    targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = if (isDarkTheme) 0.42f else 0.26f),
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "vault_rear_top_color",
-  )
-  val rearBottomColor by animateColorAsState(
-    targetValue = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.32f else 0.20f),
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "vault_rear_bottom_color",
-  )
   val vaultElevation by animateDpAsState(
-    targetValue = if (isDarkTheme) 12.dp else 10.dp,
+    targetValue = if (isDarkTheme) 6.dp else 5.dp,
     animationSpec = tween(420, easing = FastOutSlowInEasing),
     label = "vault_elevation",
   )
+  val gradStart by animateColorAsState(
+    targetValue = if (isDarkTheme) Color(0xFF0B1120) else Color(0xFF0F2C29),
+    animationSpec = tween(420, easing = FastOutSlowInEasing),
+    label = "vault_grad_start",
+  )
+  val gradMid by animateColorAsState(
+    targetValue = if (isDarkTheme) Color(0xFF141E33) else Color(0xFF14403A),
+    animationSpec = tween(420, easing = FastOutSlowInEasing),
+    label = "vault_grad_mid",
+  )
+  val gradEnd by animateColorAsState(
+    targetValue = if (isDarkTheme) Color(0xFF0F172A) else Color(0xFF0D282C),
+    animationSpec = tween(420, easing = FastOutSlowInEasing),
+    label = "vault_grad_end",
+  )
 
-  Box(
-    modifier = modifier
-      .fillMaxWidth()
-      .padding(bottom = 6.dp),
+  Surface(
+    shape = RoundedCornerShape(24.dp),
+    shadowElevation = vaultElevation,
+    color = Color.Transparent,
+    modifier = modifier.fillMaxWidth(),
   ) {
-    // Tilted Rear Accent Layer for 3D Depth
     Box(
       modifier = Modifier
-        .matchParentSize()
-        .padding(horizontal = 10.dp)
-        .offset(y = 7.dp)
-        .graphicsLayer {
-          rotationZ = -1.8f
-        }
-        .clip(RoundedCornerShape(26.dp))
+        .fillMaxWidth()
         .background(
           Brush.linearGradient(
-            colors = listOf(rearTopColor, rearBottomColor),
+            colors = listOf(gradStart, gradMid, gradEnd),
+            start = Offset(0f, 0f),
+            end = Offset(900f, 650f),
           )
+        )
+        .border(
+          width = 1.dp,
+          brush = Brush.linearGradient(
+            colors = listOf(
+              Color.White.copy(alpha = if (isDarkTheme) 0.16f else 0.24f),
+              Color.White.copy(alpha = 0.05f),
+            ),
+          ),
+          shape = RoundedCornerShape(24.dp),
         ),
-    )
-
-    // Primary Elevated Vault Surface
-    Surface(
-      shape = RoundedCornerShape(26.dp),
-      shadowElevation = vaultElevation,
-      color = Color.Transparent,
-      modifier = Modifier.fillMaxWidth(),
     ) {
+      Canvas(modifier = Modifier.matchParentSize()) {
+        if (size.width <= 1f || size.height <= 1f) return@Canvas
+        val r1 = (size.height * 0.85f).coerceAtLeast(1f)
+        drawCircle(
+          brush = Brush.radialGradient(
+            colors = listOf(
+              SkyPositiveAccent.copy(alpha = if (isDarkTheme) 0.16f else 0.22f),
+              Color.Transparent,
+            ),
+            center = Offset(size.width * 0.92f, size.height * 0.12f),
+            radius = r1,
+          ),
+          radius = r1,
+          center = Offset(size.width * 0.92f, size.height * 0.12f),
+        )
+        val r2 = (size.height * 0.60f).coerceAtLeast(1f)
+        drawCircle(
+          brush = Brush.radialGradient(
+            colors = listOf(
+              GoldAccent.copy(alpha = 0.11f),
+              Color.Transparent,
+            ),
+            center = Offset(size.width * 0.08f, size.height * 0.96f),
+            radius = r2,
+          ),
+          radius = r2,
+          center = Offset(size.width * 0.08f, size.height * 0.96f),
+        )
+      }
+
       Box(
         modifier = Modifier
           .fillMaxWidth()
-          .background(
-            Brush.linearGradient(
-              colors = listOf(
-                Color(0xFF1D4ED8),
-                Color(0xFF4338CA),
-                Color(0xFF1E1B4B),
-              ),
-              start = Offset(0f, 0f),
-              end = Offset(900f, 650f),
-            )
-          )
-          .border(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-              colors = listOf(
-                Color.White.copy(alpha = 0.36f),
-                Color.White.copy(alpha = 0.08f),
-              ),
-            ),
-            shape = RoundedCornerShape(26.dp),
-          ),
-      ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-          if (size.width <= 1f || size.height <= 1f) return@Canvas
-          val r1 = (size.height * 0.78f).coerceAtLeast(1f)
-          drawCircle(
-            brush = Brush.radialGradient(
-              colors = listOf(
-                SkyPositiveAccent.copy(alpha = 0.28f),
-                Color.Transparent,
-              ),
-              center = Offset(size.width * 0.88f, size.height * 0.18f),
-              radius = r1,
-            ),
-            radius = r1,
-            center = Offset(size.width * 0.88f, size.height * 0.18f),
-          )
-          val r2 = (size.height * 0.58f).coerceAtLeast(1f)
-          drawCircle(
-            brush = Brush.radialGradient(
-              colors = listOf(
-                GoldAccent.copy(alpha = 0.20f),
-                Color.Transparent,
-              ),
-              center = Offset(size.width * 0.12f, size.height * 0.92f),
-              radius = r2,
-            ),
-            radius = r2,
-            center = Offset(size.width * 0.12f, size.height * 0.92f),
-          )
-        }
-
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(20.dp),
-          content = content,
-        )
-      }
+          .padding(20.dp),
+        content = content,
+      )
     }
   }
 }
 
 /**
- * Sculpted bento surface card with subtle gradient border, tonal depth, soft shadow,
- * Material ripple, haptic feedback, and smooth spring press animations.
+ * Crisp Neo-FinTech card with clean 1.dp hairline border, soft elevation, tactile spring press,
+ * and effortless Light & Dark harmony.
  */
 @Composable
 fun SculptedSurfaceCard(
   modifier: Modifier = Modifier,
-  accentColor: Color = MaterialTheme.colorScheme.primary,
+  accentColor: Color = MaterialTheme.colorScheme.outlineVariant,
   cornerRadius: Int = 20,
   onClick: (() -> Unit)? = null,
   content: @Composable BoxScope.() -> Unit,
@@ -440,31 +358,23 @@ fun SculptedSurfaceCard(
   val isDarkTheme = rememberIsEffectiveDarkTheme()
   val shape = RoundedCornerShape(cornerRadius.dp)
   val containerColor by animateColorAsState(
-    targetValue = if (isDarkTheme) {
-      MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-    } else {
-      MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
-    },
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
+    targetValue = MaterialTheme.colorScheme.surface,
+    animationSpec = tween(360, easing = FastOutSlowInEasing),
     label = "card_container_color",
   )
-  val accentBorderColor by animateColorAsState(
-    targetValue = accentColor.copy(alpha = if (isDarkTheme) 0.34f else 0.22f),
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "card_border_accent",
-  )
-  val outlineBorderColor by animateColorAsState(
-    targetValue = MaterialTheme.colorScheme.outline.copy(alpha = if (isDarkTheme) 0.20f else 0.14f),
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
-    label = "card_border_outline",
+  val borderColor by animateColorAsState(
+    targetValue = if (accentColor == MaterialTheme.colorScheme.outlineVariant || accentColor == MaterialTheme.colorScheme.primary) {
+      MaterialTheme.colorScheme.outlineVariant
+    } else {
+      accentColor.copy(alpha = if (isDarkTheme) 0.34f else 0.22f)
+    },
+    animationSpec = tween(360, easing = FastOutSlowInEasing),
+    label = "card_border_color",
   )
   val elevation by animateDpAsState(
-    targetValue = if (isDarkTheme) 0.dp else 3.dp,
-    animationSpec = tween(420, easing = FastOutSlowInEasing),
+    targetValue = if (isDarkTheme) 0.dp else 2.dp,
+    animationSpec = tween(360, easing = FastOutSlowInEasing),
     label = "card_elevation",
-  )
-  val borderBrush = Brush.linearGradient(
-    colors = listOf(accentBorderColor, outlineBorderColor),
   )
 
   if (onClick != null) {
@@ -472,7 +382,7 @@ fun SculptedSurfaceCard(
     val tactile = rememberTactileFeedback()
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-      targetValue = if (isPressed) 0.974f else 1f,
+      targetValue = if (isPressed) 0.98f else 1f,
       animationSpec = spring(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMediumLow,
@@ -489,7 +399,7 @@ fun SculptedSurfaceCard(
       shape = shape,
       color = containerColor,
       shadowElevation = elevation,
-      border = BorderStroke(1.dp, borderBrush),
+      border = BorderStroke(1.dp, borderColor),
       modifier = modifier
         .fillMaxWidth()
         .graphicsLayer {
@@ -504,7 +414,7 @@ fun SculptedSurfaceCard(
       shape = shape,
       color = containerColor,
       shadowElevation = elevation,
-      border = BorderStroke(1.dp, borderBrush),
+      border = BorderStroke(1.dp, borderColor),
       modifier = modifier.fillMaxWidth(),
     ) {
       Box(modifier = Modifier.fillMaxWidth(), content = content)

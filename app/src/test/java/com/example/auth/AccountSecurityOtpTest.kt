@@ -64,17 +64,18 @@ class AccountSecurityOtpTest {
     }
 
     composeRule.waitForIdle()
-    composeRule.onNodeWithTag("auth_landing_enter_button").performScrollTo().assertIsDisplayed().performClick()
-    composeRule.waitForIdle()
 
-    // Verify Google & Guest are displayed while Phone, Email, and OTP are absent
+    // Verify Google & Guest are displayed immediately while extra forms/flows are absent
     composeRule.onNodeWithTag("google_sign_in_button").performScrollTo().assertIsDisplayed()
     composeRule.onNodeWithTag("auth_guest_method_button").performScrollTo().assertIsDisplayed()
     assertEquals(0, composeRule.onAllNodesWithTag("auth_phone_method_button").fetchSemanticsNodes().size)
     assertEquals(0, composeRule.onAllNodesWithTag("auth_email_method_button").fetchSemanticsNodes().size)
     assertEquals(0, composeRule.onAllNodesWithTag("otp_verification_dialog").fetchSemanticsNodes().size)
+    assertEquals(0, composeRule.onAllNodesWithTag("auth_switch_sign_up").fetchSemanticsNodes().size)
+    assertEquals(0, composeRule.onAllNodesWithTag("auth_help_link_button").fetchSemanticsNodes().size)
+    assertEquals(0, composeRule.onAllNodesWithTag("auth_guest_name_input").fetchSemanticsNodes().size)
 
-    // Clicking Guest enters immediately without any OTP gate
+    // Clicking Guest enters immediately without any form or OTP gate
     composeRule.onNodeWithTag("auth_guest_method_button").performScrollTo().performClick()
     composeRule.waitForIdle()
 

@@ -175,19 +175,19 @@ object BudgetAutoComposer {
     monthExpenses: List<Expense>,
     monthKey: String,
     today: LocalDate = LocalDate.now(),
+    paydayStartDay: Int = 1,
   ): DailyBudgetInsight {
-    val yearMonth = runCatching { YearMonth.parse(monthKey) }.getOrElse { YearMonth.from(today) }
-    val daysInMonth = yearMonth.lengthOfMonth()
+    val cycle = PaydayCycleManager.resolveCycle(
+      monthKey = monthKey,
+      paydayStartDay = paydayStartDay,
+      fallbackDate = today,
+    )
+    val daysInMonth = cycle.totalDays
     val totalBudget = budget?.totalAllocatedSpendBudget ?: 0L
     val totalSpent = monthExpenses.sumOf { it.amount }
     val remaining = totalBudget - totalSpent
 
-    val currentYearMonth = YearMonth.from(today)
-    val daysRemaining = when {
-      yearMonth.isBefore(currentYearMonth) -> 0
-      yearMonth.isAfter(currentYearMonth) -> daysInMonth
-      else -> (daysInMonth - today.dayOfMonth + 1).coerceAtLeast(1)
-    }
+    val daysRemaining = cycle.daysRemainingFrom(today)
 
     val todayEpochDay = today.toEpochDay()
     val todaySpent = monthExpenses

@@ -31,14 +31,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.DocumentScanner
+import androidx.compose.material.icons.rounded.FilterAltOff
+import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -47,6 +54,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,6 +75,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.budget.PaydayCycleManager
+import com.example.data.local.CustomCategoryManager
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
@@ -74,6 +84,7 @@ import com.example.data.model.RecurringTemplate
 import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.security.PrivacySecurityManager
 import com.example.ui.components.CategoryIconBadge
 import com.example.ui.components.DimensionalVaultCard
 import com.example.ui.components.MonthlyCalendarCard
@@ -85,6 +96,7 @@ import com.example.ui.components.iconVector
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.viewmodel.FinanceDashboardData
 import com.example.util.Formatters
 
@@ -102,6 +114,7 @@ fun DailyExpensesScreen(
     category: ExpenseCategory,
     paymentMethod: PaymentMethod,
     note: String,
+    dueDayOfMonth: Int?,
   ) -> Unit,
   onDeleteRecurringTemplate: (String) -> Unit,
   onOpenExportReport: () -> Unit,
@@ -109,23 +122,52 @@ fun DailyExpensesScreen(
   onNextMonth: () -> Unit = {},
   onSelectMonth: (String) -> Unit = {},
   onAddExpenseOnDate: (Long) -> Unit = {},
+  onQuickScanReceipt: () -> Unit = {},
+  onDuplicateExpense: (Expense) -> Unit = {},
+  onDeleteExpenseWithUndo: ((Expense) -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val customCategories by CustomCategoryManager.observeCategories(context).collectAsStateWithLifecycle()
+  val hideBalances by PrivacySecurityManager.observeHideBalances(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
 
   var pendingDeleteExpense by remember { mutableStateOf<Expense?>(null) }
   var viewingReceiptExpense by remember { mutableStateOf<Expense?>(null) }
   var selectedDateEpochDay by remember(data.monthKey) { mutableStateOf<Long?>(null) }
+  var selectedPaymentFilter by remember { mutableStateOf<PaymentMethod?>(null) }
+  var receiptOnlyFilter by remember { mutableStateOf(false) }
+  var sortOption by remember { mutableStateOf(ExpenseSortOption.NEWEST) }
+  var showSortMenu by remember { mutableStateOf(false) }
 
-  val visibleExpenses = remember(data.filteredExpenses, selectedDateEpochDay) {
+  val hasActiveExtraFilters = selectedPaymentFilter != null ||
+    receiptOnlyFilter ||
+    sortOption != ExpenseSortOption.NEWEST ||
+    selectedDateEpochDay != null ||
+    data.selectedCategoryFilter != null ||
+    data.searchQuery.isNotBlank()
+
+  val visibleExpenses = remember(
+    data.filteredExpenses,
+    selectedDateEpochDay,
+    selectedPaymentFilter,
+    receiptOnlyFilter,
+    sortOption,
+  ) {
     val targetDay = selectedDateEpochDay
-    if (targetDay == null) {
-      data.filteredExpenses
-    } else {
-      data.filteredExpenses.filter { it.dateEpochDay == targetDay }
+    val filtered = data.filteredExpenses.filter { exp ->
+      val matchesDay = targetDay == null || exp.dateEpochDay == targetDay
+      val matchesPayment = selectedPaymentFilter == null || exp.paymentMethodEnum == selectedPaymentFilter
+      val matchesReceipt = !receiptOnlyFilter || exp.hasReceiptPhoto
+      matchesDay && matchesPayment && matchesReceipt
+    }
+    when (sortOption) {
+      ExpenseSortOption.NEWEST -> filtered.sortedByDescending { it.dateEpochDay }
+      ExpenseSortOption.HIGHEST_AMOUNT -> filtered.sortedByDescending { it.amount }
+      ExpenseSortOption.LOWEST_AMOUNT -> filtered.sortedBy { it.amount }
+      ExpenseSortOption.TITLE_AZ -> filtered.sortedBy { it.title.lowercase() }
     }
   }
 
@@ -138,6 +180,9 @@ fun DailyExpensesScreen(
   }
   val attachedReceiptsCount = remember(visibleExpenses) {
     visibleExpenses.count { it.hasReceiptPhoto }
+  }
+  val paydayCycle = remember(data.monthKey, data.paydayStartDay) {
+    PaydayCycleManager.resolveCycle(data.monthKey, data.paydayStartDay)
   }
 
   val todayLabel = stringResource(R.string.label_today)
@@ -184,7 +229,13 @@ fun DailyExpensesScreen(
             }
           },
           singleLine = true,
-          shape = RoundedCornerShape(16.dp),
+          shape = RoundedCornerShape(14.dp),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+          ),
           modifier = Modifier
             .fillMaxWidth()
             .testTag("expense_search_input"),
@@ -197,8 +248,11 @@ fun DailyExpensesScreen(
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           FilterChip(
-            selected = data.selectedCategoryFilter == null,
-            onClick = { onCategoryFilterSelect(null) },
+            selected = data.selectedCategoryFilter == null && data.searchQuery.isBlank(),
+            onClick = {
+              onCategoryFilterSelect(null)
+              if (data.searchQuery.startsWith("#")) onSearchQueryChange("")
+            },
             label = { Text(stringResource(R.string.label_all)) },
           )
           ExpenseCategory.entries.forEach { category ->
@@ -221,12 +275,136 @@ fun DailyExpensesScreen(
               ),
             )
           }
+          customCategories.forEach { customCat ->
+            val isSelected = data.searchQuery.trim().equals(customCat.noteTag, ignoreCase = true)
+            FilterChip(
+              selected = isSelected,
+              onClick = {
+                if (isSelected) {
+                  onSearchQueryChange("")
+                } else {
+                  onCategoryFilterSelect(null)
+                  onSearchQueryChange(customCat.noteTag)
+                }
+              },
+              label = { Text(customCat.name) },
+              leadingIcon = {
+                Icon(
+                  imageVector = Icons.Rounded.Label,
+                  contentDescription = null,
+                  modifier = Modifier.size(15.dp),
+                )
+              },
+              colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = customCat.accentColor.copy(alpha = 0.18f),
+                selectedLabelColor = customCat.accentColor,
+                selectedLeadingIconColor = customCat.accentColor,
+              ),
+              modifier = Modifier.testTag("filter_custom_cat_${customCat.id}"),
+            )
+          }
+        }
+
+        // Secondary Advanced Filter & Sort Row (Sort dropdown, Has Receipt, Payment Methods, Reset)
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Box {
+            FilterChip(
+              selected = sortOption != ExpenseSortOption.NEWEST,
+              onClick = { showSortMenu = true },
+              label = {
+                Text("${stringResource(R.string.sort_label_prefix)} ${stringResource(sortOption.labelRes)}")
+              },
+              leadingIcon = {
+                Icon(
+                  imageVector = Icons.AutoMirrored.Rounded.Sort,
+                  contentDescription = stringResource(R.string.filter_sort_cd),
+                  modifier = Modifier.size(16.dp),
+                )
+              },
+              modifier = Modifier.testTag("expense_sort_chip"),
+            )
+            DropdownMenu(
+              expanded = showSortMenu,
+              onDismissRequest = { showSortMenu = false },
+            ) {
+              ExpenseSortOption.entries.forEach { option ->
+                DropdownMenuItem(
+                  text = {
+                    Text(
+                      text = stringResource(option.labelRes),
+                      fontWeight = if (sortOption == option) FontWeight.Bold else FontWeight.Normal,
+                    )
+                  },
+                  onClick = {
+                    sortOption = option
+                    showSortMenu = false
+                  },
+                  modifier = Modifier.testTag("sort_option_${option.name}"),
+                )
+              }
+            }
+          }
+
+          FilterChip(
+            selected = receiptOnlyFilter,
+            onClick = { receiptOnlyFilter = !receiptOnlyFilter },
+            label = { Text(stringResource(R.string.filter_with_receipt)) },
+            leadingIcon = {
+              Icon(
+                imageVector = Icons.Rounded.Receipt,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+              )
+            },
+            modifier = Modifier.testTag("filter_receipt_only_chip"),
+          )
+
+          PaymentMethod.entries.forEach { method ->
+            val isSelected = selectedPaymentFilter == method
+            FilterChip(
+              selected = isSelected,
+              onClick = {
+                selectedPaymentFilter = if (isSelected) null else method
+              },
+              label = { Text(stringResource(method.labelRes)) },
+              modifier = Modifier.testTag("filter_payment_${method.name}"),
+            )
+          }
+
+          if (hasActiveExtraFilters) {
+            FilterChip(
+              selected = false,
+              onClick = {
+                selectedPaymentFilter = null
+                receiptOnlyFilter = false
+                sortOption = ExpenseSortOption.NEWEST
+                selectedDateEpochDay = null
+                onCategoryFilterSelect(null)
+                onSearchQueryChange("")
+              },
+              label = { Text(stringResource(R.string.filter_reset)) },
+              leadingIcon = {
+                Icon(
+                  imageVector = Icons.Rounded.FilterAltOff,
+                  contentDescription = null,
+                  modifier = Modifier.size(15.dp),
+                )
+              },
+              modifier = Modifier.testTag("filter_reset_chip"),
+            )
+          }
         }
       }
 
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 104.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 148.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         // Dimensional Vault Summary & Export Card
@@ -241,22 +419,30 @@ fun DailyExpensesScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
               ) {
-                Text(
-                  text = selectedDateEpochDay?.let { epoch ->
-                    stringResource(
-                      R.string.calendar_selected_date_filter,
-                      Formatters.formatShortDate(epoch, activeLocale),
+                Column(modifier = Modifier.weight(1f)) {
+                  Text(
+                    text = selectedDateEpochDay?.let { epoch ->
+                      stringResource(
+                        R.string.calendar_selected_date_filter,
+                        Formatters.formatShortDate(epoch, activeLocale),
+                      )
+                    } ?: stringResource(
+                      R.string.expenses_count_in_month,
+                      visibleExpenses.size,
+                      Formatters.formatMonthTitle(data.monthKey, activeLocale),
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.88f),
+                  )
+                  if (paydayCycle.isCustomCycle && selectedDateEpochDay == null) {
+                    Text(
+                      text = stringResource(R.string.payday_badge_label, paydayCycle.formatRangeLabel(activeLocale)),
+                      style = MaterialTheme.typography.labelSmall,
+                      color = Color(0xFFFDE68A),
                     )
-                  } ?: stringResource(
-                    R.string.expenses_count_in_month,
-                    visibleExpenses.size,
-                    Formatters.formatMonthTitle(data.monthKey, activeLocale),
-                  ),
-                  style = MaterialTheme.typography.labelLarge,
-                  fontWeight = FontWeight.SemiBold,
-                  color = Color.White.copy(alpha = 0.88f),
-                  modifier = Modifier.weight(1f),
-                )
+                  }
+                }
 
                 Surface(
                   shape = RoundedCornerShape(50),
@@ -292,7 +478,7 @@ fun DailyExpensesScreen(
                 label = "daily_total_filtered_anim",
               ) { sum ->
                 Text(
-                  text = Formatters.formatMoney(sum, activeCurrency),
+                  text = Formatters.formatMoneyMasked(sum, activeCurrency, hideBalances),
                   style = MaterialTheme.typography.headlineSmall,
                   fontFamily = JetBrainsMonoFontFamily,
                   fontWeight = FontWeight.ExtraBold,
@@ -305,25 +491,25 @@ fun DailyExpensesScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
               ) {
                 FilledTonalButton(
-                  onClick = onOpenExportReport,
+                  onClick = onQuickScanReceipt,
                   shape = RoundedCornerShape(12.dp),
                   colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF1E1B4B),
+                    containerColor = EmeraldSafe,
+                    contentColor = Color.White,
                   ),
                   modifier = Modifier
-                    .weight(1.15f)
+                    .weight(1.1f)
                     .height(48.dp)
-                    .testTag("export_report_button"),
+                    .testTag("expenses_scan_receipt_button"),
                 ) {
                   Icon(
-                    imageVector = Icons.Rounded.TableChart,
+                    imageVector = Icons.Rounded.DocumentScanner,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                   )
                   Spacer(modifier = Modifier.width(6.dp))
                   Text(
-                    text = stringResource(R.string.export_report_action),
+                    text = stringResource(R.string.ai_scan_quick_title),
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -339,16 +525,16 @@ fun DailyExpensesScreen(
                   modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .testTag("share_summary_button"),
+                    .testTag("export_report_button"),
                 ) {
                   Icon(
-                    imageVector = Icons.Rounded.Share,
+                    imageVector = Icons.Rounded.TableChart,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                   )
                   Spacer(modifier = Modifier.width(6.dp))
                   Text(
-                    text = stringResource(R.string.export_share_action),
+                    text = stringResource(R.string.export_report_action),
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -430,6 +616,24 @@ fun DailyExpensesScreen(
               }
             }
           }
+        } else if (sortOption != ExpenseSortOption.NEWEST) {
+          items(visibleExpenses, key = { it.id }) { expense ->
+            DetailedExpenseCard(
+              expense = expense,
+              currency = activeCurrency,
+              hideBalances = hideBalances,
+              onEdit = { onEditExpense(expense) },
+              onViewReceipt = { viewingReceiptExpense = expense },
+              onDuplicate = { onDuplicateExpense(expense) },
+              onRequestDelete = {
+                if (onDeleteExpenseWithUndo != null) {
+                  onDeleteExpenseWithUndo(expense)
+                } else {
+                  pendingDeleteExpense = expense
+                }
+              },
+            )
+          }
         } else {
           groupedByDay.forEach { (epochDay, dayExpenses) ->
             val dayTotal = dayExpenses.sumOf { it.amount }
@@ -457,7 +661,7 @@ fun DailyExpensesScreen(
                   color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 ) {
                   Text(
-                    text = Formatters.formatMoney(dayTotal, activeCurrency),
+                    text = Formatters.formatMoneyMasked(dayTotal, activeCurrency, hideBalances),
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = JetBrainsMonoFontFamily,
                     color = MaterialTheme.colorScheme.primary,
@@ -472,9 +676,17 @@ fun DailyExpensesScreen(
               DetailedExpenseCard(
                 expense = expense,
                 currency = activeCurrency,
+                hideBalances = hideBalances,
                 onEdit = { onEditExpense(expense) },
                 onViewReceipt = { viewingReceiptExpense = expense },
-                onRequestDelete = { pendingDeleteExpense = expense },
+                onDuplicate = { onDuplicateExpense(expense) },
+                onRequestDelete = {
+                  if (onDeleteExpenseWithUndo != null) {
+                    onDeleteExpenseWithUndo(expense)
+                  } else {
+                    pendingDeleteExpense = expense
+                  }
+                },
               )
             }
           }
@@ -488,7 +700,7 @@ fun DailyExpensesScreen(
       receiptPhotoBase64 = expense.receiptPhotoBase64,
       title = expense.title,
       subtitle = "${Formatters.formatShortDate(expense.dateEpochDay, activeLocale)} • ${stringResource(expense.paymentMethodEnum.labelRes)}",
-      amountFormatted = Formatters.formatMoney(expense.amount, activeCurrency),
+      amountFormatted = Formatters.formatMoneyMasked(expense.amount, activeCurrency, hideBalances),
       onDismiss = { viewingReceiptExpense = null },
     )
   }
@@ -529,32 +741,24 @@ fun DailyExpensesScreen(
 private fun DetailedExpenseCard(
   expense: Expense,
   currency: AppCurrency,
+  hideBalances: Boolean,
   onEdit: () -> Unit,
   onViewReceipt: () -> Unit,
+  onDuplicate: () -> Unit,
   onRequestDelete: () -> Unit,
 ) {
   SculptedSurfaceCard(
-    accentColor = expense.categoryEnum.accentColor,
-    cornerRadius = 20,
+    cornerRadius = 18,
     onClick = onEdit,
     modifier = Modifier.testTag("expense_card_${expense.id}"),
   ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
+        .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      // Accent bar + Category Icon Badge
-      Box(
-        modifier = Modifier
-          .width(4.dp)
-          .height(42.dp)
-          .clip(RoundedCornerShape(4.dp))
-          .background(expense.categoryEnum.accentColor),
-      )
-
       CategoryIconBadge(category = expense.categoryEnum, size = 44.dp)
 
       Column(
@@ -617,26 +821,56 @@ private fun DetailedExpenseCard(
         verticalArrangement = Arrangement.spacedBy(2.dp),
       ) {
         Text(
-          text = "-${Formatters.formatMoney(expense.amount, currency)}",
+          text = if (hideBalances) {
+            Formatters.formatMoneyMasked(expense.amount, currency, true)
+          } else {
+            "-${Formatters.formatMoney(expense.amount, currency)}"
+          },
           style = MaterialTheme.typography.titleSmall,
           fontFamily = JetBrainsMonoFontFamily,
           fontWeight = FontWeight.ExtraBold,
           color = MaterialTheme.colorScheme.onSurface,
         )
-      }
-
-      IconButton(
-        onClick = onRequestDelete,
-        modifier = Modifier
-          .size(48.dp)
-          .testTag("delete_expense_${expense.id}"),
-      ) {
-        Icon(
-          imageVector = Icons.Rounded.DeleteOutline,
-          contentDescription = "${stringResource(R.string.action_delete)} ${expense.title}",
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+          IconButton(
+            onClick = onDuplicate,
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("duplicate_expense_${expense.id}"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.ContentCopy,
+              contentDescription = "${stringResource(R.string.duplicate_expense_cd)} ${expense.title}",
+              tint = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.size(18.dp),
+            )
+          }
+          IconButton(
+            onClick = onRequestDelete,
+            modifier = Modifier
+              .size(48.dp)
+              .testTag("delete_expense_${expense.id}"),
+          ) {
+            Icon(
+              imageVector = Icons.Rounded.DeleteOutline,
+              contentDescription = "${stringResource(R.string.action_delete)} ${expense.title}",
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(20.dp),
+            )
+          }
+        }
       }
     }
   }
 }
+
+private enum class ExpenseSortOption(val labelRes: Int) {
+  NEWEST(R.string.sort_newest),
+  HIGHEST_AMOUNT(R.string.sort_highest),
+  LOWEST_AMOUNT(R.string.sort_lowest),
+  TITLE_AZ(R.string.sort_title_az),
+}
+

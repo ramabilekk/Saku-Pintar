@@ -53,6 +53,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Notifications
@@ -62,13 +63,19 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -108,12 +115,14 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.budget.PaydayCycleManager
 import com.example.i18n.AppCurrency
 import com.example.i18n.AppLanguage
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.notifications.DailyReminderManager
 import com.example.notifications.ReminderSettings
+import com.example.security.PrivacySecurityManager
 import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.GoldAccent
@@ -140,6 +149,10 @@ fun AccountProfileDialog(
   onSignOut: () -> Unit,
   onDismiss: () -> Unit,
   onTakePhotoBitmap: (Bitmap) -> Unit = {},
+  isGuestMode: Boolean = false,
+  guestLocalRecordCount: Int = 0,
+  isMigratingGuestData: Boolean = false,
+  onConnectGoogleAndMigrate: (() -> Unit)? = null,
 ) {
   val context = LocalContext.current
   val isDarkTheme = rememberIsEffectiveDarkTheme()
@@ -150,9 +163,16 @@ fun AccountProfileDialog(
   var showPhotoSourceDialog by remember { mutableStateOf(false) }
   var expandNameEditor by remember { mutableStateOf(false) }
   var expandCurrencyPicker by remember { mutableStateOf(false) }
+  var expandPaydaySection by remember { mutableStateOf(false) }
+  var expandPrivacySection by remember { mutableStateOf(false) }
+  var showSetupPinDialog by remember { mutableStateOf(false) }
 
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val paydayStartDay by PaydayCycleManager.observePaydayStartDay(context).collectAsStateWithLifecycle()
+  val hideBalances by PrivacySecurityManager.observeHideBalances(context).collectAsStateWithLifecycle()
+  val appLockEnabled by PrivacySecurityManager.observeAppLockEnabled(context).collectAsStateWithLifecycle()
+  val autoDeductWallet by PrivacySecurityManager.observeAutoDeductWallet(context).collectAsStateWithLifecycle()
 
   val photoPickerLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.PickVisualMedia(),
@@ -244,32 +264,32 @@ fun AccountProfileDialog(
       label = "drawer_scrim_alpha",
     )
     val drawerBorderTop by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.55f else 0.32f),
+      targetValue = MaterialTheme.colorScheme.outlineVariant,
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_border_top",
     )
     val drawerBorderMid by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.secondary.copy(alpha = if (isDarkTheme) 0.35f else 0.20f),
+      targetValue = MaterialTheme.colorScheme.outlineVariant,
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_border_mid",
     )
     val headerGradStart by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF1E3A8A).copy(alpha = 0.85f) else Color(0xFF1D4ED8),
+      targetValue = if (isDarkTheme) Color(0xFF0B1120) else Color(0xFF0F2C29),
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_header_grad_start",
     )
     val headerGradMid by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF312E81).copy(alpha = 0.78f) else Color(0xFF4338CA),
+      targetValue = if (isDarkTheme) Color(0xFF141E33) else Color(0xFF14403A),
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_header_grad_mid",
     )
     val headerGradEnd by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF0F172A).copy(alpha = 0.92f) else Color(0xFF1E1B4B),
+      targetValue = if (isDarkTheme) Color(0xFF0F172A) else Color(0xFF0D282C),
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_header_grad_end",
     )
     val headerDividerColor by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.35f else 0.20f),
+      targetValue = MaterialTheme.colorScheme.outlineVariant,
       animationSpec = tween(420, easing = FastOutSlowInEasing),
       label = "drawer_header_divider",
     )
@@ -410,7 +430,7 @@ fun AccountProfileDialog(
                       }
                     },
                     shape = CircleShape,
-                    color = Color(0xFF2563EB),
+                    color = MaterialTheme.colorScheme.primary,
                     border = BorderStroke(1.5.dp, Color.White),
                     modifier = Modifier
                       .size(24.dp)
@@ -477,6 +497,107 @@ fun AccountProfileDialog(
               color = headerDividerColor,
               thickness = 1.dp,
             )
+
+            // Optional Guest-to-Google Cloud Migration Card
+            if (isGuestMode && onConnectGoogleAndMigrate != null) {
+              Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isDarkTheme) 0.45f else 0.72f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 16.dp, vertical = 14.dp)
+                  .testTag("guest_sync_google_card"),
+              ) {
+                Column(
+                  modifier = Modifier.padding(14.dp),
+                  verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                  ) {
+                    Surface(
+                      shape = RoundedCornerShape(12.dp),
+                      color = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.size(36.dp),
+                    ) {
+                      Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                          imageVector = Icons.Rounded.CloudUpload,
+                          contentDescription = null,
+                          tint = Color.White,
+                          modifier = Modifier.size(19.dp),
+                        )
+                      }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = stringResource(R.string.guest_sync_card_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                      )
+                      Text(
+                        text = if (guestLocalRecordCount > 0) {
+                          stringResource(R.string.guest_sync_card_subtitle, guestLocalRecordCount)
+                        } else {
+                          stringResource(R.string.guest_sync_card_subtitle_empty)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      )
+                    }
+                  }
+                  Button(
+                    onClick = onConnectGoogleAndMigrate,
+                    enabled = !isMigratingGuestData,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                      containerColor = MaterialTheme.colorScheme.primary,
+                      contentColor = Color.White,
+                    ),
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .height(48.dp)
+                      .testTag("guest_sync_google_button"),
+                  ) {
+                    if (isMigratingGuestData) {
+                      CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                      )
+                      Spacer(modifier = Modifier.width(8.dp))
+                      Text(
+                        text = stringResource(R.string.guest_sync_in_progress),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    } else {
+                      Icon(
+                        imageVector = Icons.Rounded.CloudUpload,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                      )
+                      Spacer(modifier = Modifier.width(8.dp))
+                      Text(
+                        text = stringResource(R.string.guest_sync_cta),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+                  }
+                }
+              }
+
+              DrawerFullBleedDivider(
+                color = headerDividerColor,
+                thickness = 1.dp,
+              )
+            }
 
             // =========================================================================
             // COLUMN 1: EDIT PROFIL (Name + Gallery & Camera Photo Upload)
@@ -701,6 +822,120 @@ fun AccountProfileDialog(
             DrawerFullBleedDivider()
 
             // =========================================================================
+            // COLUMN 3B: SIKLUS TANGGAL GAJIAN (PAYDAY CYCLE)
+            // =========================================================================
+            val paydaySubtitle = if (paydayStartDay <= 1) {
+              stringResource(R.string.payday_default_subtitle)
+            } else {
+              stringResource(R.string.payday_custom_subtitle, paydayStartDay)
+            }
+            DrawerColumnRow(
+              icon = Icons.Outlined.CalendarMonth,
+              badgeColors = listOf(Color(0xFF0D9488), Color(0xFF14B8A6)),
+              title = stringResource(R.string.payday_section_title),
+              subtitle = paydaySubtitle,
+              trailingIcon = if (expandPaydaySection) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+              onClick = { expandPaydaySection = !expandPaydaySection },
+              modifier = Modifier.testTag("profile_payday_button"),
+            )
+
+            AnimatedVisibility(
+              visible = expandPaydaySection,
+              enter = expandVertically() + fadeIn(),
+              exit = shrinkVertically() + fadeOut(),
+            ) {
+              val previewCycle = remember(paydayStartDay) {
+                val curKey = PaydayCycleManager.currentCycleMonthKey(paydayStartDay = paydayStartDay)
+                PaydayCycleManager.resolveCycle(curKey, paydayStartDay)
+              }
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .background(expandedSectionBgColor)
+                  .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+              ) {
+                Text(
+                  text = stringResource(R.string.payday_cycle_desc),
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                  listOf(
+                    1 to stringResource(R.string.payday_preset_1),
+                    25 to stringResource(R.string.payday_preset_25),
+                    28 to stringResource(R.string.payday_preset_28),
+                  ).forEach { (day, label) ->
+                    FilterChip(
+                      selected = paydayStartDay == day,
+                      onClick = {
+                        PaydayCycleManager.setPaydayStartDay(context, day)
+                        onStatusMessage(context.getString(R.string.payday_saved_status, day))
+                      },
+                      label = { Text(label) },
+                      modifier = Modifier.testTag("payday_preset_$day"),
+                    )
+                  }
+                }
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                  verticalAlignment = Alignment.CenterVertically,
+                ) {
+                  Text(
+                    text = stringResource(R.string.payday_day_label, paydayStartDay),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                  )
+                  Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                      onClick = {
+                        val next = (paydayStartDay - 1).coerceIn(1, 28)
+                        PaydayCycleManager.setPaydayStartDay(context, next)
+                      },
+                      enabled = paydayStartDay > 1,
+                      shape = RoundedCornerShape(10.dp),
+                      contentPadding = PaddingValues(0.dp),
+                      modifier = Modifier
+                        .size(44.dp)
+                        .testTag("payday_minus_button"),
+                    ) {
+                      Icon(imageVector = Icons.Rounded.Remove, contentDescription = "-")
+                    }
+                    OutlinedButton(
+                      onClick = {
+                        val next = (paydayStartDay + 1).coerceIn(1, 28)
+                        PaydayCycleManager.setPaydayStartDay(context, next)
+                      },
+                      enabled = paydayStartDay < 28,
+                      shape = RoundedCornerShape(10.dp),
+                      contentPadding = PaddingValues(0.dp),
+                      modifier = Modifier
+                        .size(44.dp)
+                        .testTag("payday_plus_button"),
+                    ) {
+                      Icon(imageVector = Icons.Rounded.Add, contentDescription = "+")
+                    }
+                  }
+                }
+                Text(
+                  text = stringResource(
+                    R.string.payday_preview_label,
+                    previewCycle.formatRangeLabel(activeLanguage.toLocale()),
+                  ),
+                  style = MaterialTheme.typography.labelSmall,
+                  fontWeight = FontWeight.SemiBold,
+                  color = MaterialTheme.colorScheme.primary,
+                )
+              }
+            }
+
+            DrawerFullBleedDivider()
+
+            // =========================================================================
             // COLUMN 4: TEMA
             // =========================================================================
             Row(
@@ -905,6 +1140,159 @@ fun AccountProfileDialog(
 
             DrawerFullBleedDivider()
 
+            // =========================================================================
+            // COLUMN 6: PRIVASI & KEAMANAN (Hide Balances, App Lock, Auto-Deduct Wallet)
+            // =========================================================================
+            Column(modifier = Modifier.fillMaxWidth()) {
+              DrawerColumnRow(
+                icon = Icons.Outlined.Security,
+                badgeColors = listOf(Color(0xFF0F766E), Color(0xFF14B8A6)),
+                title = stringResource(R.string.privacy_security_section_title),
+                subtitle = if (appLockEnabled) {
+                  stringResource(R.string.app_lock_subtitle_on)
+                } else if (hideBalances) {
+                  stringResource(R.string.privacy_hide_balances_title)
+                } else {
+                  stringResource(R.string.app_lock_subtitle_off)
+                },
+                trailingIcon = if (expandPrivacySection) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                modifier = Modifier.testTag("drawer_col_privacy_security"),
+                onClick = { expandPrivacySection = !expandPrivacySection },
+              )
+
+              AnimatedVisibility(
+                visible = expandPrivacySection,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+              ) {
+                Column(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .background(expandedSectionBgColor)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                  verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                  // 1. Sembunyikan Saldo
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                  ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = stringResource(R.string.privacy_hide_balances_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                      )
+                      Text(
+                        text = stringResource(R.string.privacy_hide_balances_subtitle),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      )
+                    }
+                    Switch(
+                      checked = hideBalances,
+                      onCheckedChange = { PrivacySecurityManager.setHideBalances(context, it) },
+                      modifier = Modifier
+                        .scale(0.88f)
+                        .testTag("privacy_hide_balance_switch"),
+                    )
+                  }
+
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+
+                  // 2. Kunci Aplikasi (PIN / Biometrik)
+                  Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                      modifier = Modifier.fillMaxWidth(),
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                      Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                          text = stringResource(R.string.app_lock_title),
+                          style = MaterialTheme.typography.bodyMedium,
+                          fontWeight = FontWeight.SemiBold,
+                          color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                          text = stringResource(
+                            if (appLockEnabled) R.string.app_lock_subtitle_on else R.string.app_lock_subtitle_off,
+                          ),
+                          style = MaterialTheme.typography.labelSmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                      }
+                      Switch(
+                        checked = appLockEnabled,
+                        onCheckedChange = { enable ->
+                          if (enable) {
+                            if (PrivacySecurityManager.hasPinConfigured(context)) {
+                              PrivacySecurityManager.setAppLockEnabled(context, true)
+                              onStatusMessage(context.getString(R.string.app_lock_pin_saved))
+                            } else {
+                              showSetupPinDialog = true
+                            }
+                          } else {
+                            PrivacySecurityManager.setAppLockEnabled(context, false)
+                            onStatusMessage(context.getString(R.string.app_lock_disabled_status))
+                          }
+                        },
+                        modifier = Modifier
+                          .scale(0.88f)
+                          .testTag("app_lock_toggle_switch"),
+                      )
+                    }
+                    if (appLockEnabled) {
+                      TextButton(
+                        onClick = { showSetupPinDialog = true },
+                        modifier = Modifier.testTag("change_pin_button"),
+                      ) {
+                        Text(
+                          text = stringResource(R.string.app_lock_change_pin),
+                          style = MaterialTheme.typography.labelMedium,
+                          fontWeight = FontWeight.Bold,
+                        )
+                      }
+                    }
+                  }
+
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+
+                  // 3. Auto-Deduct Wallet Balance
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                  ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = stringResource(R.string.wallet_auto_deduct_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                      )
+                      Text(
+                        text = stringResource(R.string.wallet_auto_deduct_subtitle),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      )
+                    }
+                    Switch(
+                      checked = autoDeductWallet,
+                      onCheckedChange = { PrivacySecurityManager.setAutoDeductWallet(context, it) },
+                      modifier = Modifier
+                        .scale(0.88f)
+                        .testTag("auto_deduct_wallet_switch"),
+                    )
+                  }
+                }
+              }
+            }
+
+            DrawerFullBleedDivider()
+
             Spacer(modifier = Modifier.height(18.dp))
 
             // Footer: Support & Sign Out inside sculpted container
@@ -1012,6 +1400,16 @@ fun AccountProfileDialog(
         }
       }
     }
+  }
+
+  if (showSetupPinDialog) {
+    SetupPinDialog(
+      onPinSaved = {
+        showSetupPinDialog = false
+        onStatusMessage(context.getString(R.string.app_lock_pin_saved))
+      },
+      onDismiss = { showSetupPinDialog = false },
+    )
   }
 
   // Quick Profile Photo Source Chooser Dialog (Camera vs Gallery)

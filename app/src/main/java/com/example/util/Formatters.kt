@@ -24,6 +24,19 @@ object Formatters {
     return "$sign${currency.prefixWithSpace}${nf.format(abs(amount))}"
   }
 
+  fun formatMoneyMasked(
+    amount: Long,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+    hideBalances: Boolean = false,
+  ): String = if (hideBalances) "${currency.prefixWithSpace}••••••" else formatMoney(amount, currency)
+
+  fun formatMoneyCompactMasked(
+    amount: Long,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+    hideBalances: Boolean = false,
+  ): String = if (hideBalances) "${currency.prefixWithSpace}••••" else formatMoneyCompact(amount, currency, locale)
+
   fun formatRupiahCompact(amount: Long): String =
     formatMoneyCompact(
       amount = amount,

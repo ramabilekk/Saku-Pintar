@@ -13,11 +13,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,11 +43,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.DocumentScanner
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,8 +64,10 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -73,11 +81,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -98,22 +111,33 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.R
 import com.example.auth.signOutUser
+import com.example.data.ai.AiFinanceContextSnapshot
+import com.example.data.local.CashflowLedgerManager
 import com.example.data.model.Expense
 import com.example.data.repository.FinanceRepository
 import com.example.data.repository.SavingsRepository
+import com.example.i18n.CurrencyPreferenceManager
 import com.example.notifications.DailyReminderManager
+import com.example.security.PrivacySecurityManager
 import com.example.ui.components.AccountProfileDialog
+import com.example.ui.components.AiFinanceChatDialog
 import com.example.ui.components.AppAmbientBackdrop
 import com.example.ui.components.ExpenseEditorSheet
 import com.example.ui.components.ExportReportSheet
-import com.example.ui.components.MonthSelectorBar
+import com.example.ui.components.FloatingNavItem
+import com.example.ui.components.FloatingPillBottomBar
 import com.example.ui.components.ProfileAvatar
+import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactilePressScale
+import com.example.widget.WidgetQuickActions
+import com.example.widget.WidgetSnapshotStore
 import com.example.ui.screens.AutoBudgetScreen
 import com.example.ui.screens.DailyExpensesScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.SavingsScreen
+import com.example.ui.theme.EmeraldSafe
+import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.ThemePreferenceManager
 import com.example.ui.viewmodel.FinanceViewModel
 import com.example.ui.viewmodel.SavingsUiData
@@ -121,6 +145,7 @@ import com.example.ui.viewmodel.SavingsViewModel
 import com.example.ui.viewmodel.UiState
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 const val ROUTE_DASHBOARD = "dashboard"
 const val ROUTE_EXPENSES = "expenses"
@@ -137,37 +162,29 @@ internal fun navRouteOrder(route: String?): Int = when (route) {
 
 private val PageSlideEasing = CubicBezierEasing(0.22f, 1.0f, 0.36f, 1.0f)
 
-private data class NavTab(
-  val route: String,
-  val labelRes: Int,
-  val selectedIcon: ImageVector,
-  val unselectedIcon: ImageVector,
-  val testTag: String,
-)
-
 private val navTabs = listOf(
-  NavTab(
+  FloatingNavItem(
     route = ROUTE_DASHBOARD,
     labelRes = R.string.nav_home,
-    selectedIcon = Icons.Rounded.Dashboard,
-    unselectedIcon = Icons.Outlined.Dashboard,
+    selectedIcon = Icons.Rounded.Home,
+    unselectedIcon = Icons.Outlined.Home,
     testTag = "nav_tab_dashboard",
   ),
-  NavTab(
+  FloatingNavItem(
     route = ROUTE_EXPENSES,
     labelRes = R.string.nav_expenses,
     selectedIcon = Icons.AutoMirrored.Rounded.ReceiptLong,
     unselectedIcon = Icons.AutoMirrored.Outlined.ReceiptLong,
     testTag = "nav_tab_expenses",
   ),
-  NavTab(
+  FloatingNavItem(
     route = ROUTE_SAVINGS,
     labelRes = R.string.nav_savings,
     selectedIcon = Icons.Rounded.Savings,
     unselectedIcon = Icons.Outlined.Savings,
     testTag = "nav_tab_savings",
   ),
-  NavTab(
+  FloatingNavItem(
     route = ROUTE_BUDGET,
     labelRes = R.string.nav_budget,
     selectedIcon = Icons.Rounded.AutoAwesome,
@@ -181,6 +198,10 @@ private val navTabs = listOf(
 fun MainAppScaffold(
   currentUser: FirebaseUser,
   onSignedOut: () -> Unit,
+  pendingWidgetAction: String? = null,
+  onConsumeWidgetAction: () -> Unit = {},
+  initialStatusMessage: String? = null,
+  onConsumeInitialStatus: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val currentUserId = currentUser.uid
@@ -248,17 +269,59 @@ fun MainAppScaffold(
 
   val snackbarHostState = remember { SnackbarHostState() }
   var showExpenseSheet by remember { mutableStateOf(false) }
+  var autoLaunchReceiptScan by remember { mutableStateOf(false) }
   var editingExpense by remember { mutableStateOf<Expense?>(null) }
   var prefillEpochDay by remember { mutableStateOf<Long?>(null) }
   var showAccountDialog by remember { mutableStateOf(false) }
   var showExportSheet by remember { mutableStateOf(false) }
+  var showAiChatDialog by remember { mutableStateOf(false) }
 
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val credentialManager = remember(context) { CredentialManager.create(context) }
   val themeMode by ThemePreferenceManager.observeThemeMode(context).collectAsStateWithLifecycle()
+  val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
+  val cashflowEntries by CashflowLedgerManager.observeEntries(context, currentUserId).collectAsStateWithLifecycle()
   var reminderSettings by remember(context) {
     mutableStateOf(DailyReminderManager.getSettings(context))
+  }
+
+  LaunchedEffect(initialStatusMessage) {
+    initialStatusMessage?.let { msg ->
+      snackbarHostState.showSnackbar(msg)
+      onConsumeInitialStatus()
+    }
+  }
+
+  LaunchedEffect(pendingWidgetAction) {
+    when (pendingWidgetAction) {
+      WidgetQuickActions.ACTION_QUICK_ADD -> {
+        editingExpense = null
+        prefillEpochDay = null
+        autoLaunchReceiptScan = false
+        showExpenseSheet = true
+        onConsumeWidgetAction()
+      }
+      WidgetQuickActions.ACTION_QUICK_SCAN -> {
+        editingExpense = null
+        prefillEpochDay = null
+        autoLaunchReceiptScan = true
+        showExpenseSheet = true
+        onConsumeWidgetAction()
+      }
+    }
+  }
+
+  LaunchedEffect(uiState, activeCurrency) {
+    val success = (uiState as? UiState.Success)?.data ?: return@LaunchedEffect
+    WidgetSnapshotStore.updateSnapshot(
+      context = context,
+      dailySafeLimit = success.dailyInsight.dailySafeLimit,
+      todaySpent = success.dailyInsight.todaySpent,
+      remainingBudget = success.dailyInsight.remainingBudget,
+      hasBudget = success.budget != null,
+      monthKey = success.monthKey,
+    )
   }
 
   LaunchedEffect(actionStatus) {
@@ -276,6 +339,7 @@ fun MainAppScaffold(
   }
 
   val tactile = rememberTactileFeedback()
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
 
   fun navigateToTab(route: String) {
     tactile.navigation()
@@ -288,6 +352,50 @@ fun MainAppScaffold(
     }
   }
 
+  fun openQuickReceiptScanner() {
+    tactile.confirm()
+    editingExpense = null
+    prefillEpochDay = null
+    autoLaunchReceiptScan = true
+    showExpenseSheet = true
+  }
+
+  fun handleDeleteExpenseWithUndo(expense: Expense) {
+    val autoDeduct = PrivacySecurityManager.isAutoDeductWalletEnabled(context)
+    viewModel.deleteExpense(expense.id, silentStatus = true)
+    if (autoDeduct) {
+      savingsViewModel.adjustWalletBalance(expense.paymentMethodEnum, +expense.amount)
+    }
+    scope.launch {
+      snackbarHostState.currentSnackbarData?.dismiss()
+      val result = snackbarHostState.showSnackbar(
+        message = context.getString(R.string.vm_expense_deleted),
+        actionLabel = context.getString(R.string.action_undo),
+        duration = SnackbarDuration.Long,
+      )
+      if (result == SnackbarResult.ActionPerformed) {
+        viewModel.restoreExpense(expense)
+        if (autoDeduct) {
+          savingsViewModel.adjustWalletBalance(expense.paymentMethodEnum, -expense.amount)
+        }
+      }
+    }
+  }
+
+  fun handleLogRecurringTemplate(template: com.example.data.model.RecurringTemplate) {
+    viewModel.logRecurringTemplate(template)
+    if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
+      savingsViewModel.adjustWalletBalance(template.paymentMethodEnum, -template.amount)
+    }
+  }
+
+  fun handleDuplicateExpense(expense: Expense) {
+    viewModel.duplicateExpense(expense)
+    if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
+      savingsViewModel.adjustWalletBalance(expense.paymentMethodEnum, -expense.amount)
+    }
+  }
+
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val useNavigationRail = maxWidth >= 600.dp
 
@@ -295,9 +403,15 @@ fun MainAppScaffold(
       if (useNavigationRail) {
         NavigationRail(
           containerColor = MaterialTheme.colorScheme.surface,
+          header = {
+            Spacer(modifier = Modifier.height(8.dp))
+            CenterScanRailButton(
+              onClick = ::openQuickReceiptScanner,
+            )
+          },
           modifier = Modifier.fillMaxHeight(),
         ) {
-          Spacer(modifier = Modifier.height(16.dp))
+          Spacer(modifier = Modifier.height(12.dp))
           navTabs.forEach { tab ->
             val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
             val label = stringResource(tab.labelRes)
@@ -350,7 +464,7 @@ fun MainAppScaffold(
             ),
             title = {
               AnimatedContent(
-                targetState = currentRoute ?: ROUTE_DASHBOARD,
+                targetState = currentRoute,
                 transitionSpec = {
                   val forward = navRouteOrder(targetState) >= navRouteOrder(initialState)
                   (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
@@ -491,18 +605,16 @@ fun MainAppScaffold(
                     ) {
                       Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.size(38.dp),
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.Dashboard,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Image(
+                          painter = painterResource(id = R.drawable.img_sakupintar_logo),
+                          contentDescription = stringResource(R.string.app_name),
+                          contentScale = ContentScale.Crop,
+                          modifier = Modifier.fillMaxSize(),
+                        )
                       }
                       Column {
                         Text(
@@ -528,6 +640,42 @@ fun MainAppScaffold(
               }
             },
             actions = {
+              val aiChatDesc = stringResource(R.string.ai_chat_open_cd)
+              val aiChatInteractionSource = remember { MutableInteractionSource() }
+              IconButton(
+                onClick = {
+                  tactile.tick()
+                  showAiChatDialog = true
+                },
+                interactionSource = aiChatInteractionSource,
+                modifier = Modifier
+                  .size(48.dp)
+                  .tactilePressScale(
+                    interactionSource = aiChatInteractionSource,
+                    pressedScale = 0.90f,
+                    enablePressHaptic = false,
+                  )
+                  .semantics { contentDescription = aiChatDesc }
+                  .testTag("topbar_ai_chat_button"),
+              ) {
+                Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                ) {
+                  Box(
+                    modifier = Modifier.size(36.dp),
+                    contentAlignment = Alignment.Center,
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Forum,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.size(18.dp),
+                    )
+                  }
+                }
+              }
               val profileDesc = stringResource(R.string.profile_cd, resolvedDisplayName)
               val profileInteractionSource = remember { MutableInteractionSource() }
               IconButton(
@@ -548,8 +696,8 @@ fun MainAppScaffold(
               ) {
                 Surface(
                   shape = CircleShape,
-                  color = Color.Transparent,
-                  border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
+                  color = MaterialTheme.colorScheme.surface,
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                   Box(modifier = Modifier.padding(2.dp)) {
                     ProfileAvatar(
@@ -566,63 +714,12 @@ fun MainAppScaffold(
         },
         bottomBar = {
           if (!useNavigationRail) {
-            Column {
-              HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-              )
-              NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-              ) {
-                navTabs.forEach { tab ->
-                  val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                  val label = stringResource(tab.labelRes)
-                  val tabInteractionSource = remember { MutableInteractionSource() }
-                  val iconScale by animateFloatAsState(
-                    targetValue = if (selected) 1.12f else 1.0f,
-                    animationSpec = spring(
-                      dampingRatio = Spring.DampingRatioMediumBouncy,
-                      stiffness = Spring.StiffnessMediumLow,
-                    ),
-                    label = "nav_icon_scale_${tab.route}",
-                  )
-                  NavigationBarItem(
-                    selected = selected,
-                    onClick = { navigateToTab(tab.route) },
-                    interactionSource = tabInteractionSource,
-                    icon = {
-                      Icon(
-                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                        contentDescription = label,
-                        modifier = Modifier.graphicsLayer {
-                          scaleX = iconScale
-                          scaleY = iconScale
-                        },
-                      )
-                    },
-                    label = {
-                      Text(
-                        text = label,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                      )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                      selectedIconColor = MaterialTheme.colorScheme.primary,
-                      selectedTextColor = MaterialTheme.colorScheme.primary,
-                      indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                    ),
-                    modifier = Modifier
-                      .tactilePressScale(
-                        interactionSource = tabInteractionSource,
-                        pressedScale = 0.92f,
-                        enablePressHaptic = false,
-                      )
-                      .testTag(tab.testTag),
-                  )
-                }
-              }
-            }
+            FloatingPillBottomBar(
+              tabs = navTabs,
+              currentRoute = currentRoute,
+              onSelectTab = ::navigateToTab,
+              onQuickScanClick = ::openQuickReceiptScanner,
+            )
           }
         },
         floatingActionButton = {
@@ -643,12 +740,13 @@ fun MainAppScaffold(
                 tactile.confirm()
                 editingExpense = null
                 prefillEpochDay = null
+                autoLaunchReceiptScan = false
                 showExpenseSheet = true
               },
               interactionSource = fabInteractionSource,
-              containerColor = MaterialTheme.colorScheme.primary,
-              contentColor = MaterialTheme.colorScheme.onPrimary,
-              shape = RoundedCornerShape(18.dp),
+              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
+              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
+              shape = RoundedCornerShape(16.dp),
               icon = {
                 Icon(
                   imageVector = Icons.Rounded.Add,
@@ -763,7 +861,12 @@ fun MainAppScaffold(
               },
               modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(
+                  top = innerPadding.calculateTopPadding(),
+                  start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                  end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                  bottom = if (useNavigationRail) innerPadding.calculateBottomPadding() else 0.dp,
+                ),
             ) {
               composable(ROUTE_DASHBOARD) {
                 DashboardScreen(
@@ -783,11 +886,16 @@ fun MainAppScaffold(
                   onEditExpense = { expense ->
                     editingExpense = expense
                     prefillEpochDay = null
+                    autoLaunchReceiptScan = false
                     showExpenseSheet = true
                   },
                   onPreviousMonth = { viewModel.shiftMonth(-1L) },
                   onNextMonth = { viewModel.shiftMonth(1L) },
                   onSelectMonth = viewModel::selectMonth,
+                  onQuickScanReceipt = ::openQuickReceiptScanner,
+                  onLogRecurringTemplate = ::handleLogRecurringTemplate,
+                  userId = currentUserId,
+                  onOpenAiChat = { showAiChatDialog = true },
                 )
               }
               composable(ROUTE_EXPENSES) {
@@ -798,10 +906,13 @@ fun MainAppScaffold(
                   onEditExpense = { expense ->
                     editingExpense = expense
                     prefillEpochDay = null
+                    autoLaunchReceiptScan = false
                     showExpenseSheet = true
                   },
-                  onDeleteExpense = viewModel::deleteExpense,
-                  onLogRecurringTemplate = viewModel::logRecurringTemplate,
+                  onDeleteExpense = { id -> viewModel.deleteExpense(id) },
+                  onDeleteExpenseWithUndo = ::handleDeleteExpenseWithUndo,
+                  onDuplicateExpense = ::handleDuplicateExpense,
+                  onLogRecurringTemplate = ::handleLogRecurringTemplate,
                   onAddRecurringTemplate = viewModel::addRecurringTemplate,
                   onDeleteRecurringTemplate = viewModel::deleteRecurringTemplate,
                   onOpenExportReport = { showExportSheet = true },
@@ -811,8 +922,10 @@ fun MainAppScaffold(
                   onAddExpenseOnDate = { epochDay ->
                     editingExpense = null
                     prefillEpochDay = epochDay
+                    autoLaunchReceiptScan = false
                     showExpenseSheet = true
                   },
+                  onQuickScanReceipt = ::openQuickReceiptScanner,
                 )
               }
               composable(ROUTE_SAVINGS) {
@@ -857,10 +970,15 @@ fun MainAppScaffold(
                     SavingsScreen(
                       data = savState.data,
                       onCreateGoal = savingsViewModel::createGoal,
+                      onUpdateGoal = savingsViewModel::updateGoal,
                       onDepositGoal = savingsViewModel::depositToGoal,
                       onWithdrawGoal = savingsViewModel::withdrawFromGoal,
                       onDeleteGoal = savingsViewModel::deleteGoal,
                       onSetWalletBalance = savingsViewModel::setWalletBalance,
+                      userId = currentUserId,
+                      onRecordIncome = savingsViewModel::recordIncomeToWallet,
+                      onTransferWallet = savingsViewModel::transferBetweenWallets,
+                      onDeleteCashflowEntry = savingsViewModel::deleteCashflowEntry,
                       monthKey = selectedMonthKey,
                       onPreviousMonth = { viewModel.shiftMonth(-1L) },
                       onNextMonth = { viewModel.shiftMonth(1L) },
@@ -892,6 +1010,7 @@ fun MainAppScaffold(
     ExpenseEditorSheet(
       existingExpense = editingExpense,
       initialEpochDay = prefillEpochDay,
+      autoLaunchReceiptScan = autoLaunchReceiptScan,
       aiParseState = aiParseState,
       onParseWithAi = viewModel::parseExpenseWithAi,
       onScanReceiptUri = { uri ->
@@ -902,11 +1021,13 @@ fun MainAppScaffold(
       onDismiss = {
         viewModel.resetAiExpenseParser()
         showExpenseSheet = false
+        autoLaunchReceiptScan = false
         editingExpense = null
         prefillEpochDay = null
       },
       onSave = { title, amount, category, method, epochDay, note, receiptPhotoBase64 ->
         val currentEdit = editingExpense
+        val autoDeduct = PrivacySecurityManager.isAutoDeductWalletEnabled(context)
         if (currentEdit == null) {
           viewModel.addExpense(
             title = title,
@@ -917,6 +1038,9 @@ fun MainAppScaffold(
             note = note,
             receiptPhotoBase64 = receiptPhotoBase64,
           )
+          if (autoDeduct) {
+            savingsViewModel.adjustWalletBalance(method, -amount)
+          }
         } else {
           viewModel.updateExpense(
             existing = currentEdit,
@@ -928,9 +1052,19 @@ fun MainAppScaffold(
             note = note,
             receiptPhotoBase64 = receiptPhotoBase64,
           )
+          if (autoDeduct) {
+            if (currentEdit.paymentMethodEnum == method) {
+              val diff = currentEdit.amount - amount
+              if (diff != 0L) savingsViewModel.adjustWalletBalance(method, diff)
+            } else {
+              savingsViewModel.adjustWalletBalance(currentEdit.paymentMethodEnum, +currentEdit.amount)
+              savingsViewModel.adjustWalletBalance(method, -amount)
+            }
+          }
         }
         viewModel.resetAiExpenseParser()
         showExpenseSheet = false
+        autoLaunchReceiptScan = false
         editingExpense = null
         prefillEpochDay = null
       },
@@ -976,6 +1110,164 @@ fun MainAppScaffold(
       data = successData,
       onStatusMessage = viewModel::showStatusMessage,
       onDismiss = { showExportSheet = false },
+    )
+  }
+
+  if (showAiChatDialog && successData != null) {
+    val savingsForChat = (savingsUiState as? UiState.Success)?.data ?: SavingsUiData()
+    AiFinanceChatDialog(
+      aiAssistant = viewModel.aiAssistant,
+      snapshot = AiFinanceContextSnapshot(
+        monthKey = successData.monthKey,
+        paydayStartDay = successData.paydayStartDay,
+        periodExpenses = successData.expenses,
+        allHistoricalExpenses = successData.allHistoricalExpenses,
+        budget = successData.budget,
+        dailyInsight = successData.dailyInsight,
+        walletBalances = savingsForChat.walletBalances,
+        savingsGoals = savingsForChat.goals,
+        cashflowEntries = cashflowEntries,
+      ),
+      onDismiss = { showAiChatDialog = false },
+    )
+  }
+}
+
+@Composable
+internal fun CenterScanNavButton(
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val interactionSource = remember { MutableInteractionSource() }
+  val scanTitle = stringResource(R.string.ai_scan_quick_title)
+  val scanShortLabel = stringResource(R.string.widget_action_scan)
+
+  Box(
+    modifier = modifier
+      .defaultMinSize(minWidth = 56.dp, minHeight = 56.dp)
+      .clip(RoundedCornerShape(18.dp))
+      .tactilePressScale(
+        interactionSource = interactionSource,
+        pressedScale = 0.90f,
+        enablePressHaptic = false,
+      )
+      .clickable(
+        interactionSource = interactionSource,
+        indication = androidx.compose.material3.ripple(color = EmeraldSafe),
+        onClick = onClick,
+      )
+      .semantics { contentDescription = scanTitle }
+      .testTag("nav_center_scan_button"),
+    contentAlignment = Alignment.Center,
+  ) {
+    Column(
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(3.dp),
+      modifier = Modifier.padding(vertical = 4.dp),
+    ) {
+      Surface(
+        shape = RoundedCornerShape(15.dp),
+        color = Color.Transparent,
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
+        modifier = Modifier.size(44.dp),
+      ) {
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .background(
+              Brush.linearGradient(
+                colors = listOf(
+                  EmeraldSafe,
+                  Color(0xFF059669),
+                )
+              )
+            ),
+          contentAlignment = Alignment.Center,
+        ) {
+          Icon(
+            imageVector = Icons.Rounded.DocumentScanner,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(22.dp),
+          )
+        }
+      }
+      Text(
+        text = scanShortLabel,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = EmeraldSafe,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+    }
+  }
+}
+
+@Composable
+internal fun CenterScanRailButton(
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val interactionSource = remember { MutableInteractionSource() }
+  val scanTitle = stringResource(R.string.ai_scan_quick_title)
+  val scanShortLabel = stringResource(R.string.widget_action_scan)
+
+  Column(
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+    modifier = modifier
+      .defaultMinSize(minWidth = 56.dp, minHeight = 56.dp)
+      .clip(RoundedCornerShape(16.dp))
+      .tactilePressScale(
+        interactionSource = interactionSource,
+        pressedScale = 0.92f,
+        enablePressHaptic = false,
+      )
+      .clickable(
+        interactionSource = interactionSource,
+        indication = androidx.compose.material3.ripple(color = EmeraldSafe),
+        onClick = onClick,
+      )
+      .padding(horizontal = 6.dp, vertical = 4.dp)
+      .semantics { contentDescription = scanTitle }
+      .testTag("nav_center_scan_button"),
+  ) {
+    Surface(
+      shape = RoundedCornerShape(16.dp),
+      color = Color.Transparent,
+      shadowElevation = 4.dp,
+      border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
+      modifier = Modifier.size(48.dp),
+    ) {
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .background(
+            Brush.linearGradient(
+              colors = listOf(
+                EmeraldSafe,
+                Color(0xFF059669),
+              )
+            )
+          ),
+        contentAlignment = Alignment.Center,
+      ) {
+        Icon(
+          imageVector = Icons.Rounded.DocumentScanner,
+          contentDescription = null,
+          tint = Color.White,
+          modifier = Modifier.size(24.dp),
+        )
+      }
+    }
+    Text(
+      text = scanShortLabel,
+      style = MaterialTheme.typography.labelSmall,
+      fontWeight = FontWeight.Bold,
+      color = EmeraldSafe,
+      maxLines = 1,
     )
   }
 }

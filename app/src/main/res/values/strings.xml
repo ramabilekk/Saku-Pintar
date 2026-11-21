@@ -416,4 +416,242 @@
     <string name="topbar_budget_subtitle">Smart 50/30/20 allocation &amp; daily safe limits</string>
     <string name="topbar_savings_title">Savings Goals &amp; Wallets</string>
     <string name="topbar_savings_subtitle">Track your savings goals &amp; active wallets</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">Sign In to Your Account</string>
+    <string name="auth_simple_signin_subtitle">Manage your daily expenses &amp; monthly budget.</string>
+    <string name="auth_simple_google_continue">Continue with Google</string>
+    <string name="auth_or_divider">or</string>
+    <string name="auth_guest_simple_cta">Continue as Guest</string>
+    <string name="auth_simple_divider_signin">or quick access</string>
+    <string name="auth_simple_guest_name_label">Display Name (Optional)</string>
+    <string name="auth_simple_guest_name_placeholder">e.g. Alex</string>
+    <string name="auth_simple_help_link">Trouble signing in?</string>
+    <string name="auth_simple_guest_cta">Continue as Guest</string>
+    <string name="auth_simple_no_account_prompt">Don\'t have an account?</string>
+    <string name="auth_simple_register_action">Sign Up</string>
+    <string name="auth_simple_signup_title">Start with SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">Track transactions &amp; automate your monthly budget effortlessly.</string>
+    <string name="auth_simple_divider_signup">or try instantly</string>
+    <string name="auth_simple_guest_signup_cta">Try Guest Mode</string>
+    <string name="auth_simple_have_account_prompt">Already have an account?</string>
+    <string name="auth_simple_login_action">Sign in to account</string>
+    <string name="auth_simple_feature_cloud">Automatic cloud sync with Google</string>
+    <string name="auth_simple_feature_budget">Smart 50/30/20 budget planner</string>
+    <string name="auth_simple_feature_ai">AI receipt scan &amp; spending insights</string>
+    <string name="auth_help_back">Back to Sign In</string>
+    <string name="auth_help_title">Trouble Signing In?</string>
+    <string name="auth_help_body">SakuPintar uses Google Sign-In so you never need a separate password. If you forgot your Google access, recover your Google account below.</string>
+    <string name="auth_help_recover_cta">Recover Google Account</string>
+    <string name="auth_help_retry_google">Try Google Sign-In Again</string>
+    <string name="auth_help_footer_prompt">Need quick access?</string>
+    <string name="auth_help_footer_action">Use Guest Mode</string>
+    <string name="auth_help_browser_error">Unable to open browser. Visit accounts.google.com/signin/recovery.</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">AI Receipt Scan</string>
+    <string name="ai_scan_quick_subtitle">Snap or pick a receipt to auto-fill</string>
+    <string name="ai_scan_camera_action">Camera AI</string>
+    <string name="ai_scan_gallery_action">Gallery AI</string>
+    <string name="ai_scan_chooser_title">Scan Receipt with AI</string>
+    <string name="ai_scan_chooser_subtitle">Take a sharp photo or select an existing receipt image. AI will read merchant, total, date, and category automatically.</string>
+    <string name="ai_scan_success_banner">Receipt scanned by AI — review details below</string>
+    <string name="ai_scan_date_detected">Receipt date detected: %1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">Sync Guest Data to Google</string>
+    <string name="guest_sync_card_subtitle">Keep your %1$d local record(s) safe in the cloud and access them on any device.</string>
+    <string name="guest_sync_card_subtitle_empty">Connect your Google account for automatic cloud backup across devices.</string>
+    <string name="guest_sync_cta">Connect Google &amp; Migrate</string>
+    <string name="guest_sync_in_progress">Syncing your data to Google Cloud…</string>
+    <string name="guest_sync_success">Connected to Google! %1$d record(s) synced to cloud.</string>
+    <string name="guest_sync_partial">Connected to Google! %1$d synced, %2$d could not be uploaded.</string>
+    <string name="guest_sync_connected_empty">Connected to Google Cloud!</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">Custom Categories</string>
+    <string name="custom_cat_add_action">Add Custom</string>
+    <string name="custom_cat_dialog_title">New Custom Category</string>
+    <string name="custom_cat_name_label">Category Name</string>
+    <string name="custom_cat_name_hint">e.g. Coffee, Installment, Skincare</string>
+    <string name="custom_cat_parent_label">Budget Group</string>
+    <string name="custom_cat_color_label">Accent Color</string>
+    <string name="custom_cat_empty_hint">Create custom labels like Coffee or Skincare</string>
+    <string name="custom_cat_error_name">Enter a category name.</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">Monthly Due Day (Optional)</string>
+    <string name="bill_due_day_none">No due date</string>
+    <string name="bill_due_day_format">Day %1$d</string>
+    <string name="bill_due_today_badge">Due today!</string>
+    <string name="bill_due_in_days_badge">Due in %1$d d</string>
+    <string name="bill_due_upcoming_title">Upcoming Bills</string>
+    <string name="bill_due_pay_now">Log Now</string>
+    <string name="bill_due_notif_title">Bill Due Reminder</string>
+    <string name="bill_due_notif_channel_desc">Alerts for recurring bills approaching their due date</string>
+    <string name="bill_due_notif_today">%1$s is due today. Tap to log payment in SakuPintar.</string>
+    <string name="bill_due_notif_tomorrow">%1$s is due tomorrow. Prepare your budget in SakuPintar.</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">SakuPintar Quick Add</string>
+    <string name="widget_description">See today\'s safe limit and log expenses or scan receipts in 1 tap</string>
+    <string name="widget_safe_limit_label">Safe Limit Today</string>
+    <string name="widget_today_spent_format">Spent today: %1$s</string>
+    <string name="widget_action_add">+ Log</string>
+    <string name="widget_action_scan">AI Scan</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">Hide balances</string>
+    <string name="privacy_toggle_show_cd">Show balances</string>
+    <string name="privacy_security_section_title">Privacy &amp; Security</string>
+    <string name="privacy_hide_balances_title">Hide Balances</string>
+    <string name="privacy_hide_balances_subtitle">Mask amounts with •••••• in public</string>
+    <string name="app_lock_title">App Lock (PIN / Biometric)</string>
+    <string name="app_lock_subtitle_on">Protected when opening SakuPintar</string>
+    <string name="app_lock_subtitle_off">Require PIN or device lock on launch</string>
+    <string name="app_lock_setup_title">Set 4-Digit App PIN</string>
+    <string name="app_lock_setup_subtitle">Enter a 4-digit PIN to protect your financial records.</string>
+    <string name="app_lock_setup_confirm">Re-enter PIN to confirm</string>
+    <string name="app_lock_pin_mismatch">PINs do not match. Try again.</string>
+    <string name="app_lock_pin_saved">App Lock enabled!</string>
+    <string name="app_lock_disabled_status">App Lock turned off.</string>
+    <string name="app_lock_screen_title">SakuPintar Locked</string>
+    <string name="app_lock_screen_subtitle">Enter your 4-digit PIN to continue</string>
+    <string name="app_lock_wrong_pin">Incorrect PIN. Try again.</string>
+    <string name="app_lock_use_biometric">Unlock with Biometric / Device Lock</string>
+    <string name="app_lock_change_pin">Change PIN</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">Auto-Deduct Wallet Balance</string>
+    <string name="wallet_auto_deduct_subtitle">Automatically update wallet when logging expenses</string>
+    <string name="cashflow_record_income_action">Add Income</string>
+    <string name="cashflow_transfer_action">Transfer Wallet</string>
+    <string name="cashflow_income_dialog_title">Record Income</string>
+    <string name="cashflow_income_source_label">Income Source</string>
+    <string name="cashflow_income_source_hint">e.g. Salary, Bonus, Freelance</string>
+    <string name="cashflow_income_target_wallet">Deposit Into Wallet</string>
+    <string name="cashflow_income_saved">Income %1$s added to %2$s!</string>
+    <string name="cashflow_transfer_dialog_title">Transfer Between Wallets</string>
+    <string name="cashflow_transfer_from_label">From Wallet</string>
+    <string name="cashflow_transfer_to_label">To Wallet</string>
+    <string name="cashflow_transfer_same_wallet_error">Choose two different wallets.</string>
+    <string name="cashflow_transfer_insufficient">Insufficient balance in %1$s.</string>
+    <string name="cashflow_transfer_saved">Transferred %1$s from %2$s to %3$s!</string>
+    <string name="cashflow_history_title">Monthly Cashflow Activity</string>
+    <string name="cashflow_history_income_badge">Income</string>
+    <string name="cashflow_history_transfer_badge">Transfer</string>
+    <string name="cashflow_entry_deleted">Cashflow record removed.</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">Category Breakdown</string>
+    <string name="analytics_donut_total_label">Total Spent</string>
+    <string name="analytics_mom_lower">%1$d%% lower than last month</string>
+    <string name="analytics_mom_higher">%1$d%% higher than last month</string>
+    <string name="analytics_mom_same">Same spending pace as last month</string>
+    <string name="analytics_mom_no_prev">No spending data from last month yet</string>
+    <string name="analytics_top_expense_label">Largest expense this month</string>
+    <string name="budget_alert_over">Budget alert: %1$s exceeded limit (%2$d%%)!</string>
+    <string name="budget_alert_caution">Heads up: %1$s reached %2$d%% of monthly budget.</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">Speak expense with AI</string>
+    <string name="voice_ai_prompt">Say expense, e.g. Lunch 35k via QRIS</string>
+    <string name="voice_ai_unavailable">Voice input is not available on this device.</string>
+    <string name="action_undo">Undo</string>
+    <string name="expense_restored_status">Expense restored.</string>
+    <string name="expense_duplicated_status">Duplicated \"%1$s\" for today!</string>
+    <string name="duplicate_expense_cd">Duplicate expense</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">Quick Start Guide</string>
+    <string name="onboarding_progress_format">%1$d of 3 completed</string>
+    <string name="onboarding_step_budget_title">Set Monthly Budget</string>
+    <string name="onboarding_step_budget_sub">Auto-calculate your daily safe limit</string>
+    <string name="onboarding_step_wallet_title">Set Wallet Balances</string>
+    <string name="onboarding_step_wallet_sub">Track Cash, QRIS, Bank &amp; Card automatically</string>
+    <string name="onboarding_step_expense_title">Scan or Log First Expense</string>
+    <string name="onboarding_step_expense_sub">Try 1-tap AI receipt scan or quick entry</string>
+    <string name="onboarding_dismiss">Hide</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">Payday Cycle</string>
+    <string name="payday_default_subtitle">1st of every month (Standard calendar)</string>
+    <string name="payday_custom_subtitle">Starts on day %1$d every month</string>
+    <string name="payday_cycle_desc">Align your monthly budget reset and daily safe limit with your real payday date.</string>
+    <string name="payday_preset_1">1st</string>
+    <string name="payday_preset_25">25th</string>
+    <string name="payday_preset_28">28th</string>
+    <string name="payday_day_label">Cycle start day: %1$d</string>
+    <string name="payday_preview_label">Active period: %1$s</string>
+    <string name="payday_saved_status">Payday cycle updated to day %1$d.</string>
+    <string name="payday_badge_label">Cycle %1$s</string>
+    <string name="payday_change_action">Change</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">All Wallets</string>
+    <string name="filter_with_receipt">Has Receipt</string>
+    <string name="filter_reset">Reset</string>
+    <string name="sort_label_prefix">Sort:</string>
+    <string name="sort_newest">Newest</string>
+    <string name="sort_highest">Highest</string>
+    <string name="sort_lowest">Lowest</string>
+    <string name="sort_title_az">Name A–Z</string>
+    <string name="filter_sort_cd">Sort transactions</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">Spending &amp; Income Trend</string>
+    <string name="trend_6_months">6 Mo</string>
+    <string name="trend_12_months">12 Mo</string>
+    <string name="trend_legend_spending">Spending</string>
+    <string name="trend_legend_income">Income</string>
+    <string name="trend_tap_hint">Tap a bar to inspect monthly details</string>
+    <string name="trend_total_spent">Total Spent</string>
+    <string name="trend_total_income">Total Income</string>
+    <string name="trend_avg_monthly">Avg / Month</string>
+    <string name="trend_net_cashflow">Net Cashflow</string>
+    <string name="trend_lowest_month">Most Frugal: %1$s (%2$s)</string>
+    <string name="trend_highest_month">Highest Spend: %1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d tx</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">Edit Savings Goal</string>
+    <string name="savings_edit_save">Save Changes</string>
+    <string name="savings_edit_cd">Edit savings goal</string>
+    <string name="savings_history_cd">View deposit history</string>
+    <string name="savings_history_button">History</string>
+    <string name="savings_goal_updated">Savings goal \"%1$s\" updated!</string>
+    <string name="savings_history_sheet_title">Goal Progress &amp; History</string>
+    <string name="savings_history_total_deposits">Total Deposited</string>
+    <string name="savings_history_total_withdrawals">Total Withdrawn</string>
+    <string name="savings_history_eta_label">Estimated Completion</string>
+    <string name="savings_history_eta_done">Goal already reached! 🎉</string>
+    <string name="savings_history_eta_days">~%1$d days left (%2$s)</string>
+    <string name="savings_history_eta_months">~%1$d months left (%2$s)</string>
+    <string name="savings_history_eta_need_more">Add regular deposits to calculate your estimated completion date.</string>
+    <string name="savings_history_empty">No deposit or withdrawal records yet for this goal.</string>
+    <string name="savings_history_initial_label">Initial Balance</string>
+    <string name="savings_history_deposit_label">Deposit</string>
+    <string name="savings_history_withdraw_label">Withdrawal</string>
+    <string name="savings_history_balance_after">Balance: %1$s</string>
+
+    <!-- Tanya SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">Ask SakuPintar AI</string>
+    <string name="ai_chat_subtitle">Interactive personal finance coach based on your live data</string>
+    <string name="ai_chat_open_button">Ask AI</string>
+    <string name="ai_chat_open_cd">Open Ask SakuPintar AI chat</string>
+    <string name="ai_chat_reset_cd">Reset conversation</string>
+    <string name="ai_chat_close_cd">Close AI chat</string>
+    <string name="ai_chat_input_hint">Ask anything about your spending, budget, or savings…</string>
+    <string name="ai_chat_send_cd">Send question</string>
+    <string name="ai_chat_welcome_title">Hi! I\'m SakuPintar AI</string>
+    <string name="ai_chat_welcome_body">Ask me anything about your spending patterns, daily safe budget, savings timeline, or practical tips to save more.</string>
+    <string name="ai_chat_chip_1">Where am I spending the most this period?</string>
+    <string name="ai_chat_chip_2">Give me a practical saving plan for the rest of this cycle</string>
+    <string name="ai_chat_chip_3">How is my savings progress &amp; how can I reach my goals faster?</string>
+    <string name="ai_chat_chip_4">Compare my spending trend across recent months</string>
+    <string name="ai_chat_typing">SakuPintar AI is analyzing…</string>
+    <string name="ai_chat_retry">Retry</string>
+    <string name="ai_chat_context_badge">Live context: %1$s</string>
 </resources>
+
+

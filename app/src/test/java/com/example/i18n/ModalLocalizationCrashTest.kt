@@ -396,29 +396,11 @@ class ModalLocalizationCrashTest {
     }
 
     composeRule.waitForIdle()
-    composeRule.onNodeWithTag("auth_theme_toggle").assertIsDisplayed()
-    composeRule.onNodeWithTag("auth_theme_light_button").assertIsDisplayed()
-    composeRule.onNodeWithTag("auth_theme_dark_button").assertIsDisplayed().performClick()
-    composeRule.waitForIdle()
-    assertTrue(
-      com.example.ui.theme.ThemePreferenceManager.observeThemeMode(composeRule.activity).value ==
-        AppThemeMode.DARK
-    )
-
-    composeRule.onNodeWithTag("auth_theme_light_button").performClick()
-    composeRule.waitForIdle()
-    assertTrue(
-      com.example.ui.theme.ThemePreferenceManager.observeThemeMode(composeRule.activity).value ==
-        AppThemeMode.LIGHT
-    )
-    composeRule.onNodeWithTag("auth_landing_enter_button").performScrollTo().assertIsDisplayed().performClick()
-    composeRule.waitForIdle()
-    composeRule.onNodeWithTag("auth_mode_sign_in_tab").performScrollTo().assertIsDisplayed()
-    composeRule.onNodeWithTag("auth_mode_sign_up_tab").performScrollTo().assertIsDisplayed().performClick()
-    composeRule.waitForIdle()
+    composeRule.onNodeWithTag("auth_theme_toggle").assertDoesNotExist()
+    composeRule.onNodeWithTag("auth_language_button").assertDoesNotExist()
+    composeRule.onNodeWithTag("auth_switch_sign_up").assertDoesNotExist()
+    composeRule.onNodeWithTag("auth_guest_name_input").assertDoesNotExist()
     composeRule.onNodeWithTag("google_sign_in_button").performScrollTo().assertIsDisplayed()
-    composeRule.onNodeWithTag("auth_mode_sign_in_tab").performScrollTo().performClick()
-    composeRule.waitForIdle()
     composeRule.onNodeWithTag("auth_guest_method_button").performScrollTo().assertIsDisplayed().performClick()
     composeRule.waitForIdle()
     assertTrue(

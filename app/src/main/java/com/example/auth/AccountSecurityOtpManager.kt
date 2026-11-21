@@ -60,7 +60,10 @@ object AccountSecurityOtpManager {
    * Starts a temporary Guest Visitor session immediately without backing up
    * or saving data to persistent storage.
    */
-  fun startGuestVisitorSession(context: Context) {
+  fun startGuestVisitorSession(
+    context: Context,
+    customDisplayName: String? = null,
+  ) {
     ensureInitialized(context)
     context.applicationContext
       .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -72,10 +75,15 @@ object AccountSecurityOtpManager {
       .remove(KEY_ACTIVE_ALT_PHOTO)
       .apply()
 
+    val resolvedName = customDisplayName
+      ?.trim()
+      ?.takeIf { it.isNotEmpty() }
+      ?: context.getString(R.string.guest_account_display_name)
+
     _altSessionFlow.value = AltAuthSession(
       userId = "guest_visitor_${UUID.randomUUID()}",
       method = AuthMethodType.GUEST,
-      displayName = context.getString(R.string.guest_account_display_name),
+      displayName = resolvedName,
       identifierLabel = context.getString(R.string.guest_account_badge),
       customPhotoBase64 = null,
     )

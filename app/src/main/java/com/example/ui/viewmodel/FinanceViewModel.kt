@@ -12,6 +12,7 @@ import com.example.data.ai.AiParsedExpense
 import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
 import com.example.data.budget.DailyBudgetInsight
+import com.example.data.budget.PaydayCycleManager
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
@@ -21,6 +22,7 @@ import com.example.data.model.UserProfile
 import com.example.data.repository.FinanceRepository
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.notifications.BillDueReminderManager
 import com.example.util.Formatters
 import com.example.util.ImageUtils
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -82,12 +84,13 @@ data class FinanceDashboardData(
   val categoryBreakdown: List<CategoryProgress>,
   val selectedCategoryFilter: ExpenseCategory?,
   val searchQuery: String,
+  val paydayStartDay: Int = 1,
 )
 
 class FinanceViewModel(
   private val repository: FinanceRepository,
   private val currentUserId: String,
-  private val aiAssistant: FinanceAiAssistant = FinanceAiAssistant(),
+  val aiAssistant: FinanceAiAssistant = FinanceAiAssistant(),
   private val appContext: Context? = null,
 ) : ViewModel() {
 
@@ -99,7 +102,18 @@ class FinanceViewModel(
     return if (args.isEmpty()) ctx.getString(resId) else ctx.getString(resId, *args)
   }
 
-  private val _selectedMonthKey = MutableStateFlow(Formatters.currentMonthKey())
+  private val paydayStartDayFlow: StateFlow<Int> = appContext?.let {
+    PaydayCycleManager.observePaydayStartDay(it)
+  } ?: MutableStateFlow(1).asStateFlow()
+
+  private val _selectedMonthKey = MutableStateFlow(
+    PaydayCycleManager.currentCycleMonthKey(
+      paydayStartDay = appContext?.let {
+        PaydayCycleManager.ensureInitialized(it)
+        PaydayCycleManager.currentPaydayStartDay
+      } ?: 1
+    )
+  )
   val selectedMonthKey: StateFlow<String> = _selectedMonthKey.asStateFlow()
 
   private val _selectedCategoryFilter = MutableStateFlow<ExpenseCategory?>(null)
@@ -144,8 +158,8 @@ class FinanceViewModel(
   private val allExpensesFlow = repository.observeAllExpenses(currentUserId)
   private val recurringTemplatesFlow = repository.observeRecurringTemplates(currentUserId)
 
-  private val filterFlow = combine(_selectedCategoryFilter, _searchQuery) { cat, query ->
-    cat to query
+  private val filterFlow = combine(_selectedCategoryFilter, _searchQuery, paydayStartDayFlow) { cat, query, paydayDay ->
+    Triple(cat, query, paydayDay)
   }
 
   private val baseFinanceFlow = combine(
@@ -167,16 +181,24 @@ class FinanceViewModel(
   val uiState: StateFlow<UiState<FinanceDashboardData>> = combine(
     baseFinanceFlow,
     filterFlow,
-  ) { bundle, (catFilter, query) ->
+  ) { bundle, (catFilter, query, paydayStartDay) ->
     val monthKey = bundle.monthKey
-    val expenses = bundle.expenses
     val budget = bundle.budget
     val allExpenses = bundle.allExpenses
+    val expenses = if (paydayStartDay > 1) {
+      val cycle = PaydayCycleManager.resolveCycle(monthKey, paydayStartDay)
+      allExpenses
+        .filter { cycle.contains(it.dateEpochDay) }
+        .sortedByDescending { it.dateEpochDay }
+    } else {
+      bundle.expenses
+    }
 
     val insight = BudgetAutoComposer.calculateDailyInsight(
       budget = budget,
       monthExpenses = expenses,
       monthKey = monthKey,
+      paydayStartDay = paydayStartDay,
     )
 
     val spentByCategory = expenses.groupBy { it.categoryEnum }
@@ -214,6 +236,7 @@ class FinanceViewModel(
       categoryBreakdown = breakdown,
       selectedCategoryFilter = catFilter,
       searchQuery = query,
+      paydayStartDay = paydayStartDay,
     )
   }
     .map<FinanceDashboardData, UiState<FinanceDashboardData>> { UiState.Success(it) }
@@ -259,6 +282,39 @@ class FinanceViewModel(
     _searchQuery.value = query
   }
 
+  private fun buildBudgetAlertMessage(
+    category: ExpenseCategory,
+    addedAmount: Long,
+    expenseMonthKey: String,
+  ): String? {
+    val currentData = (uiState.value as? UiState.Success)?.data ?: return null
+    if (currentData.monthKey != expenseMonthKey) return null
+    val budget = currentData.budget ?: return null
+    val limit = budget.limitFor(category)
+    if (limit <= 0L) return null
+    val alreadySpent = currentData.expenses
+      .filter { it.categoryEnum == category }
+      .sumOf { it.amount }
+    val newSpent = alreadySpent + addedAmount
+    val pct = ((newSpent * 100L) / limit).toInt()
+    val categoryLabel = category.label(localizedCtx())
+    return when {
+      newSpent >= limit -> str(
+        R.string.budget_alert_over,
+        "Budget alert: %1\$s exceeded limit (%2\$d%%)!",
+        categoryLabel,
+        pct,
+      )
+      pct >= 80 -> str(
+        R.string.budget_alert_caution,
+        "Heads up: %1\$s budget is at %2\$d%%.",
+        categoryLabel,
+        pct,
+      )
+      else -> null
+    }
+  }
+
   fun addExpense(
     title: String,
     amount: Long,
@@ -267,6 +323,7 @@ class FinanceViewModel(
     dateEpochDay: Long,
     note: String,
     receiptPhotoBase64: String = "",
+    customSuccessStatus: String? = null,
   ) {
     if (amount <= 0L || title.isBlank()) {
       _actionStatus.value = str(R.string.vm_expense_validation, "Expense name and amount are required.")
@@ -274,6 +331,7 @@ class FinanceViewModel(
     }
     val date = LocalDate.ofEpochDay(dateEpochDay)
     val expenseMonthKey = java.time.YearMonth.from(date).toString()
+    val budgetAlert = buildBudgetAlertMessage(category, amount, expenseMonthKey)
 
     viewModelScope.launch {
       _isSaving.value = true
@@ -289,7 +347,7 @@ class FinanceViewModel(
           receiptPhotoBase64 = receiptPhotoBase64,
         )
         _selectedMonthKey.value = expenseMonthKey
-        _actionStatus.value = str(R.string.vm_expense_added, "Expense recorded!")
+        _actionStatus.value = budgetAlert ?: customSuccessStatus ?: str(R.string.vm_expense_added, "Expense recorded!")
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -297,6 +355,46 @@ class FinanceViewModel(
         _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to save expense: %1\$s", err)
       } finally {
         _isSaving.value = false
+      }
+    }
+  }
+
+  fun duplicateExpense(expense: Expense) {
+    addExpense(
+      title = expense.title,
+      amount = expense.amount,
+      category = expense.categoryEnum,
+      paymentMethod = expense.paymentMethodEnum,
+      dateEpochDay = LocalDate.now().toEpochDay(),
+      note = expense.note,
+      receiptPhotoBase64 = "",
+      customSuccessStatus = str(
+        R.string.expense_duplicated_status,
+        "\"%1\$s\" duplicated for today!",
+        expense.title,
+      ),
+    )
+  }
+
+  fun restoreExpense(expense: Expense) {
+    viewModelScope.launch {
+      try {
+        repository.addExpense(
+          title = expense.title,
+          amount = expense.amount,
+          category = expense.categoryEnum.name,
+          paymentMethod = expense.paymentMethodEnum.name,
+          dateEpochDay = expense.dateEpochDay,
+          monthKey = expense.monthKey,
+          note = expense.note,
+          receiptPhotoBase64 = expense.receiptPhotoBase64,
+        )
+        _actionStatus.value = str(R.string.expense_restored_status, "Expense restored.")
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(R.string.vm_expense_add_failed, "Failed to restore expense: %1\$s", err)
       }
     }
   }
@@ -346,11 +444,13 @@ class FinanceViewModel(
     }
   }
 
-  fun deleteExpense(expenseId: String) {
+  fun deleteExpense(expenseId: String, silentStatus: Boolean = false) {
     viewModelScope.launch {
       try {
         repository.deleteExpense(expenseId)
-        _actionStatus.value = str(R.string.vm_expense_deleted, "Expense deleted.")
+        if (!silentStatus) {
+          _actionStatus.value = str(R.string.vm_expense_deleted, "Expense deleted.")
+        }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -482,6 +582,7 @@ class FinanceViewModel(
     category: ExpenseCategory,
     paymentMethod: PaymentMethod,
     note: String,
+    dueDayOfMonth: Int? = null,
   ) {
     if (amount <= 0L || title.isBlank()) {
       _actionStatus.value = str(R.string.vm_expense_validation, "Name and amount are required.")
@@ -490,13 +591,23 @@ class FinanceViewModel(
     viewModelScope.launch {
       _isSaving.value = true
       try {
-        repository.addRecurringTemplate(
+        val newTemplateId = repository.addRecurringTemplate(
           title = title,
           amount = amount,
           category = category.name,
           paymentMethod = paymentMethod.name,
           note = note,
         )
+        if (dueDayOfMonth != null && newTemplateId.isNotBlank()) {
+          appContext?.let { ctx ->
+            BillDueReminderManager.setDueSchedule(
+              context = ctx,
+              templateId = newTemplateId,
+              title = title,
+              dueDayOfMonth = dueDayOfMonth,
+            )
+          }
+        }
         _actionStatus.value = str(R.string.vm_recurring_added, "Recurring template added!")
       } catch (e: CancellationException) {
         throw e
@@ -525,6 +636,9 @@ class FinanceViewModel(
     viewModelScope.launch {
       try {
         repository.deleteRecurringTemplate(templateId)
+        appContext?.let { ctx ->
+          BillDueReminderManager.removeDueSchedule(ctx, templateId)
+        }
         _actionStatus.value = str(R.string.vm_recurring_deleted, "Recurring template deleted.")
       } catch (e: CancellationException) {
         throw e
