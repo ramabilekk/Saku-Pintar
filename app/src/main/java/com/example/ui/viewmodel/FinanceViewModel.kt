@@ -11,6 +11,7 @@ import com.example.data.ai.AiFinancialInsight
 import com.example.data.ai.AiParsedExpense
 import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
+import com.example.data.budget.BudgetRolloverManager
 import com.example.data.budget.DailyBudgetInsight
 import com.example.data.budget.PaydayCycleManager
 import com.example.data.model.Expense
@@ -19,15 +20,20 @@ import com.example.data.model.MonthlyBudget
 import com.example.data.model.PaymentMethod
 import com.example.data.model.RecurringTemplate
 import com.example.data.model.UserProfile
+import com.example.data.repository.ExtrasCloudSyncRepository
 import com.example.data.repository.FinanceRepository
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.notifications.BillDueReminderManager
+import com.example.notifications.BudgetAlertNotificationManager
 import com.example.util.Formatters
 import com.example.util.ImageUtils
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -106,6 +112,10 @@ class FinanceViewModel(
     PaydayCycleManager.observePaydayStartDay(it)
   } ?: MutableStateFlow(1).asStateFlow()
 
+  private val rolloverEnabledFlow: StateFlow<Boolean> = appContext?.let {
+    BudgetRolloverManager.observeRolloverEnabled(it)
+  } ?: MutableStateFlow(false).asStateFlow()
+
   private val _selectedMonthKey = MutableStateFlow(
     PaydayCycleManager.currentCycleMonthKey(
       paydayStartDay = appContext?.let {
@@ -155,11 +165,22 @@ class FinanceViewModel(
     repository.observeMonthlyBudget(currentUserId, monthKey)
   }
 
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private val prevMonthBudgetFlow = _selectedMonthKey.flatMapLatest { monthKey ->
+    val prevKey = BudgetRolloverManager.previousMonthKey(monthKey)
+    repository.observeMonthlyBudget(currentUserId, prevKey)
+      .catch { emit(null) }
+  }
+
   private val allExpensesFlow = repository.observeAllExpenses(currentUserId)
   private val recurringTemplatesFlow = repository.observeRecurringTemplates(currentUserId)
 
   private val filterFlow = combine(_selectedCategoryFilter, _searchQuery, paydayStartDayFlow) { cat, query, paydayDay ->
     Triple(cat, query, paydayDay)
+  }
+
+  private val rolloverFlow = combine(rolloverEnabledFlow, prevMonthBudgetFlow) { enabled, prevBudget ->
+    enabled to prevBudget
   }
 
   private val baseFinanceFlow = combine(
@@ -181,7 +202,8 @@ class FinanceViewModel(
   val uiState: StateFlow<UiState<FinanceDashboardData>> = combine(
     baseFinanceFlow,
     filterFlow,
-  ) { bundle, (catFilter, query, paydayStartDay) ->
+    rolloverFlow,
+  ) { bundle, (catFilter, query, paydayStartDay), (rolloverEnabled, prevMonthBudget) ->
     val monthKey = bundle.monthKey
     val budget = bundle.budget
     val allExpenses = bundle.allExpenses
@@ -194,11 +216,23 @@ class FinanceViewModel(
       bundle.expenses
     }
 
+    val rolloverAmount = if (rolloverEnabled) {
+      BudgetRolloverManager.computeRolloverAmount(
+        monthKey = monthKey,
+        paydayStartDay = paydayStartDay,
+        previousBudget = prevMonthBudget,
+        allExpenses = allExpenses,
+      )
+    } else {
+      0L
+    }
+
     val insight = BudgetAutoComposer.calculateDailyInsight(
       budget = budget,
       monthExpenses = expenses,
       monthKey = monthKey,
       paydayStartDay = paydayStartDay,
+      rolloverAmount = rolloverAmount,
     )
 
     val spentByCategory = expenses.groupBy { it.categoryEnum }
@@ -348,6 +382,19 @@ class FinanceViewModel(
         )
         _selectedMonthKey.value = expenseMonthKey
         _actionStatus.value = budgetAlert ?: customSuccessStatus ?: str(R.string.vm_expense_added, "Expense recorded!")
+        appContext?.let { ctx ->
+          val currentData = (uiState.value as? UiState.Success)?.data
+          if (currentData != null && currentData.monthKey == expenseMonthKey) {
+            BudgetAlertNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+              context = ctx,
+              monthKey = expenseMonthKey,
+              category = category,
+              budget = currentData.budget,
+              periodExpenses = currentData.expenses,
+              newlyAddedAmount = amount,
+            )
+          }
+        }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -433,6 +480,20 @@ class FinanceViewModel(
         )
         _selectedMonthKey.value = expenseMonthKey
         _actionStatus.value = str(R.string.vm_expense_updated, "Record updated.")
+        appContext?.let { ctx ->
+          val currentData = (uiState.value as? UiState.Success)?.data
+          if (currentData != null && currentData.monthKey == expenseMonthKey) {
+            val delta = if (existing.categoryEnum == category) (amount - existing.amount).coerceAtLeast(0L) else amount
+            BudgetAlertNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+              context = ctx,
+              monthKey = expenseMonthKey,
+              category = category,
+              budget = currentData.budget,
+              periodExpenses = currentData.expenses,
+              newlyAddedAmount = delta,
+            )
+          }
+        }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
@@ -583,6 +644,7 @@ class FinanceViewModel(
     paymentMethod: PaymentMethod,
     note: String,
     dueDayOfMonth: Int? = null,
+    autoLogEnabled: Boolean = false,
   ) {
     if (amount <= 0L || title.isBlank()) {
       _actionStatus.value = str(R.string.vm_expense_validation, "Name and amount are required.")
@@ -600,12 +662,17 @@ class FinanceViewModel(
         )
         if (dueDayOfMonth != null && newTemplateId.isNotBlank()) {
           appContext?.let { ctx ->
-            BillDueReminderManager.setDueSchedule(
+            val savedSchedule = BillDueReminderManager.setDueSchedule(
               context = ctx,
               templateId = newTemplateId,
               title = title,
               dueDayOfMonth = dueDayOfMonth,
+              reminderEnabled = true,
+              autoLogEnabled = autoLogEnabled,
             )
+            if (savedSchedule != null) {
+              ExtrasCloudSyncRepository(ctx).upsertBillSchedule(savedSchedule)
+            }
           }
         }
         _actionStatus.value = str(R.string.vm_recurring_added, "Recurring template added!")
@@ -638,6 +705,7 @@ class FinanceViewModel(
         repository.deleteRecurringTemplate(templateId)
         appContext?.let { ctx ->
           BillDueReminderManager.removeDueSchedule(ctx, templateId)
+          ExtrasCloudSyncRepository(ctx).deleteBillSchedule(templateId)
         }
         _actionStatus.value = str(R.string.vm_recurring_deleted, "Recurring template deleted.")
       } catch (e: CancellationException) {
@@ -720,6 +788,44 @@ class FinanceViewModel(
       } catch (e: Exception) {
         val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
         _actionStatus.value = str(R.string.vm_expense_update_failed, "Failed to sync photo: %1\$s", err)
+      } finally {
+        _isSaving.value = false
+      }
+    }
+  }
+
+  fun deleteAccountAndData(onComplete: () -> Unit) {
+    viewModelScope.launch {
+      _isSaving.value = true
+      try {
+        repository.deleteAllUserData()
+        appContext?.let { ctx ->
+          com.example.data.local.CashflowLedgerManager.clearAll(ctx, currentUserId)
+          com.example.data.local.SavingsHistoryManager.clearAll(ctx, currentUserId)
+          com.example.data.local.DebtLedgerManager.clearAll(ctx, currentUserId)
+          com.example.data.local.CustomWalletManager.clearAll(ctx, currentUserId)
+          com.example.data.local.CustomCategoryManager.clearAll(ctx)
+          com.example.security.PrivacySecurityManager.setAppLockEnabled(ctx, false)
+        }
+        runCatching {
+          com.google.firebase.Firebase.auth.currentUser?.delete()?.await()
+        }.onFailure { err ->
+          Log.w(TAG, "Auth user delete deferred (recent login may be required); data already wiped.", err)
+        }
+        _actionStatus.value = str(
+          R.string.settings_delete_account_success,
+          "Account and all financial data deleted.",
+        )
+        onComplete()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        val err = e.localizedMessage ?: str(R.string.error_generic, "Error")
+        _actionStatus.value = str(
+          R.string.settings_delete_account_failed,
+          "Failed to delete account: %1\$s",
+          err,
+        )
       } finally {
         _isSaving.value = false
       }

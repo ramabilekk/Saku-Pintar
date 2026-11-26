@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,7 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,7 +28,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,11 +55,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -73,6 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,7 +77,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -103,7 +95,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -113,10 +104,18 @@ import com.example.R
 import com.example.auth.signOutUser
 import com.example.data.ai.AiFinanceContextSnapshot
 import com.example.data.local.CashflowLedgerManager
+import com.example.data.local.CustomCategoryManager
+import com.example.data.local.CustomWalletManager
+import com.example.data.local.DebtLedgerManager
+import com.example.data.local.FullAppBackup
+import com.example.data.local.SavingsHistoryManager
 import com.example.data.model.Expense
+import com.example.data.model.SavingsGoalCategory
+import com.example.data.repository.ExtrasCloudSyncRepository
 import com.example.data.repository.FinanceRepository
 import com.example.data.repository.SavingsRepository
 import com.example.i18n.CurrencyPreferenceManager
+import com.example.notifications.BillDueReminderManager
 import com.example.notifications.DailyReminderManager
 import com.example.security.PrivacySecurityManager
 import com.example.ui.components.AccountProfileDialog
@@ -126,6 +125,7 @@ import com.example.ui.components.ExpenseEditorSheet
 import com.example.ui.components.ExportReportSheet
 import com.example.ui.components.FloatingNavItem
 import com.example.ui.components.FloatingPillBottomBar
+import com.example.ui.components.LiquidGlassIconBadge
 import com.example.ui.components.ProfileAvatar
 import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
@@ -143,9 +143,11 @@ import com.example.ui.viewmodel.FinanceViewModel
 import com.example.ui.viewmodel.SavingsUiData
 import com.example.ui.viewmodel.SavingsViewModel
 import com.example.ui.viewmodel.UiState
+import com.example.util.Formatters
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 const val ROUTE_DASHBOARD = "dashboard"
 const val ROUTE_EXPENSES = "expenses"
@@ -282,8 +284,49 @@ fun MainAppScaffold(
   val themeMode by ThemePreferenceManager.observeThemeMode(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val cashflowEntries by CashflowLedgerManager.observeEntries(context, currentUserId).collectAsStateWithLifecycle()
+  val customWallets by CustomWalletManager.observeWallets(context, currentUserId).collectAsStateWithLifecycle()
+  val debtRecords by DebtLedgerManager.observeRecords(context, currentUserId).collectAsStateWithLifecycle()
+  val billSchedules by BillDueReminderManager.observeSchedules(context).collectAsStateWithLifecycle()
+  val extrasSyncRepo = remember(context) { ExtrasCloudSyncRepository(context) }
+  val financeRepoForBackup = remember(context) { FinanceRepository(context) }
+  val savingsRepoForBackup = remember(context) { SavingsRepository(context) }
   var reminderSettings by remember(context) {
     mutableStateOf(DailyReminderManager.getSettings(context))
+  }
+
+  LaunchedEffect(Unit) {
+    BillDueReminderManager.notifyDueBillsIfAny(context)
+  }
+
+  // Auto-log due recurring bills once per month when autoLogEnabled == true
+  LaunchedEffect(uiState, billSchedules) {
+    val success = (uiState as? UiState.Success)?.data ?: return@LaunchedEffect
+    val today = LocalDate.now()
+    val currentMonth = Formatters.currentMonthKey(today)
+    val dueTemplates = BillDueReminderManager.findDueAutoLogTemplates(
+      templates = success.recurringTemplates,
+      schedules = billSchedules,
+      today = today,
+    )
+    if (dueTemplates.isNotEmpty()) {
+      dueTemplates.forEach { (tpl, _) ->
+        val marked = BillDueReminderManager.markAutoLogged(context, tpl.id, currentMonth)
+        viewModel.logRecurringTemplate(tpl)
+        if (marked != null) {
+          extrasSyncRepo.upsertBillSchedule(marked)
+        }
+      }
+      snackbarHostState.showSnackbar(
+        context.getString(R.string.bill_autolog_triggered_status, dueTemplates.size)
+      )
+    }
+  }
+
+  DisposableEffect(currentUserId) {
+    val jobs = extrasSyncRepo.startRealtimeSync(scope, context, currentUserId)
+    onDispose {
+      jobs.forEach { it.cancel() }
+    }
   }
 
   LaunchedEffect(initialStatusMessage) {
@@ -396,68 +439,32 @@ fun MainAppScaffold(
     }
   }
 
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-    val useNavigationRail = maxWidth >= 600.dp
-
-    Row(modifier = Modifier.fillMaxSize()) {
-      if (useNavigationRail) {
-        NavigationRail(
-          containerColor = MaterialTheme.colorScheme.surface,
-          header = {
-            Spacer(modifier = Modifier.height(8.dp))
-            CenterScanRailButton(
-              onClick = ::openQuickReceiptScanner,
-            )
-          },
-          modifier = Modifier.fillMaxHeight(),
-        ) {
-          Spacer(modifier = Modifier.height(12.dp))
-          navTabs.forEach { tab ->
-            val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-            val label = stringResource(tab.labelRes)
-            val railInteractionSource = remember { MutableInteractionSource() }
-            val iconScale by animateFloatAsState(
-              targetValue = if (selected) 1.12f else 1.0f,
-              animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-              ),
-              label = "rail_icon_scale_${tab.route}",
-            )
-            NavigationRailItem(
-              selected = selected,
-              onClick = { navigateToTab(tab.route) },
-              interactionSource = railInteractionSource,
-              icon = {
-                Icon(
-                  imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                  contentDescription = label,
-                  modifier = Modifier.graphicsLayer {
-                    scaleX = iconScale
-                    scaleY = iconScale
-                  },
-                )
-              },
-              label = { Text(label) },
-              modifier = Modifier
-                .tactilePressScale(
-                  interactionSource = railInteractionSource,
-                  pressedScale = 0.92f,
-                  enablePressHaptic = false,
-                )
-                .testTag(tab.testTag),
-            )
-          }
-        }
-      }
-
-      Scaffold(
-        modifier = Modifier.weight(1f),
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
+  Box(modifier = modifier.fillMaxSize()) {
+  AppAmbientBackdrop()
+  Scaffold(
+    modifier = Modifier.fillMaxSize(),
+    containerColor = Color.Transparent,
+    contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
           TopAppBar(
+            modifier = Modifier.background(
+              Brush.verticalGradient(
+                colors = if (isDarkTheme) {
+                  listOf(
+                    Color(0xFF0A1426).copy(alpha = 0.72f),
+                    Color(0xFF0A1426).copy(alpha = 0.34f),
+                    Color.Transparent,
+                  )
+                } else {
+                  listOf(
+                    Color.White.copy(alpha = 0.72f),
+                    Color.White.copy(alpha = 0.30f),
+                    Color.Transparent,
+                  )
+                },
+              ),
+            ),
             colors = TopAppBarDefaults.topAppBarColors(
               containerColor = Color.Transparent,
               titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -486,20 +493,17 @@ fun MainAppScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.primary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.primary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -525,20 +529,17 @@ fun MainAppScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.tertiary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.Rounded.AutoAwesome,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.tertiary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -564,20 +565,17 @@ fun MainAppScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.secondary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.Savings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.Rounded.Savings,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.secondary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -603,17 +601,18 @@ fun MainAppScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = EmeraldSafe,
                       ) {
                         Image(
                           painter = painterResource(id = R.drawable.img_sakupintar_logo),
                           contentDescription = stringResource(R.string.app_name),
                           contentScale = ContentScale.Crop,
-                          modifier = Modifier.fillMaxSize(),
+                          modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(13.dp)),
                         )
                       }
                       Column {
@@ -658,22 +657,17 @@ fun MainAppScaffold(
                   .semantics { contentDescription = aiChatDesc }
                   .testTag("topbar_ai_chat_button"),
               ) {
-                Surface(
+                LiquidGlassIconBadge(
+                  size = 38.dp,
                   shape = CircleShape,
-                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                  tintColor = MaterialTheme.colorScheme.primary,
                 ) {
-                  Box(
-                    modifier = Modifier.size(36.dp),
-                    contentAlignment = Alignment.Center,
-                  ) {
-                    Icon(
-                      imageVector = Icons.Rounded.Forum,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(18.dp),
-                    )
-                  }
+                  Icon(
+                    imageVector = Icons.Rounded.Forum,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                  )
                 }
               }
               val profileDesc = stringResource(R.string.profile_cd, resolvedDisplayName)
@@ -694,33 +688,29 @@ fun MainAppScaffold(
                   .semantics { contentDescription = profileDesc }
                   .testTag("account_menu_button"),
               ) {
-                Surface(
+                LiquidGlassIconBadge(
+                  size = 38.dp,
                   shape = CircleShape,
-                  color = MaterialTheme.colorScheme.surface,
-                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                  tintColor = EmeraldSafe,
                 ) {
-                  Box(modifier = Modifier.padding(2.dp)) {
-                    ProfileAvatar(
-                      displayName = resolvedDisplayName,
-                      customPhotoBase64 = customPhotoBase64,
-                      googlePhotoUrl = googlePhotoUrl,
-                      size = 34.dp,
-                    )
-                  }
+                  ProfileAvatar(
+                    displayName = resolvedDisplayName,
+                    customPhotoBase64 = customPhotoBase64,
+                    googlePhotoUrl = googlePhotoUrl,
+                    size = 34.dp,
+                  )
                 }
               }
             },
           )
         },
         bottomBar = {
-          if (!useNavigationRail) {
-            FloatingPillBottomBar(
-              tabs = navTabs,
-              currentRoute = currentRoute,
-              onSelectTab = ::navigateToTab,
-              onQuickScanClick = ::openQuickReceiptScanner,
-            )
-          }
+          FloatingPillBottomBar(
+            tabs = navTabs,
+            currentRoute = currentRoute,
+            onSelectTab = ::navigateToTab,
+            onQuickScanClick = ::openQuickReceiptScanner,
+          )
         },
         floatingActionButton = {
           AnimatedVisibility(
@@ -744,9 +734,9 @@ fun MainAppScaffold(
                 showExpenseSheet = true
               },
               interactionSource = fabInteractionSource,
-              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
-              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
-              shape = RoundedCornerShape(16.dp),
+              containerColor = if (isDarkTheme) Color(0xFF0E9F77).copy(alpha = 0.88f) else ObsidianInk.copy(alpha = 0.88f),
+              contentColor = Color.White,
+              shape = CircleShape,
               icon = {
                 Icon(
                   imageVector = Icons.Rounded.Add,
@@ -771,7 +761,6 @@ fun MainAppScaffold(
         },
       ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-          AppAmbientBackdrop()
           when (val state = uiState) {
             UiState.Loading -> {
             Box(
@@ -865,7 +854,7 @@ fun MainAppScaffold(
                   top = innerPadding.calculateTopPadding(),
                   start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
                   end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                  bottom = if (useNavigationRail) innerPadding.calculateBottomPadding() else 0.dp,
+                  bottom = 0.dp,
                 ),
             ) {
               composable(ROUTE_DASHBOARD) {
@@ -875,7 +864,7 @@ fun MainAppScaffold(
                   customPhotoBase64 = customPhotoBase64,
                   googlePhotoUrl = googlePhotoUrl,
                   totalSavedAmount = savingsSuccess.totalSaved,
-                  totalWalletBalance = savingsSuccess.totalWalletBalance,
+                  totalWalletBalance = savingsSuccess.totalWalletBalance + customWallets.sumOf { it.balance },
                   aiInsightState = aiInsightState,
                   onRequestAiInsight = viewModel::generateMonthlyAiInsight,
                   onOpenProfile = { showAccountDialog = true },
@@ -915,6 +904,15 @@ fun MainAppScaffold(
                   onLogRecurringTemplate = ::handleLogRecurringTemplate,
                   onAddRecurringTemplate = viewModel::addRecurringTemplate,
                   onDeleteRecurringTemplate = viewModel::deleteRecurringTemplate,
+                  onBillScheduleChanged = { templateId, schedule ->
+                    scope.launch {
+                      if (schedule != null) {
+                        extrasSyncRepo.upsertBillSchedule(schedule)
+                      } else {
+                        extrasSyncRepo.deleteBillSchedule(templateId)
+                      }
+                    }
+                  },
                   onOpenExportReport = { showExportSheet = true },
                   onPreviousMonth = { viewModel.shiftMonth(-1L) },
                   onNextMonth = { viewModel.shiftMonth(1L) },
@@ -983,6 +981,41 @@ fun MainAppScaffold(
                       onPreviousMonth = { viewModel.shiftMonth(-1L) },
                       onNextMonth = { viewModel.shiftMonth(1L) },
                       onSelectMonth = viewModel::selectMonth,
+                      onUpsertCustomWallet = { wallet ->
+                        scope.launch { extrasSyncRepo.upsertCustomWallet(wallet) }
+                      },
+                      onDeleteCustomWallet = { id ->
+                        scope.launch { extrasSyncRepo.deleteCustomWallet(id) }
+                      },
+                      onUpsertDebtRecord = { debt ->
+                        scope.launch { extrasSyncRepo.upsertDebtRecord(debt) }
+                      },
+                      onDeleteDebtRecord = { id ->
+                        scope.launch { extrasSyncRepo.deleteDebtRecord(id) }
+                      },
+                      onUpsertSubscription = { sub ->
+                        scope.launch { extrasSyncRepo.upsertSubscription(sub) }
+                      },
+                      onDeleteSubscription = { id ->
+                        scope.launch { extrasSyncRepo.deleteSubscription(id) }
+                      },
+                      onLogSubscriptionAsExpense = { sub ->
+                        viewModel.addExpense(
+                          title = sub.name,
+                          amount = sub.amount,
+                          category = sub.category,
+                          paymentMethod = sub.paymentMethod,
+                          dateEpochDay = LocalDate.now().toEpochDay(),
+                          note = sub.note.ifBlank { "#langganan" },
+                        )
+                        viewModel.showStatusMessage(
+                          context.getString(R.string.sub_logged_expense_status, sub.name)
+                        )
+                      },
+                      onUpsertNetWorthSnapshot = { snapshot ->
+                        scope.launch { extrasSyncRepo.upsertNetWorthSnapshot(snapshot) }
+                      },
+                      onStatusMessage = viewModel::showStatusMessage,
                     )
                   }
                 }
@@ -1003,8 +1036,6 @@ fun MainAppScaffold(
         }
         }
       }
-    }
-  }
 
   if (showExpenseSheet) {
     ExpenseEditorSheet(
@@ -1018,6 +1049,19 @@ fun MainAppScaffold(
       },
       onScanReceiptBase64 = viewModel::parseReceiptBase64WithAi,
       onClearAiParse = viewModel::resetAiExpenseParser,
+      onCustomCategoryAdded = { cat ->
+        scope.launch { extrasSyncRepo.upsertCustomCategory(cat) }
+      },
+      onCustomCategoryDeleted = { id ->
+        scope.launch { extrasSyncRepo.deleteCustomCategory(id) }
+      },
+      customWallets = customWallets,
+      onDeductCustomWallet = { walletId, amount ->
+        val updatedWallet = CustomWalletManager.adjustBalance(context, currentUserId, walletId, -amount)
+        if (updatedWallet != null) {
+          scope.launch { extrasSyncRepo.upsertCustomWallet(updatedWallet) }
+        }
+      },
       onDismiss = {
         viewModel.resetAiExpenseParser()
         showExpenseSheet = false
@@ -1101,6 +1145,146 @@ fun MainAppScaffold(
         )
       },
       onDismiss = { showAccountDialog = false },
+      onOpenExportReport = {
+        showAccountDialog = false
+        showExportSheet = true
+      },
+      onDeleteAccount = {
+        viewModel.deleteAccountAndData {
+          showAccountDialog = false
+          signOutUser(
+            credentialManager = credentialManager,
+            scope = scope,
+            onSignOutComplete = onSignedOut,
+          )
+        }
+      },
+      isDeletingAccount = isSaving,
+      userId = currentUserId,
+      onBuildBackup = {
+        val dash = (uiState as? UiState.Success)?.data
+        val sav = (savingsUiState as? UiState.Success)?.data ?: SavingsUiData()
+        FullAppBackup(
+          expenses = dash?.allHistoricalExpenses.orEmpty(),
+          budgets = financeRepoForBackup.getAllBudgets(),
+          recurringTemplates = dash?.recurringTemplates.orEmpty(),
+          savingsGoals = sav.goals,
+          walletBalances = sav.walletBalances,
+          cashflowEntries = CashflowLedgerManager.observeEntries(context, currentUserId).value,
+          customCategories = CustomCategoryManager.observeCategories(context).value,
+          savingsHistory = SavingsHistoryManager.observeEntries(context, currentUserId).value,
+          debtRecords = DebtLedgerManager.observeRecords(context, currentUserId).value,
+          customWallets = CustomWalletManager.observeWallets(context, currentUserId).value,
+        )
+      },
+      onRestoreBackup = { backup ->
+        runCatching {
+          var restored = 0
+          backup.expenses.forEach { e ->
+            financeRepoForBackup.addExpense(
+              title = e.title,
+              amount = e.amount,
+              category = e.category,
+              paymentMethod = e.paymentMethod,
+              dateEpochDay = e.dateEpochDay,
+              monthKey = e.monthKey,
+              note = e.note,
+              receiptPhotoBase64 = e.receiptPhotoBase64,
+            )
+            restored++
+          }
+          backup.budgets.forEach { b ->
+            financeRepoForBackup.saveMonthlyBudget(b.copy(userId = currentUserId))
+            restored++
+          }
+          backup.recurringTemplates.forEach { r ->
+            financeRepoForBackup.addRecurringTemplate(
+              title = r.title,
+              amount = r.amount,
+              category = r.category,
+              paymentMethod = r.paymentMethod,
+              note = r.note,
+            )
+            restored++
+          }
+          val goalIdMap = mutableMapOf<String, String>()
+          backup.savingsGoals.forEach { g ->
+            val newId = savingsRepoForBackup.createSavingsGoal(
+              title = g.title,
+              targetAmount = g.targetAmount,
+              initialSavedAmount = g.savedAmount,
+              category = SavingsGoalCategory.fromKey(g.category),
+              note = g.note,
+            )
+            if (g.id.isNotBlank()) goalIdMap[g.id] = newId
+            restored++
+          }
+          backup.walletBalances.forEach { (method, bal) ->
+            if (bal > 0L) {
+              savingsRepoForBackup.setWalletBalance(method, bal)
+              restored++
+            }
+          }
+          if (backup.cashflowEntries.isNotEmpty()) {
+            CashflowLedgerManager.replaceAll(context, currentUserId, backup.cashflowEntries)
+            backup.cashflowEntries.forEach { entry ->
+              extrasSyncRepo.upsertCashflowEntry(entry.copy(userId = currentUserId))
+              restored++
+            }
+          }
+          if (backup.customCategories.isNotEmpty()) {
+            CustomCategoryManager.replaceAll(context, backup.customCategories)
+            backup.customCategories.forEach { cat ->
+              extrasSyncRepo.upsertCustomCategory(cat)
+              restored++
+            }
+          }
+          if (backup.savingsHistory.isNotEmpty()) {
+            val mappedHistory = backup.savingsHistory.map { h ->
+              h.copy(goalId = goalIdMap[h.goalId] ?: h.goalId)
+            }
+            SavingsHistoryManager.replaceAll(context, currentUserId, mappedHistory)
+            mappedHistory.forEach { h ->
+              extrasSyncRepo.addSavingsHistoryEntry(h)
+              restored++
+            }
+          }
+          if (backup.debtRecords.isNotEmpty()) {
+            DebtLedgerManager.replaceAll(context, currentUserId, backup.debtRecords)
+            backup.debtRecords.forEach { d ->
+              extrasSyncRepo.upsertDebtRecord(d.copy(userId = currentUserId))
+              restored++
+            }
+          }
+          if (backup.customWallets.isNotEmpty()) {
+            CustomWalletManager.replaceAll(context, currentUserId, backup.customWallets)
+            backup.customWallets.forEach { w ->
+              extrasSyncRepo.upsertCustomWallet(w.copy(userId = currentUserId))
+              restored++
+            }
+          }
+          restored
+        }
+      },
+      onImportCsvExpenses = { csvExpenses ->
+        runCatching {
+          var imported = 0
+          csvExpenses.forEach { e ->
+            financeRepoForBackup.addExpense(
+              title = e.title,
+              amount = e.amount,
+              category = e.category,
+              paymentMethod = e.paymentMethod,
+              dateEpochDay = e.dateEpochDay,
+              monthKey = e.monthKey,
+              note = e.note,
+              receiptPhotoBase64 = "",
+            )
+            imported++
+          }
+          imported
+        }
+      },
     )
   }
 
@@ -1127,9 +1311,12 @@ fun MainAppScaffold(
         walletBalances = savingsForChat.walletBalances,
         savingsGoals = savingsForChat.goals,
         cashflowEntries = cashflowEntries,
+        customWallets = customWallets,
+        debtRecords = debtRecords,
       ),
       onDismiss = { showAiChatDialog = false },
     )
+  }
   }
 }
 
@@ -1202,72 +1389,5 @@ internal fun CenterScanNavButton(
         overflow = TextOverflow.Ellipsis,
       )
     }
-  }
-}
-
-@Composable
-internal fun CenterScanRailButton(
-  onClick: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  val interactionSource = remember { MutableInteractionSource() }
-  val scanTitle = stringResource(R.string.ai_scan_quick_title)
-  val scanShortLabel = stringResource(R.string.widget_action_scan)
-
-  Column(
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(4.dp),
-    modifier = modifier
-      .defaultMinSize(minWidth = 56.dp, minHeight = 56.dp)
-      .clip(RoundedCornerShape(16.dp))
-      .tactilePressScale(
-        interactionSource = interactionSource,
-        pressedScale = 0.92f,
-        enablePressHaptic = false,
-      )
-      .clickable(
-        interactionSource = interactionSource,
-        indication = androidx.compose.material3.ripple(color = EmeraldSafe),
-        onClick = onClick,
-      )
-      .padding(horizontal = 6.dp, vertical = 4.dp)
-      .semantics { contentDescription = scanTitle }
-      .testTag("nav_center_scan_button"),
-  ) {
-    Surface(
-      shape = RoundedCornerShape(16.dp),
-      color = Color.Transparent,
-      shadowElevation = 4.dp,
-      border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)),
-      modifier = Modifier.size(48.dp),
-    ) {
-      Box(
-        modifier = Modifier
-          .fillMaxSize()
-          .background(
-            Brush.linearGradient(
-              colors = listOf(
-                EmeraldSafe,
-                Color(0xFF059669),
-              )
-            )
-          ),
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          imageVector = Icons.Rounded.DocumentScanner,
-          contentDescription = null,
-          tint = Color.White,
-          modifier = Modifier.size(24.dp),
-        )
-      }
-    }
-    Text(
-      text = scanShortLabel,
-      style = MaterialTheme.typography.labelSmall,
-      fontWeight = FontWeight.Bold,
-      color = EmeraldSafe,
-      maxLines = 1,
-    )
   }
 }

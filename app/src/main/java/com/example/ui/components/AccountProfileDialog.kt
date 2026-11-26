@@ -6,14 +6,12 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -21,54 +19,64 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PeopleOutline
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.VolunteerActivism
@@ -79,6 +87,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,41 +101,43 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.BuildConfig
 import com.example.R
 import com.example.data.budget.PaydayCycleManager
+import com.example.data.local.FullAppBackup
+import com.example.data.model.Expense
 import com.example.i18n.AppCurrency
 import com.example.i18n.AppLanguage
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.notifications.BudgetAlertNotificationManager
 import com.example.notifications.DailyReminderManager
 import com.example.notifications.ReminderSettings
 import com.example.security.PrivacySecurityManager
 import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.CoralDanger
-import com.example.ui.theme.GoldAccent
-import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.theme.ThemePreferenceManager
 
 private const val SUPPORT_DONATION_URL = "https://trakteer.id/ramabilekk/gift"
@@ -153,19 +164,40 @@ fun AccountProfileDialog(
   guestLocalRecordCount: Int = 0,
   isMigratingGuestData: Boolean = false,
   onConnectGoogleAndMigrate: (() -> Unit)? = null,
+  onOpenExportReport: (() -> Unit)? = null,
+  onDeleteAccount: (() -> Unit)? = null,
+  isDeletingAccount: Boolean = false,
+  userId: String = "",
+  onBuildBackup: (suspend () -> FullAppBackup)? = null,
+  onRestoreBackup: (suspend (FullAppBackup) -> Result<Int>)? = null,
+  onImportCsvExpenses: (suspend (List<Expense>) -> Result<Int>)? = null,
 ) {
   val context = LocalContext.current
+  val scope = rememberCoroutineScope()
   val isDarkTheme = rememberIsEffectiveDarkTheme()
+  val tactile = rememberTactileFeedback()
 
   var draftName by remember(displayName) { mutableStateOf(displayName) }
   var showLanguagePicker by remember { mutableStateOf(false) }
   var showTimePickerDialog by remember { mutableStateOf(false) }
   var showPhotoSourceDialog by remember { mutableStateOf(false) }
+  var showQuickEditProfileDialog by remember { mutableStateOf(false) }
+  var showClearCacheDialog by remember { mutableStateOf(false) }
+  var showSignOutConfirmDialog by remember { mutableStateOf(false) }
+  var showDeleteAccountDialog by remember { mutableStateOf(false) }
+  var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
+  var showTermsDialog by remember { mutableStateOf(false) }
+  var showBackupRestoreDialog by remember { mutableStateOf(false) }
   var expandNameEditor by remember { mutableStateOf(false) }
   var expandCurrencyPicker by remember { mutableStateOf(false) }
   var expandPaydaySection by remember { mutableStateOf(false) }
   var expandPrivacySection by remember { mutableStateOf(false) }
   var showSetupPinDialog by remember { mutableStateOf(false) }
+  var cacheSizeBytes by remember { mutableLongStateOf(0L) }
+
+  LaunchedEffect(Unit) {
+    cacheSizeBytes = AppCacheManager.calculateCacheSizeBytes(context)
+  }
 
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
@@ -173,6 +205,8 @@ fun AccountProfileDialog(
   val hideBalances by PrivacySecurityManager.observeHideBalances(context).collectAsStateWithLifecycle()
   val appLockEnabled by PrivacySecurityManager.observeAppLockEnabled(context).collectAsStateWithLifecycle()
   val autoDeductWallet by PrivacySecurityManager.observeAutoDeductWallet(context).collectAsStateWithLifecycle()
+  val hapticFeedbackEnabled by PrivacySecurityManager.observeHapticFeedbackEnabled(context).collectAsStateWithLifecycle()
+  val budgetAlertsEnabled by PrivacySecurityManager.observeBudgetAlertsEnabled(context).collectAsStateWithLifecycle()
 
   val photoPickerLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.PickVisualMedia(),
@@ -245,297 +279,435 @@ fun AccountProfileDialog(
     }
   }
 
+  fun handleReminderToggle(enable: Boolean) {
+    if (enable) {
+      val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(
+          context,
+          Manifest.permission.POST_NOTIFICATIONS,
+        ) != PackageManager.PERMISSION_GRANTED
+      if (needsPermission) {
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+      } else {
+        val updated = DailyReminderManager.updateSettings(
+          context,
+          reminderSettings.copy(enabled = true),
+        )
+        onReminderSettingsChange(updated)
+        val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
+        onStatusMessage(context.getString(R.string.reminder_enabled_status, formattedTime))
+      }
+    } else {
+      val updated = DailyReminderManager.updateSettings(
+        context,
+        reminderSettings.copy(enabled = false),
+      )
+      onReminderSettingsChange(updated)
+      onStatusMessage(context.getString(R.string.reminder_disabled_status))
+    }
+  }
+
+  val budgetAlertPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission(),
+  ) { granted ->
+    if (granted) {
+      PrivacySecurityManager.setBudgetAlertsEnabled(context, true)
+      BudgetAlertNotificationManager.ensureChannel(context)
+      onStatusMessage(context.getString(R.string.settings_budget_alerts_enabled_status))
+    } else {
+      PrivacySecurityManager.setBudgetAlertsEnabled(context, false)
+      onStatusMessage(context.getString(R.string.reminder_denied_status))
+    }
+  }
+
+  fun handleBudgetAlertsToggle(enable: Boolean) {
+    if (enable) {
+      val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(
+          context,
+          Manifest.permission.POST_NOTIFICATIONS,
+        ) != PackageManager.PERMISSION_GRANTED
+      if (needsPermission) {
+        budgetAlertPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+      } else {
+        PrivacySecurityManager.setBudgetAlertsEnabled(context, true)
+        BudgetAlertNotificationManager.ensureChannel(context)
+        onStatusMessage(context.getString(R.string.settings_budget_alerts_enabled_status))
+      }
+    } else {
+      PrivacySecurityManager.setBudgetAlertsEnabled(context, false)
+      onStatusMessage(context.getString(R.string.settings_budget_alerts_disabled_status))
+    }
+  }
+
   val hasCustomPhoto = !customPhotoBase64.isNullOrBlank()
   val hasGooglePhoto = !googlePhotoUrl.isNullOrBlank()
+  val formattedCacheSize = remember(cacheSizeBytes) {
+    AppCacheManager.formatCacheSize(cacheSizeBytes)
+  }
 
-  val drawerShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+  val expandedBg = if (isDarkTheme) {
+    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f)
+  } else {
+    MaterialTheme.colorScheme.surfaceContainerLow
+  }
 
-  Dialog(
-    onDismissRequest = onDismiss,
-    properties = DialogProperties(
-      usePlatformDefaultWidth = false,
-      decorFitsSystemWindows = false,
+  val settingsChipColors = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(
+      alpha = if (isDarkTheme) 0.22f else 0.14f,
     ),
+    selectedLabelColor = MaterialTheme.colorScheme.primary,
+    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+  )
+
+  BackHandler(onBack = onDismiss)
+
+  Surface(
+    modifier = Modifier
+      .fillMaxSize()
+      .pointerInput(Unit) {}
+      .testTag("profile_right_drawer"),
+    color = MaterialTheme.colorScheme.background,
   ) {
-    val tactile = rememberTactileFeedback()
-    val drawerScrimAlpha by animateFloatAsState(
-      targetValue = if (isDarkTheme) 0.62f else 0.44f,
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_scrim_alpha",
-    )
-    val drawerBorderTop by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.outlineVariant,
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_border_top",
-    )
-    val drawerBorderMid by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.outlineVariant,
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_border_mid",
-    )
-    val headerGradStart by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF0B1120) else Color(0xFF0F2C29),
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_header_grad_start",
-    )
-    val headerGradMid by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF141E33) else Color(0xFF14403A),
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_header_grad_mid",
-    )
-    val headerGradEnd by animateColorAsState(
-      targetValue = if (isDarkTheme) Color(0xFF0F172A) else Color(0xFF0D282C),
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_header_grad_end",
-    )
-    val headerDividerColor by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.outlineVariant,
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_header_divider",
-    )
-    val expandedSectionBgColor by animateColorAsState(
-      targetValue = MaterialTheme.colorScheme.surfaceVariant.copy(
-        alpha = if (isDarkTheme) 0.32f else 0.45f,
-      ),
-      animationSpec = tween(420, easing = FastOutSlowInEasing),
-      label = "drawer_expanded_section_bg",
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+      // Same subtle ambient radial wash used across Beranda, Riwayat, Rencana & Tabungan
+      AppAmbientBackdrop()
 
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(Color.Black.copy(alpha = drawerScrimAlpha))
-        .clickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = null,
-          onClick = onDismiss,
-        ),
-    ) {
-      // Right-anchored slide-over drawer panel right at the profile button side
-      Surface(
-        shape = drawerShape,
-        color = MaterialTheme.colorScheme.background,
-        tonalElevation = 8.dp,
-        shadowElevation = 20.dp,
+      Column(
         modifier = Modifier
-          .align(Alignment.CenterEnd)
-          .fillMaxHeight()
-          .fillMaxWidth(0.86f)
-          .widthIn(min = 290.dp, max = 390.dp)
-          .clip(drawerShape)
-          .border(
-            width = 1.dp,
-            brush = Brush.verticalGradient(
-              colors = listOf(
-                drawerBorderTop,
-                drawerBorderMid,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-              ),
-            ),
-            shape = drawerShape,
-          )
-          .clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = {},
-          )
-          .testTag("profile_right_drawer"),
+          .fillMaxSize()
+          .statusBarsPadding()
+          .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
       ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-          // Match Login & Dashboard multi-layered atmospheric backdrop
-          AppAmbientBackdrop()
-
-          Column(
+          // Clean Top Header: Themed Back Chip + "Pengaturan"
+          Row(
             modifier = Modifier
-              .fillMaxSize()
-              .verticalScroll(rememberScrollState())
-              .navigationBarsPadding(),
+              .fillMaxWidth()
+              .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
           ) {
-            // Top Dimensional Profile Identity Header
-            Box(
-              modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                  Brush.linearGradient(
-                    colors = listOf(headerGradStart, headerGradMid, headerGradEnd),
-                    start = Offset(0f, 0f),
-                    end = Offset(700f, 420f),
-                  )
-                ),
+            LiquidGlassIconBadge(
+              size = 48.dp,
+              shape = CircleShape,
+              tintColor = MaterialTheme.colorScheme.primary,
             ) {
-              Canvas(modifier = Modifier.matchParentSize()) {
-                if (size.width <= 1f || size.height <= 1f) return@Canvas
-                val r1 = (size.height * 0.85f).coerceAtLeast(1f)
-                drawCircle(
-                  brush = Brush.radialGradient(
-                    colors = listOf(
-                      SkyPositiveAccent.copy(alpha = 0.26f),
-                      Color.Transparent,
-                    ),
-                    center = Offset(size.width * 0.88f, size.height * 0.22f),
-                    radius = r1,
-                  ),
-                  radius = r1,
-                  center = Offset(size.width * 0.88f, size.height * 0.22f),
-                )
-                val r2 = (size.height * 0.65f).coerceAtLeast(1f)
-                drawCircle(
-                  brush = Brush.radialGradient(
-                    colors = listOf(
-                      GoldAccent.copy(alpha = 0.18f),
-                      Color.Transparent,
-                    ),
-                    center = Offset(size.width * 0.15f, size.height * 0.90f),
-                    radius = r2,
-                  ),
-                  radius = r2,
-                  center = Offset(size.width * 0.15f, size.height * 0.90f),
-                )
-              }
-
-              Row(
+              IconButton(
+                onClick = {
+                  tactile.tick()
+                  onDismiss()
+                },
                 modifier = Modifier
-                  .fillMaxWidth()
-                  .statusBarsPadding()
-                  .padding(start = 18.dp, end = 10.dp, top = 18.dp, bottom = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                  .fillMaxSize()
+                  .testTag("profile_close_button"),
               ) {
-                // Avatar with quick camera/gallery badge
-                Box(contentAlignment = Alignment.BottomEnd) {
-                  Surface(
-                    onClick = {
-                      if (!isSavingProfile) {
-                        showPhotoSourceDialog = true
-                      }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White.copy(alpha = 0.14f),
-                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f)),
-                    modifier = Modifier.padding(2.dp),
-                  ) {
-                    Box(modifier = Modifier.padding(3.dp)) {
-                      ProfileAvatar(
-                        displayName = displayName,
-                        customPhotoBase64 = customPhotoBase64,
-                        googlePhotoUrl = googlePhotoUrl,
-                        size = 54.dp,
-                      )
-                    }
-                  }
-                  Surface(
-                    onClick = {
-                      if (!isSavingProfile) {
-                        showPhotoSourceDialog = true
-                      }
-                    },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    border = BorderStroke(1.5.dp, Color.White),
-                    modifier = Modifier
-                      .size(24.dp)
-                      .testTag("pick_profile_photo_button"),
-                  ) {
-                    Box(contentAlignment = Alignment.Center) {
-                      Icon(
-                        imageVector = Icons.Outlined.PhotoCamera,
-                        contentDescription = stringResource(R.string.profile_photo_title),
-                        tint = Color.White,
-                        modifier = Modifier.size(13.dp),
-                      )
-                    }
-                  }
-                }
-
-                Column(
-                  modifier = Modifier.weight(1f),
-                  verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                  Text(
-                    text = displayName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                  )
-                  Text(
-                    text = email ?: stringResource(R.string.profile_connected_google),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.80f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                  )
-                }
-
-                IconButton(
-                  onClick = onDismiss,
-                  modifier = Modifier
-                    .size(48.dp)
-                    .testTag("profile_close_button"),
-                ) {
-                  Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.14f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
-                    modifier = Modifier.size(36.dp),
-                  ) {
-                    Box(contentAlignment = Alignment.Center) {
-                      Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.action_close),
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                      )
-                    }
-                  }
-                }
+                Icon(
+                  imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                  contentDescription = stringResource(R.string.action_close),
+                  tint = MaterialTheme.colorScheme.onSurface,
+                )
               }
             }
-
-            DrawerFullBleedDivider(
-              color = headerDividerColor,
-              thickness = 1.dp,
+            Text(
+              text = stringResource(R.string.settings_screen_title),
+              style = MaterialTheme.typography.titleLarge,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onBackground,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
             )
+          }
 
-            // Optional Guest-to-Google Cloud Migration Card
-            if (isGuestMode && onConnectGoogleAndMigrate != null) {
-              Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isDarkTheme) 0.45f else 0.72f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(horizontal = 16.dp, vertical = 14.dp)
-                  .testTag("guest_sync_google_card"),
+          // Scrollable Grouped Settings Body
+          Box(
+            modifier = Modifier
+              .weight(1f)
+              .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
+          ) {
+            Column(
+              modifier = Modifier
+                .widthIn(max = 620.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            ) {
+              // Signature Executive Profile Hero Card (matches Beranda & Tabungan Vault Card)
+              DimensionalVaultCard {
+                Column(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                  Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                  ) {
+                    Surface(
+                      shape = CircleShape,
+                      color = Color.White.copy(alpha = 0.12f),
+                      border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.30f)),
+                    ) {
+                      Box(modifier = Modifier.padding(2.dp)) {
+                        ProfileAvatar(
+                          displayName = displayName,
+                          customPhotoBase64 = customPhotoBase64,
+                          googlePhotoUrl = googlePhotoUrl,
+                          size = 54.dp,
+                        )
+                      }
+                    }
+                    Column(
+                      modifier = Modifier.weight(1f),
+                      verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                      Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                      Text(
+                        text = email?.takeIf { it.isNotBlank() } ?: stringResource(
+                          if (isGuestMode) {
+                            R.string.settings_guest_subtitle_fallback
+                          } else {
+                            R.string.profile_connected_google
+                          }
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.78f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+                  }
+
+                  // Translucent Glass Pill Action Buttons on Vault Hero Card
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                  ) {
+                    SettingsHeaderPillButton(
+                      icon = Icons.Outlined.Edit,
+                      label = stringResource(R.string.settings_quick_edit_profile),
+                      onClick = {
+                        tactile.tick()
+                        showQuickEditProfileDialog = true
+                      },
+                      modifier = Modifier
+                        .weight(1f)
+                        .testTag("quick_edit_profile_button"),
+                    )
+                    SettingsHeaderPillButton(
+                      icon = Icons.Outlined.PhotoCamera,
+                      label = stringResource(R.string.settings_quick_change_photo),
+                      onClick = {
+                        if (!isSavingProfile) {
+                          tactile.tick()
+                          showPhotoSourceDialog = true
+                        }
+                      },
+                      modifier = Modifier
+                        .weight(1f)
+                        .testTag("pick_profile_photo_button"),
+                    )
+                  }
+                }
+              }
+
+            // =========================================================================
+            // SECTION 1: AKUN (Edit Profil, Akun Terhubung / Sinkron Google)
+            // =========================================================================
+            SettingsSectionLabel(text = stringResource(R.string.settings_section_account))
+
+            SettingsGroupCard(isDarkTheme = isDarkTheme) {
+              // 1. Edit Profil (Nama & Foto)
+              SettingsRowItem(
+                icon = Icons.Outlined.Edit,
+                title = stringResource(R.string.profile_edit_name_title),
+                subtitle = displayName,
+                trailingIcon = if (expandNameEditor) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                onClick = {
+                  tactile.tick()
+                  expandNameEditor = !expandNameEditor
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_name_row"),
+              )
+
+              AnimatedVisibility(
+                visible = expandNameEditor,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
               ) {
                 Column(
-                  modifier = Modifier.padding(14.dp),
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .background(expandedBg)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                  verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  OutlinedTextField(
+                    value = draftName,
+                    onValueChange = { draftName = it.take(50) },
+                    label = { Text(stringResource(R.string.profile_display_name_label)) },
+                    placeholder = { Text(stringResource(R.string.profile_display_name_hint)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .testTag("profile_name_input"),
+                  )
+
+                  val trimmedDraft = draftName.trim()
+                  FilledTonalButton(
+                    onClick = {
+                      onSaveDisplayName(trimmedDraft)
+                      expandNameEditor = false
+                    },
+                    enabled = !isSavingProfile && trimmedDraft.isNotEmpty() && trimmedDraft != displayName,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .height(48.dp)
+                      .testTag("save_profile_name_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Save,
+                      contentDescription = null,
+                      modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                      if (isSavingProfile) {
+                        stringResource(R.string.action_saving)
+                      } else {
+                        stringResource(R.string.profile_save_name_button)
+                      }
+                    )
+                  }
+
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  ) {
+                    OutlinedButton(
+                      onClick = {
+                        if (!isSavingProfile) {
+                          photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                          )
+                        }
+                      },
+                      enabled = !isSavingProfile,
+                      shape = RoundedCornerShape(12.dp),
+                      modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("edit_profile_gallery_button"),
+                    ) {
+                      Icon(
+                        imageVector = Icons.Outlined.PhotoLibrary,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                      )
+                      Spacer(modifier = Modifier.width(6.dp))
+                      Text(
+                        text = if (hasCustomPhoto) {
+                          stringResource(R.string.profile_photo_change)
+                        } else {
+                          stringResource(R.string.profile_photo_pick)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+
+                    FilledTonalButton(
+                      onClick = {
+                        if (!isSavingProfile) {
+                          launchProfileCamera()
+                        }
+                      },
+                      enabled = !isSavingProfile,
+                      shape = RoundedCornerShape(12.dp),
+                      modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("take_profile_photo_camera_button"),
+                    ) {
+                      Icon(
+                        imageVector = Icons.Outlined.PhotoCamera,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                      )
+                      Spacer(modifier = Modifier.width(6.dp))
+                      Text(
+                        text = stringResource(R.string.profile_photo_camera),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+                  }
+
+                  if (hasCustomPhoto) {
+                    TextButton(
+                      onClick = onSyncGooglePhoto,
+                      enabled = !isSavingProfile,
+                      shape = RoundedCornerShape(12.dp),
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("sync_google_photo_button"),
+                    ) {
+                      Icon(
+                        imageVector = Icons.Outlined.Sync,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                      )
+                      Spacer(modifier = Modifier.width(8.dp))
+                      Text(
+                        if (hasGooglePhoto) {
+                          stringResource(R.string.profile_photo_use_google)
+                        } else {
+                          stringResource(R.string.profile_photo_remove_custom)
+                        }
+                      )
+                    }
+                  }
+                }
+              }
+
+              SettingsInsetDivider()
+
+              // 2. Akun Terhubung / Hubungkan Google (Guest)
+              if (isGuestMode && onConnectGoogleAndMigrate != null) {
+                Column(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp)
+                    .testTag("guest_sync_google_card"),
                   verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                   Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                   ) {
-                    Surface(
-                      shape = RoundedCornerShape(12.dp),
-                      color = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(36.dp),
-                    ) {
-                      Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                          imageVector = Icons.Rounded.CloudUpload,
-                          contentDescription = null,
-                          tint = Color.White,
-                          modifier = Modifier.size(19.dp),
-                        )
-                      }
-                    }
+                    SettingsIconBox(
+                      icon = Icons.Rounded.CloudUpload,
+                      isDarkTheme = isDarkTheme,
+                      tint = MaterialTheme.colorScheme.primary,
+                      containerColor = MaterialTheme.colorScheme.primary.copy(
+                        alpha = if (isDarkTheme) 0.18f else 0.12f,
+                      ),
+                    )
                     Column(modifier = Modifier.weight(1f)) {
                       Text(
                         text = stringResource(R.string.guest_sync_card_title),
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                       )
                       Text(
@@ -555,7 +727,7 @@ fun AccountProfileDialog(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                       containerColor = MaterialTheme.colorScheme.primary,
-                      contentColor = Color.White,
+                      contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                     modifier = Modifier
                       .fillMaxWidth()
@@ -566,7 +738,7 @@ fun AccountProfileDialog(
                       CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                       )
                       Spacer(modifier = Modifier.width(8.dp))
                       Text(
@@ -591,495 +763,334 @@ fun AccountProfileDialog(
                     }
                   }
                 }
-              }
-
-              DrawerFullBleedDivider(
-                color = headerDividerColor,
-                thickness = 1.dp,
-              )
-            }
-
-            // =========================================================================
-            // COLUMN 1: EDIT PROFIL (Name + Gallery & Camera Photo Upload)
-            // =========================================================================
-            DrawerColumnRow(
-              icon = Icons.Outlined.Edit,
-              badgeColors = listOf(Color(0xFF2563EB), Color(0xFF4F46E5)),
-              title = stringResource(R.string.profile_edit_name_title),
-              subtitle = displayName,
-              trailingIcon = if (expandNameEditor) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-              onClick = { expandNameEditor = !expandNameEditor },
-              modifier = Modifier.testTag("profile_name_row"),
-            )
-
-            AnimatedVisibility(
-              visible = expandNameEditor,
-              enter = expandVertically() + fadeIn(),
-              exit = shrinkVertically() + fadeOut(),
-            ) {
-              Column(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .background(expandedSectionBgColor)
-                  .padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-              ) {
-                OutlinedTextField(
-                  value = draftName,
-                  onValueChange = { draftName = it.take(50) },
-                  label = { Text(stringResource(R.string.profile_display_name_label)) },
-                  placeholder = { Text(stringResource(R.string.profile_display_name_hint)) },
-                  singleLine = true,
-                  shape = RoundedCornerShape(14.dp),
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("profile_name_input"),
-                )
-
-                val trimmedDraft = draftName.trim()
-                FilledTonalButton(
-                  onClick = {
-                    onSaveDisplayName(trimmedDraft)
-                    expandNameEditor = false
-                  },
-                  enabled = !isSavingProfile && trimmedDraft.isNotEmpty() && trimmedDraft != displayName,
-                  shape = RoundedCornerShape(12.dp),
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("save_profile_name_button"),
-                ) {
-                  Icon(
-                    imageVector = Icons.Rounded.Save,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                  )
-                  Spacer(modifier = Modifier.width(6.dp))
-                  Text(
-                    if (isSavingProfile) {
-                      stringResource(R.string.action_saving)
+              } else {
+                SettingsRowItem(
+                  icon = Icons.Outlined.PeopleOutline,
+                  title = stringResource(R.string.settings_connected_account_title),
+                  subtitle = email?.takeIf { it.isNotBlank() } ?: stringResource(
+                    if (isGuestMode) {
+                      R.string.settings_guest_subtitle_fallback
                     } else {
-                      stringResource(R.string.profile_save_name_button)
+                      R.string.profile_connected_google
                     }
-                  )
-                }
-
-                // Side-by-side Gallery & Camera Profile Photo Upload Buttons
-                Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                  OutlinedButton(
-                    onClick = {
-                      if (!isSavingProfile) {
-                        photoPickerLauncher.launch(
-                          PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
-                      }
-                    },
-                    enabled = !isSavingProfile,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                      .weight(1f)
-                      .height(48.dp)
-                      .testTag("edit_profile_gallery_button"),
-                  ) {
-                    Icon(
-                      imageVector = Icons.Outlined.PhotoLibrary,
-                      contentDescription = null,
-                      modifier = Modifier.size(17.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                      text = if (hasCustomPhoto) {
-                        stringResource(R.string.profile_photo_change)
-                      } else {
-                        stringResource(R.string.profile_photo_pick)
-                      },
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                  }
-
-                  FilledTonalButton(
-                    onClick = {
-                      if (!isSavingProfile) {
-                        launchProfileCamera()
-                      }
-                    },
-                    enabled = !isSavingProfile,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                      .weight(1f)
-                      .height(48.dp)
-                      .testTag("take_profile_photo_camera_button"),
-                  ) {
-                    Icon(
-                      imageVector = Icons.Outlined.PhotoCamera,
-                      contentDescription = null,
-                      modifier = Modifier.size(17.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                      text = stringResource(R.string.profile_photo_camera),
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                  }
-                }
-
-                if (hasCustomPhoto) {
-                  TextButton(
-                    onClick = onSyncGooglePhoto,
-                    enabled = !isSavingProfile,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                      .fillMaxWidth()
-                      .height(48.dp)
-                      .testTag("sync_google_photo_button"),
-                  ) {
-                    Icon(
-                      imageVector = Icons.Outlined.Sync,
-                      contentDescription = null,
-                      modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                      if (hasGooglePhoto) {
-                        stringResource(R.string.profile_photo_use_google)
-                      } else {
-                        stringResource(R.string.profile_photo_remove_custom)
-                      }
-                    )
-                  }
-                }
-              }
-            }
-
-            DrawerFullBleedDivider()
-
-            // =========================================================================
-            // COLUMN 2: BAHASA
-            // =========================================================================
-            val languageValue = if (activeLanguage == AppLanguage.SYSTEM) {
-              "${stringResource(R.string.language_auto)} (${activeLanguage.resolveEffectiveLanguage().shortCode})"
-            } else {
-              activeLanguage.nativeName
-            }
-            DrawerColumnRow(
-              icon = Icons.Outlined.Language,
-              badgeColors = listOf(Color(0xFF0284C7), Color(0xFF06B6D4)),
-              title = stringResource(R.string.language_section_title),
-              subtitle = languageValue,
-              trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-              onClick = { showLanguagePicker = true },
-              modifier = Modifier.testTag("profile_language_button"),
-            )
-
-            DrawerFullBleedDivider()
-
-            // =========================================================================
-            // COLUMN 3: MATA UANG
-            // =========================================================================
-            DrawerColumnRow(
-              icon = Icons.Outlined.AttachMoney,
-              badgeColors = listOf(Color(0xFF059669), Color(0xFF10B981)),
-              title = stringResource(R.string.currency_section_title),
-              subtitle = activeCurrency.displayName,
-              trailingIcon = if (expandCurrencyPicker) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-              onClick = { expandCurrencyPicker = !expandCurrencyPicker },
-              modifier = Modifier.testTag("profile_currency_button"),
-            )
-
-            AnimatedVisibility(
-              visible = expandCurrencyPicker,
-              enter = expandVertically() + fadeIn(),
-              exit = shrinkVertically() + fadeOut(),
-            ) {
-              FlowRow(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .background(expandedSectionBgColor)
-                  .padding(horizontal = 18.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-              ) {
-                AppCurrency.entries.forEach { currency ->
-                  FilterChip(
-                    selected = activeCurrency == currency,
-                    onClick = {
-                      CurrencyPreferenceManager.setCurrency(context, currency)
-                      onStatusMessage(context.getString(R.string.currency_changed_status, currency.displayName))
-                      expandCurrencyPicker = false
-                    },
-                    label = { Text(currency.displayName) },
-                    modifier = Modifier.testTag("currency_chip_${currency.code}"),
-                  )
-                }
-              }
-            }
-
-            DrawerFullBleedDivider()
-
-            // =========================================================================
-            // COLUMN 3B: SIKLUS TANGGAL GAJIAN (PAYDAY CYCLE)
-            // =========================================================================
-            val paydaySubtitle = if (paydayStartDay <= 1) {
-              stringResource(R.string.payday_default_subtitle)
-            } else {
-              stringResource(R.string.payday_custom_subtitle, paydayStartDay)
-            }
-            DrawerColumnRow(
-              icon = Icons.Outlined.CalendarMonth,
-              badgeColors = listOf(Color(0xFF0D9488), Color(0xFF14B8A6)),
-              title = stringResource(R.string.payday_section_title),
-              subtitle = paydaySubtitle,
-              trailingIcon = if (expandPaydaySection) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-              onClick = { expandPaydaySection = !expandPaydaySection },
-              modifier = Modifier.testTag("profile_payday_button"),
-            )
-
-            AnimatedVisibility(
-              visible = expandPaydaySection,
-              enter = expandVertically() + fadeIn(),
-              exit = shrinkVertically() + fadeOut(),
-            ) {
-              val previewCycle = remember(paydayStartDay) {
-                val curKey = PaydayCycleManager.currentCycleMonthKey(paydayStartDay = paydayStartDay)
-                PaydayCycleManager.resolveCycle(curKey, paydayStartDay)
-              }
-              Column(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .background(expandedSectionBgColor)
-                  .padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-              ) {
-                Text(
-                  text = stringResource(R.string.payday_cycle_desc),
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FlowRow(
-                  horizontalArrangement = Arrangement.spacedBy(8.dp),
-                  verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                  listOf(
-                    1 to stringResource(R.string.payday_preset_1),
-                    25 to stringResource(R.string.payday_preset_25),
-                    28 to stringResource(R.string.payday_preset_28),
-                  ).forEach { (day, label) ->
-                    FilterChip(
-                      selected = paydayStartDay == day,
-                      onClick = {
-                        PaydayCycleManager.setPaydayStartDay(context, day)
-                        onStatusMessage(context.getString(R.string.payday_saved_status, day))
-                      },
-                      label = { Text(label) },
-                      modifier = Modifier.testTag("payday_preset_$day"),
-                    )
-                  }
-                }
-                Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.SpaceBetween,
-                  verticalAlignment = Alignment.CenterVertically,
-                ) {
-                  Text(
-                    text = stringResource(R.string.payday_day_label, paydayStartDay),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                  )
-                  Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(
-                      onClick = {
-                        val next = (paydayStartDay - 1).coerceIn(1, 28)
-                        PaydayCycleManager.setPaydayStartDay(context, next)
-                      },
-                      enabled = paydayStartDay > 1,
-                      shape = RoundedCornerShape(10.dp),
-                      contentPadding = PaddingValues(0.dp),
-                      modifier = Modifier
-                        .size(44.dp)
-                        .testTag("payday_minus_button"),
-                    ) {
-                      Icon(imageVector = Icons.Rounded.Remove, contentDescription = "-")
-                    }
-                    OutlinedButton(
-                      onClick = {
-                        val next = (paydayStartDay + 1).coerceIn(1, 28)
-                        PaydayCycleManager.setPaydayStartDay(context, next)
-                      },
-                      enabled = paydayStartDay < 28,
-                      shape = RoundedCornerShape(10.dp),
-                      contentPadding = PaddingValues(0.dp),
-                      modifier = Modifier
-                        .size(44.dp)
-                        .testTag("payday_plus_button"),
-                    ) {
-                      Icon(imageVector = Icons.Rounded.Add, contentDescription = "+")
-                    }
-                  }
-                }
-                Text(
-                  text = stringResource(
-                    R.string.payday_preview_label,
-                    previewCycle.formatRangeLabel(activeLanguage.toLocale()),
                   ),
-                  style = MaterialTheme.typography.labelSmall,
-                  fontWeight = FontWeight.SemiBold,
-                  color = MaterialTheme.colorScheme.primary,
+                  trailingIcon = null,
+                  onClick = null,
+                  isDarkTheme = isDarkTheme,
                 )
               }
             }
 
-            DrawerFullBleedDivider()
+            // =========================================================================
+            // SECTION 2: UMUM (Tema, Bahasa, Mata Uang, Efek Getar)
+            // =========================================================================
+            SettingsSectionLabel(text = stringResource(R.string.settings_section_general))
 
-            // =========================================================================
-            // COLUMN 4: TEMA
-            // =========================================================================
-            Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .clickable {
-                  tactile.tick()
-                  val nextMode = if (themeMode == AppThemeMode.DARK) {
-                    AppThemeMode.LIGHT
-                  } else {
-                    AppThemeMode.DARK
+            SettingsGroupCard(isDarkTheme = isDarkTheme) {
+              // 1. Tema Warna
+              SettingsRowItem(
+                icon = Icons.Outlined.Palette,
+                title = stringResource(R.string.theme_section_title),
+                subtitleContent = {
+                  AnimatedContent(
+                    targetState = isDarkTheme,
+                    transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
+                    label = "settings_theme_label",
+                  ) { dark ->
+                    Text(
+                      text = stringResource(if (dark) R.string.theme_mode_dark else R.string.theme_mode_light),
+                      style = MaterialTheme.typography.bodySmall,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
                   }
+                },
+                trailingContent = {
+                  ThemeLogoToggle(
+                    themeMode = themeMode,
+                    onSelectThemeMode = { mode ->
+                      ThemePreferenceManager.setThemeMode(context, mode)
+                      val modeLabel = context.getString(mode.labelRes)
+                      onStatusMessage(context.getString(R.string.theme_changed_status, modeLabel))
+                    },
+                    lightButtonTag = "theme_mode_LIGHT",
+                    darkButtonTag = "theme_mode_DARK",
+                  )
+                },
+                onClick = {
+                  tactile.tick()
+                  val nextMode = if (themeMode == AppThemeMode.DARK) AppThemeMode.LIGHT else AppThemeMode.DARK
                   ThemePreferenceManager.setThemeMode(context, nextMode)
                   val nextLabel = context.getString(nextMode.labelRes)
                   onStatusMessage(context.getString(R.string.theme_changed_status, nextLabel))
-                }
-                .padding(horizontal = 18.dp, vertical = 12.dp)
-                .testTag("profile_theme_button"),
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-              SculptedDrawerBadge(
-                icon = Icons.Outlined.Palette,
-                gradientColors = listOf(Color(0xFFD97706), Color(0xFFF59E0B)),
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_theme_button"),
               )
-              Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+
+              SettingsInsetDivider()
+
+              // 2. Bahasa
+              val languageValue = if (activeLanguage == AppLanguage.SYSTEM) {
+                "${stringResource(R.string.language_auto)} (${activeLanguage.resolveEffectiveLanguage().shortCode})"
+              } else {
+                activeLanguage.nativeName
+              }
+              SettingsRowItem(
+                icon = Icons.Outlined.Language,
+                title = stringResource(R.string.language_section_title),
+                subtitle = languageValue,
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                onClick = {
+                  tactile.tick()
+                  showLanguagePicker = true
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_language_button"),
+              )
+
+              SettingsInsetDivider()
+
+              // 3. Mata Uang
+              SettingsRowItem(
+                icon = Icons.Outlined.AttachMoney,
+                title = stringResource(R.string.currency_section_title),
+                subtitle = activeCurrency.displayName,
+                trailingIcon = if (expandCurrencyPicker) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                onClick = {
+                  tactile.tick()
+                  expandCurrencyPicker = !expandCurrencyPicker
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_currency_button"),
+              )
+
+              AnimatedVisibility(
+                visible = expandCurrencyPicker,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
               ) {
-                Text(
-                  text = stringResource(R.string.theme_section_title),
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onSurface,
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-                )
-                AnimatedContent(
-                  targetState = isDarkTheme,
-                  transitionSpec = {
-                    fadeIn(tween(220)) togetherWith fadeOut(tween(180))
-                  },
-                  label = "drawer_theme_mode_label",
-                ) { dark ->
-                  Text(
-                    text = stringResource(
-                      if (dark) R.string.theme_mode_dark else R.string.theme_mode_light
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                  )
+                FlowRow(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .background(expandedBg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                  AppCurrency.entries.forEach { currency ->
+                    FilterChip(
+                      selected = activeCurrency == currency,
+                      onClick = {
+                        CurrencyPreferenceManager.setCurrency(context, currency)
+                        onStatusMessage(context.getString(R.string.currency_changed_status, currency.displayName))
+                        expandCurrencyPicker = false
+                      },
+                      label = { Text(currency.displayName) },
+                      colors = settingsChipColors,
+                      border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = activeCurrency == currency,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                      ),
+                      modifier = Modifier.testTag("currency_chip_${currency.code}"),
+                    )
+                  }
                 }
               }
-              ThemeLogoToggle(
-                themeMode = themeMode,
-                onSelectThemeMode = { mode ->
-                  ThemePreferenceManager.setThemeMode(context, mode)
-                  val modeLabel = context.getString(mode.labelRes)
-                  onStatusMessage(context.getString(R.string.theme_changed_status, modeLabel))
+
+              SettingsInsetDivider()
+
+              // 4. Efek Getar (Haptic Feedback)
+              SettingsRowItem(
+                icon = Icons.Outlined.Vibration,
+                title = stringResource(R.string.settings_haptic_title),
+                subtitle = stringResource(
+                  if (hapticFeedbackEnabled) {
+                    R.string.settings_haptic_subtitle_on
+                  } else {
+                    R.string.settings_haptic_subtitle_off
+                  }
+                ),
+                trailingContent = {
+                  Switch(
+                    checked = hapticFeedbackEnabled,
+                    onCheckedChange = { enabled ->
+                      PrivacySecurityManager.setHapticFeedbackEnabled(context, enabled)
+                      if (enabled) tactile.tick()
+                    },
+                    modifier = Modifier
+                      .scale(0.88f)
+                      .testTag("settings_haptic_switch"),
+                  )
                 },
-                lightButtonTag = "theme_mode_LIGHT",
-                darkButtonTag = "theme_mode_DARK",
+                onClick = {
+                  val next = !hapticFeedbackEnabled
+                  PrivacySecurityManager.setHapticFeedbackEnabled(context, next)
+                  if (next) tactile.tick()
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_haptic_row"),
               )
             }
 
-            DrawerFullBleedDivider()
+            // =========================================================================
+            // SECTION 2: KEUANGAN & KEAMANAN (Siklus Gajian, Pengingat, Privasi)
+            // =========================================================================
+            SettingsSectionLabel(text = stringResource(R.string.settings_section_finance))
 
-            // =========================================================================
-            // COLUMN 5: REMINDER / PENGINGAT HARIAN
-            // =========================================================================
-            Column(modifier = Modifier.fillMaxWidth()) {
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .heightIn(min = 72.dp)
-                  .padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            SettingsGroupCard(isDarkTheme = isDarkTheme) {
+              // 1. Siklus Tanggal Gajian
+              val paydaySubtitle = if (paydayStartDay <= 1) {
+                stringResource(R.string.payday_default_subtitle)
+              } else {
+                stringResource(R.string.payday_custom_subtitle, paydayStartDay)
+              }
+              SettingsRowItem(
+                icon = Icons.Outlined.CalendarMonth,
+                title = stringResource(R.string.payday_section_title),
+                subtitle = paydaySubtitle,
+                trailingIcon = if (expandPaydaySection) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                accentColor = MaterialTheme.colorScheme.secondary,
+                onClick = {
+                  tactile.tick()
+                  expandPaydaySection = !expandPaydaySection
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_payday_button"),
+              )
+
+              AnimatedVisibility(
+                visible = expandPaydaySection,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
               ) {
-                SculptedDrawerBadge(
-                  icon = Icons.Outlined.Notifications,
-                  gradientColors = listOf(Color(0xFF7C3AED), Color(0xFF9333EA)),
-                )
+                val previewCycle = remember(paydayStartDay) {
+                  val curKey = PaydayCycleManager.currentCycleMonthKey(paydayStartDay = paydayStartDay)
+                  PaydayCycleManager.resolveCycle(curKey, paydayStartDay)
+                }
                 Column(
-                  modifier = Modifier.weight(1f),
-                  verticalArrangement = Arrangement.spacedBy(2.dp),
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .background(expandedBg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                  verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                   Text(
-                    text = stringResource(R.string.reminder_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                  )
-                  Text(
-                    text = if (reminderSettings.enabled) {
-                      "%02d:%02d".format(reminderSettings.hour, reminderSettings.minute)
-                    } else {
-                      stringResource(R.string.reminder_subtitle)
-                    },
+                    text = stringResource(R.string.payday_cycle_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                  )
+                  FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                  ) {
+                    listOf(
+                      1 to stringResource(R.string.payday_preset_1),
+                      25 to stringResource(R.string.payday_preset_25),
+                      28 to stringResource(R.string.payday_preset_28),
+                    ).forEach { (day, label) ->
+                      FilterChip(
+                        selected = paydayStartDay == day,
+                        onClick = {
+                          PaydayCycleManager.setPaydayStartDay(context, day)
+                          onStatusMessage(context.getString(R.string.payday_saved_status, day))
+                        },
+                        label = { Text(label) },
+                        colors = settingsChipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                          enabled = true,
+                          selected = paydayStartDay == day,
+                          borderColor = MaterialTheme.colorScheme.outlineVariant,
+                          selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                        ),
+                        modifier = Modifier.testTag("payday_preset_$day"),
+                      )
+                    }
+                  }
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                  ) {
+                    Text(
+                      text = stringResource(R.string.payday_day_label, paydayStartDay),
+                      style = MaterialTheme.typography.labelLarge,
+                      fontWeight = FontWeight.Bold,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                      OutlinedButton(
+                        onClick = {
+                          val next = (paydayStartDay - 1).coerceIn(1, 28)
+                          PaydayCycleManager.setPaydayStartDay(context, next)
+                        },
+                        enabled = paydayStartDay > 1,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                          .size(48.dp)
+                          .testTag("payday_minus_button"),
+                      ) {
+                        Icon(imageVector = Icons.Rounded.Remove, contentDescription = "-")
+                      }
+                      OutlinedButton(
+                        onClick = {
+                          val next = (paydayStartDay + 1).coerceIn(1, 28)
+                          PaydayCycleManager.setPaydayStartDay(context, next)
+                        },
+                        enabled = paydayStartDay < 28,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                          .size(48.dp)
+                          .testTag("payday_plus_button"),
+                      ) {
+                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "+")
+                      }
+                    }
+                  }
+                  Text(
+                    text = stringResource(
+                      R.string.payday_preview_label,
+                      previewCycle.formatRangeLabel(activeLanguage.toLocale()),
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
                   )
                 }
-                Switch(
-                  checked = reminderSettings.enabled,
-                  onCheckedChange = { enable ->
-                    if (enable) {
-                      val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(
-                          context,
-                          Manifest.permission.POST_NOTIFICATIONS,
-                        ) != PackageManager.PERMISSION_GRANTED
-                      if (needsPermission) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                      } else {
-                        val updated = DailyReminderManager.updateSettings(
-                          context,
-                          reminderSettings.copy(enabled = true),
-                        )
-                        onReminderSettingsChange(updated)
-                        val formattedTime = "%02d:%02d".format(updated.hour, updated.minute)
-                        onStatusMessage(context.getString(R.string.reminder_enabled_status, formattedTime))
-                      }
-                    } else {
-                      val updated = DailyReminderManager.updateSettings(
-                        context,
-                        reminderSettings.copy(enabled = false),
-                      )
-                      onReminderSettingsChange(updated)
-                      onStatusMessage(context.getString(R.string.reminder_disabled_status))
-                    }
-                  },
-                  modifier = Modifier
-                    .scale(0.9f)
-                    .testTag("reminder_toggle_switch"),
-                )
               }
+
+              SettingsInsetDivider()
+
+              // 2. Pengingat Harian
+              SettingsRowItem(
+                icon = Icons.Outlined.Notifications,
+                title = stringResource(R.string.reminder_title),
+                subtitle = if (reminderSettings.enabled) {
+                  "%02d:%02d".format(reminderSettings.hour, reminderSettings.minute)
+                } else {
+                  stringResource(R.string.reminder_subtitle)
+                },
+                trailingContent = {
+                  Switch(
+                    checked = reminderSettings.enabled,
+                    onCheckedChange = { enable -> handleReminderToggle(enable) },
+                    modifier = Modifier
+                      .scale(0.88f)
+                      .testTag("reminder_toggle_switch"),
+                  )
+                },
+                onClick = {
+                  tactile.tick()
+                  handleReminderToggle(!reminderSettings.enabled)
+                },
+                accentColor = MaterialTheme.colorScheme.secondary,
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("reminder_toggle_row"),
+              )
 
               AnimatedVisibility(
                 visible = reminderSettings.enabled,
@@ -1089,8 +1100,8 @@ fun AccountProfileDialog(
                 FlowRow(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .background(expandedSectionBgColor)
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                    .background(expandedBg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                   horizontalArrangement = Arrangement.spacedBy(8.dp),
                   verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -1116,11 +1127,19 @@ fun AccountProfileDialog(
                         }
                       )
                     },
+                    colors = settingsChipColors,
+                    border = FilterChipDefaults.filterChipBorder(
+                      enabled = true,
+                      selected = isCustomTime,
+                      borderColor = MaterialTheme.colorScheme.outlineVariant,
+                      selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                    ),
                     modifier = Modifier.testTag("reminder_custom_time_button"),
                   )
                   listOf(19, 20, 21).forEach { hourOption ->
+                    val hourSelected = reminderSettings.hour == hourOption && reminderSettings.minute == 0
                     FilterChip(
-                      selected = reminderSettings.hour == hourOption && reminderSettings.minute == 0,
+                      selected = hourSelected,
                       onClick = {
                         val updated = DailyReminderManager.updateSettings(
                           context,
@@ -1131,22 +1150,55 @@ fun AccountProfileDialog(
                         onStatusMessage(context.getString(R.string.reminder_time_changed, formattedTime))
                       },
                       label = { Text("%02d:00".format(hourOption)) },
+                      colors = settingsChipColors,
+                      border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = hourSelected,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                      ),
                       modifier = Modifier.testTag("reminder_hour_$hourOption"),
                     )
                   }
                 }
               }
-            }
 
-            DrawerFullBleedDivider()
+              SettingsInsetDivider()
 
-            // =========================================================================
-            // COLUMN 6: PRIVASI & KEAMANAN (Hide Balances, App Lock, Auto-Deduct Wallet)
-            // =========================================================================
-            Column(modifier = Modifier.fillMaxWidth()) {
-              DrawerColumnRow(
+              // 2b. Notifikasi Batas Anggaran (80% & 100%)
+              SettingsRowItem(
+                icon = Icons.Outlined.NotificationsActive,
+                title = stringResource(R.string.settings_budget_alerts_title),
+                subtitle = stringResource(
+                  if (budgetAlertsEnabled) {
+                    R.string.settings_budget_alerts_subtitle_on
+                  } else {
+                    R.string.settings_budget_alerts_subtitle_off
+                  }
+                ),
+                trailingContent = {
+                  Switch(
+                    checked = budgetAlertsEnabled,
+                    onCheckedChange = { enable -> handleBudgetAlertsToggle(enable) },
+                    modifier = Modifier
+                      .scale(0.88f)
+                      .testTag("settings_budget_alerts_switch"),
+                  )
+                },
+                onClick = {
+                  tactile.tick()
+                  handleBudgetAlertsToggle(!budgetAlertsEnabled)
+                },
+                accentColor = MaterialTheme.colorScheme.secondary,
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_budget_alerts_row"),
+              )
+
+              SettingsInsetDivider()
+
+              // 3. Privasi & Keamanan
+              SettingsRowItem(
                 icon = Icons.Outlined.Security,
-                badgeColors = listOf(Color(0xFF0F766E), Color(0xFF14B8A6)),
                 title = stringResource(R.string.privacy_security_section_title),
                 subtitle = if (appLockEnabled) {
                   stringResource(R.string.app_lock_subtitle_on)
@@ -1156,8 +1208,13 @@ fun AccountProfileDialog(
                   stringResource(R.string.app_lock_subtitle_off)
                 },
                 trailingIcon = if (expandPrivacySection) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                onClick = {
+                  tactile.tick()
+                  expandPrivacySection = !expandPrivacySection
+                },
+                accentColor = MaterialTheme.colorScheme.secondary,
+                isDarkTheme = isDarkTheme,
                 modifier = Modifier.testTag("drawer_col_privacy_security"),
-                onClick = { expandPrivacySection = !expandPrivacySection },
               )
 
               AnimatedVisibility(
@@ -1168,8 +1225,8 @@ fun AccountProfileDialog(
                 Column(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .background(expandedSectionBgColor)
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                    .background(expandedBg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                   verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                   // 1. Sembunyikan Saldo
@@ -1195,15 +1252,15 @@ fun AccountProfileDialog(
                       checked = hideBalances,
                       onCheckedChange = { PrivacySecurityManager.setHideBalances(context, it) },
                       modifier = Modifier
-                        .scale(0.88f)
+                        .scale(0.86f)
                         .testTag("privacy_hide_balance_switch"),
                     )
                   }
 
-                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                   // 2. Kunci Aplikasi (PIN / Biometrik)
-                  Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                       modifier = Modifier.fillMaxWidth(),
                       verticalAlignment = Alignment.CenterVertically,
@@ -1240,7 +1297,7 @@ fun AccountProfileDialog(
                           }
                         },
                         modifier = Modifier
-                          .scale(0.88f)
+                          .scale(0.86f)
                           .testTag("app_lock_toggle_switch"),
                       )
                     }
@@ -1258,7 +1315,7 @@ fun AccountProfileDialog(
                     }
                   }
 
-                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                   // 3. Auto-Deduct Wallet Balance
                   Row(
@@ -1283,119 +1340,210 @@ fun AccountProfileDialog(
                       checked = autoDeductWallet,
                       onCheckedChange = { PrivacySecurityManager.setAutoDeductWallet(context, it) },
                       modifier = Modifier
-                        .scale(0.88f)
+                        .scale(0.86f)
                         .testTag("auto_deduct_wallet_switch"),
                     )
                   }
                 }
               }
+
+              if (onOpenExportReport != null) {
+                SettingsInsetDivider()
+
+                // 4. Ekspor Laporan Keuangan
+                SettingsRowItem(
+                  icon = Icons.Outlined.FileDownload,
+                  title = stringResource(R.string.settings_export_title),
+                  subtitle = stringResource(R.string.settings_export_subtitle),
+                  trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                  accentColor = MaterialTheme.colorScheme.secondary,
+                  onClick = {
+                    tactile.tick()
+                    onOpenExportReport()
+                  },
+                  isDarkTheme = isDarkTheme,
+                  modifier = Modifier.testTag("settings_export_report_button"),
+                )
+              }
+
+              if (onBuildBackup != null && onRestoreBackup != null) {
+                SettingsInsetDivider()
+
+                // 4b. Cadangkan & Pulihkan Data (JSON)
+                SettingsRowItem(
+                  icon = Icons.Rounded.CloudUpload,
+                  title = stringResource(R.string.settings_backup_restore_title),
+                  subtitle = stringResource(R.string.settings_backup_restore_subtitle),
+                  trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                  accentColor = MaterialTheme.colorScheme.secondary,
+                  onClick = {
+                    tactile.tick()
+                    showBackupRestoreDialog = true
+                  },
+                  isDarkTheme = isDarkTheme,
+                  modifier = Modifier.testTag("settings_backup_restore_button"),
+                )
+              }
+
+              SettingsInsetDivider()
+
+              // 5. Pengaturan Cache
+              SettingsRowItem(
+                icon = Icons.Outlined.CleaningServices,
+                title = stringResource(R.string.settings_cache_title),
+                subtitle = stringResource(R.string.settings_cache_subtitle, formattedCacheSize),
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                accentColor = MaterialTheme.colorScheme.secondary,
+                onClick = {
+                  tactile.tick()
+                  showClearCacheDialog = true
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_clear_cache_button"),
+              )
             }
 
-            DrawerFullBleedDivider()
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(18.dp))
+            // Dedicated Destructive Card: Keluar & Hapus Akun (matching reference layout)
+            SettingsGroupCard(isDarkTheme = isDarkTheme) {
+              SettingsRowItem(
+                icon = Icons.AutoMirrored.Rounded.Logout,
+                title = stringResource(R.string.action_sign_out),
+                subtitle = stringResource(R.string.settings_sign_out_subtitle),
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                isDestructive = true,
+                onClick = {
+                  tactile.tick()
+                  showSignOutConfirmDialog = true
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("sign_out_button"),
+              )
 
-            // Footer: Support & Sign Out inside sculpted container
-            Column(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-              verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-              SculptedSurfaceCard(
-                accentColor = CoralDanger,
-                cornerRadius = 18,
-              ) {
-                Row(
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                  SculptedDrawerBadge(
-                    icon = Icons.Rounded.VolunteerActivism,
-                    gradientColors = listOf(Color(0xFFE11D48), Color(0xFFF43F5E)),
-                    sizeDp = 38,
+              if (onDeleteAccount != null) {
+                SettingsInsetDivider()
+
+                SettingsRowItem(
+                  icon = Icons.Outlined.DeleteOutline,
+                  title = stringResource(
+                    if (isGuestMode) {
+                      R.string.settings_delete_account_title_guest
+                    } else {
+                      R.string.settings_delete_account_title
+                    }
+                  ),
+                  subtitle = stringResource(
+                    if (isGuestMode) {
+                      R.string.settings_delete_account_subtitle_guest
+                    } else {
+                      R.string.settings_delete_account_subtitle
+                    }
+                  ),
+                  trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                  isDestructive = true,
+                  onClick = {
+                    tactile.tick()
+                    showDeleteAccountDialog = true
+                  },
+                  isDarkTheme = isDarkTheme,
+                  modifier = Modifier.testTag("settings_delete_account_button"),
+                )
+              }
+            }
+
+            // =========================================================================
+            // SECTION 4: TENTANG APLIKASI (Privasi, S&K, Hubungi Kami, Dukung, Versi)
+            // =========================================================================
+            SettingsSectionLabel(text = stringResource(R.string.settings_section_about))
+
+            SettingsGroupCard(isDarkTheme = isDarkTheme) {
+              SettingsRowItem(
+                icon = Icons.Outlined.PrivacyTip,
+                title = stringResource(R.string.settings_privacy_policy_title),
+                subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                onClick = {
+                  tactile.tick()
+                  showPrivacyPolicyDialog = true
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_privacy_policy_button"),
+              )
+
+              SettingsInsetDivider()
+
+              SettingsRowItem(
+                icon = Icons.Outlined.Description,
+                title = stringResource(R.string.settings_terms_title),
+                subtitle = stringResource(R.string.settings_terms_subtitle),
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                onClick = {
+                  tactile.tick()
+                  showTermsDialog = true
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_terms_button"),
+              )
+
+              SettingsInsetDivider()
+
+              val contactEmail = stringResource(R.string.settings_contact_email)
+              val contactSubject = stringResource(R.string.settings_contact_email_subject)
+              SettingsRowItem(
+                icon = Icons.Outlined.MailOutline,
+                title = stringResource(R.string.settings_contact_title),
+                subtitle = contactEmail,
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                onClick = {
+                  tactile.tick()
+                  launchSupportEmailOrCopy(
+                    context = context,
+                    email = contactEmail,
+                    subject = contactSubject,
+                    onCopiedMessage = onStatusMessage,
                   )
-                  Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                  ) {
-                    Text(
-                      text = stringResource(R.string.profile_support_title),
-                      style = MaterialTheme.typography.bodyMedium,
-                      fontWeight = FontWeight.Bold,
-                      color = MaterialTheme.colorScheme.onSurface,
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                      text = stringResource(R.string.profile_support_subtitle),
-                      style = MaterialTheme.typography.labelSmall,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant,
-                      maxLines = 2,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                  }
-                  FilledTonalButton(
-                    onClick = {
-                      runCatching {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_DONATION_URL)).apply {
-                          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
-                      }.onFailure {
-                        onStatusMessage(context.getString(R.string.profile_support_browser_error))
-                      }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier
-                      .height(48.dp)
-                      .testTag("profile_support_button"),
-                  ) {
-                    Icon(
-                      imageVector = Icons.Rounded.Favorite,
-                      contentDescription = null,
-                      tint = CoralDanger,
-                      modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                      text = stringResource(R.string.profile_support_button),
-                      fontWeight = FontWeight.SemiBold,
-                      maxLines = 1,
-                    )
-                  }
-                }
-              }
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("settings_contact_button"),
+              )
 
-              TextButton(
-                onClick = onSignOut,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .height(48.dp)
-                  .testTag("sign_out_button"),
-              ) {
-                Icon(
-                  imageVector = Icons.AutoMirrored.Rounded.Logout,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                  modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                  text = stringResource(R.string.action_sign_out),
-                  color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                  style = MaterialTheme.typography.labelLarge,
-                  fontWeight = FontWeight.SemiBold,
-                )
-              }
+              SettingsInsetDivider()
+
+              SettingsRowItem(
+                icon = Icons.Rounded.VolunteerActivism,
+                title = stringResource(R.string.profile_support_title),
+                subtitle = stringResource(R.string.profile_support_subtitle),
+                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                accentColor = MaterialTheme.colorScheme.tertiary,
+                onClick = {
+                  tactile.tick()
+                  runCatching {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_DONATION_URL)).apply {
+                      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                  }.onFailure {
+                    onStatusMessage(context.getString(R.string.profile_support_browser_error))
+                  }
+                },
+                isDarkTheme = isDarkTheme,
+                modifier = Modifier.testTag("profile_support_button"),
+              )
+
+              SettingsInsetDivider()
+
+              SettingsRowItem(
+                icon = Icons.Outlined.Info,
+                title = stringResource(R.string.settings_app_version_title),
+                subtitle = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                trailingIcon = null,
+                onClick = null,
+                isDarkTheme = isDarkTheme,
+              )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(32.dp))
           }
         }
       }
@@ -1412,9 +1560,8 @@ fun AccountProfileDialog(
     )
   }
 
-  // Quick Profile Photo Source Chooser Dialog (Camera vs Gallery)
   if (showPhotoSourceDialog) {
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { showPhotoSourceDialog = false },
       title = {
         Text(
@@ -1500,7 +1647,7 @@ fun AccountProfileDialog(
       initialMinute = reminderSettings.minute,
       is24Hour = true,
     )
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { showTimePickerDialog = false },
       title = {
         Text(
@@ -1560,102 +1707,165 @@ fun AccountProfileDialog(
       onDismiss = { showLanguagePicker = false },
     )
   }
-}
 
-@Composable
-private fun SculptedDrawerBadge(
-  icon: ImageVector,
-  gradientColors: List<Color>,
-  sizeDp: Int = 44,
-) {
-  val shape = RoundedCornerShape(14.dp)
-  Surface(
-    shape = shape,
-    color = Color.Transparent,
-    shadowElevation = 4.dp,
-    modifier = Modifier.size(sizeDp.dp),
-  ) {
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(
-          Brush.linearGradient(
-            colors = gradientColors,
-            start = Offset(0f, 0f),
-            end = Offset(120f, 120f),
-          )
-        )
-        .border(
-          width = 1.dp,
-          brush = Brush.linearGradient(
-            colors = listOf(
-              Color.White.copy(alpha = 0.45f),
-              Color.White.copy(alpha = 0.10f),
-            )
-          ),
-          shape = shape,
-        ),
-      contentAlignment = Alignment.Center,
-    ) {
-      Icon(
-        imageVector = icon,
-        contentDescription = null,
-        tint = Color.White,
-        modifier = Modifier.size((sizeDp * 0.5f).dp),
-      )
-    }
+  if (showQuickEditProfileDialog) {
+    EditProfileQuickDialog(
+      currentDisplayName = displayName,
+      isSavingProfile = isSavingProfile,
+      onSaveDisplayName = onSaveDisplayName,
+      onChangePhotoClick = { showPhotoSourceDialog = true },
+      onDismiss = { showQuickEditProfileDialog = false },
+    )
+  }
+
+  if (showClearCacheDialog) {
+    ClearCacheConfirmDialog(
+      formattedSize = formattedCacheSize,
+      onConfirmClear = {
+        showClearCacheDialog = false
+        scope.launch {
+          val clearedBytes = AppCacheManager.clearAppCache(context)
+          cacheSizeBytes = AppCacheManager.calculateCacheSizeBytes(context)
+          val clearedLabel = AppCacheManager.formatCacheSize(clearedBytes)
+          onStatusMessage(context.getString(R.string.settings_cache_cleared_status, clearedLabel))
+        }
+      },
+      onDismiss = { showClearCacheDialog = false },
+    )
+  }
+
+  if (showSignOutConfirmDialog) {
+    SignOutConfirmDialog(
+      isGuestMode = isGuestMode,
+      onConfirmSignOut = {
+        showSignOutConfirmDialog = false
+        onSignOut()
+      },
+      onDismiss = { showSignOutConfirmDialog = false },
+    )
+  }
+
+  if (showDeleteAccountDialog && onDeleteAccount != null) {
+    DeleteAccountConfirmDialog(
+      isGuestMode = isGuestMode,
+      isDeleting = isDeletingAccount,
+      onConfirmDelete = {
+        onDeleteAccount()
+      },
+      onDismiss = { showDeleteAccountDialog = false },
+    )
+  }
+
+  if (showPrivacyPolicyDialog) {
+    LegalInfoDialog(
+      title = stringResource(R.string.settings_privacy_policy_title),
+      body = stringResource(R.string.settings_privacy_policy_body),
+      onDismiss = { showPrivacyPolicyDialog = false },
+    )
+  }
+
+  if (showTermsDialog) {
+    LegalInfoDialog(
+      title = stringResource(R.string.settings_terms_title),
+      body = stringResource(R.string.settings_terms_body),
+      onDismiss = { showTermsDialog = false },
+    )
+  }
+
+  if (showBackupRestoreDialog && onBuildBackup != null && onRestoreBackup != null) {
+    BackupRestoreDialog(
+      userId = userId,
+      onBuildBackup = onBuildBackup,
+      onRestoreBackup = onRestoreBackup,
+      onStatusMessage = onStatusMessage,
+      onDismiss = { showBackupRestoreDialog = false },
+      onImportCsvExpenses = onImportCsvExpenses,
+    )
   }
 }
 
 @Composable
-private fun DrawerColumnRow(
+private fun SettingsSectionLabel(text: String) {
+  Text(
+    text = text,
+    style = MaterialTheme.typography.labelLarge,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary,
+    modifier = Modifier.padding(start = 6.dp, top = 20.dp, bottom = 8.dp),
+  )
+}
+
+@Composable
+private fun SettingsGroupCard(
+  isDarkTheme: Boolean,
+  content: @Composable ColumnScope.() -> Unit,
+) {
+  SculptedSurfaceCard(
+    cornerRadius = 22,
+    modifier = Modifier.fillMaxWidth(),
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+      content = content,
+    )
+  }
+}
+
+@Composable
+private fun SettingsHeaderPillButton(
   icon: ImageVector,
-  badgeColors: List<Color>,
-  title: String,
-  subtitle: String,
+  label: String,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  trailingIcon: ImageVector? = null,
-  enabled: Boolean = true,
 ) {
-  Row(
-    modifier = modifier
-      .fillMaxWidth()
-      .heightIn(min = 72.dp)
-      .clickable(enabled = enabled, onClick = onClick)
-      .padding(horizontal = 18.dp, vertical = 12.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(14.dp),
+  OutlinedButton(
+    onClick = onClick,
+    shape = CircleShape,
+    colors = ButtonDefaults.outlinedButtonColors(
+      containerColor = Color.White.copy(alpha = 0.12f),
+      contentColor = Color.White,
+    ),
+    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.24f)),
+    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+    modifier = modifier.height(48.dp),
   ) {
-    SculptedDrawerBadge(
-      icon = icon,
-      gradientColors = badgeColors,
+    Icon(
+      imageVector = icon,
+      contentDescription = null,
+      tint = Color.White,
+      modifier = Modifier.size(16.dp),
     )
-    Column(
-      modifier = Modifier.weight(1f),
-      verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-      Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-      )
-      Text(
-        text = subtitle,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-      )
-    }
-    if (trailingIcon != null) {
+    Spacer(modifier = Modifier.width(6.dp))
+    Text(
+      text = label,
+      style = MaterialTheme.typography.labelLarge,
+      fontWeight = FontWeight.SemiBold,
+      color = Color.White,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+    )
+  }
+}
+
+@Composable
+private fun SettingsIconBox(
+  icon: ImageVector,
+  isDarkTheme: Boolean,
+  tint: Color = MaterialTheme.colorScheme.primary,
+  containerColor: Color = MaterialTheme.colorScheme.primary.copy(
+    alpha = if (isDarkTheme) 0.16f else 0.11f,
+  ),
+) {
+  Surface(
+    shape = RoundedCornerShape(12.dp),
+    color = containerColor,
+    modifier = Modifier.size(40.dp),
+  ) {
+    Box(contentAlignment = Alignment.Center) {
       Icon(
-        imageVector = trailingIcon,
+        imageVector = icon,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+        tint = tint,
         modifier = Modifier.size(20.dp),
       )
     }
@@ -1663,13 +1873,89 @@ private fun DrawerColumnRow(
 }
 
 @Composable
-private fun DrawerFullBleedDivider(
-  color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
-  thickness: androidx.compose.ui.unit.Dp = 0.8.dp,
+private fun SettingsRowItem(
+  icon: ImageVector,
+  title: String,
+  isDarkTheme: Boolean,
+  modifier: Modifier = Modifier,
+  subtitle: String? = null,
+  subtitleContent: (@Composable () -> Unit)? = null,
+  trailingIcon: ImageVector? = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+  trailingContent: (@Composable () -> Unit)? = null,
+  accentColor: Color = MaterialTheme.colorScheme.primary,
+  isDestructive: Boolean = false,
+  onClick: (() -> Unit)? = null,
 ) {
+  val effectiveTint = if (isDestructive) MaterialTheme.colorScheme.error else accentColor
+  val iconBg = effectiveTint.copy(alpha = if (isDarkTheme) 0.16f else 0.11f)
+  val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+
+  val rowModifier = if (onClick != null) {
+    modifier
+      .fillMaxWidth()
+      .heightIn(min = 64.dp)
+      .clickable(onClick = onClick)
+      .padding(horizontal = 14.dp, vertical = 12.dp)
+  } else {
+    modifier
+      .fillMaxWidth()
+      .heightIn(min = 64.dp)
+      .padding(horizontal = 14.dp, vertical = 12.dp)
+  }
+
+  Row(
+    modifier = rowModifier,
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(14.dp),
+  ) {
+    SettingsIconBox(
+      icon = icon,
+      isDarkTheme = isDarkTheme,
+      tint = effectiveTint,
+      containerColor = iconBg,
+    )
+    Column(
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+      Text(
+        text = title,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = titleColor,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+      )
+      if (subtitleContent != null) {
+        subtitleContent()
+      } else if (!subtitle.isNullOrBlank()) {
+        Text(
+          text = subtitle,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+    }
+    if (trailingContent != null) {
+      trailingContent()
+    } else if (trailingIcon != null) {
+      Icon(
+        imageVector = trailingIcon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f),
+        modifier = Modifier.size(20.dp),
+      )
+    }
+  }
+}
+
+@Composable
+private fun SettingsInsetDivider() {
   HorizontalDivider(
-    thickness = thickness,
-    color = color,
-    modifier = Modifier.fillMaxWidth(),
+    thickness = 0.75.dp,
+    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f),
+    modifier = Modifier.padding(start = 68.dp, end = 14.dp),
   )
 }

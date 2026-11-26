@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -55,7 +58,9 @@ import com.example.data.model.PaymentMethod
 import com.example.data.model.RecurringTemplate
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.notifications.BillDueReminderManager
+import com.example.notifications.BillDueSchedule
 import com.example.ui.theme.CoralDanger
+import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.util.Formatters
@@ -71,8 +76,10 @@ fun RecurringTemplatesSection(
     paymentMethod: PaymentMethod,
     note: String,
     dueDayOfMonth: Int?,
+    autoLogEnabled: Boolean,
   ) -> Unit,
   onDeleteTemplate: (String) -> Unit,
+  onScheduleChanged: (templateId: String, schedule: BillDueSchedule?) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -80,6 +87,7 @@ fun RecurringTemplatesSection(
   val dueSchedules by BillDueReminderManager.observeSchedules(context).collectAsStateWithLifecycle()
   var showAddDialog by remember { mutableStateOf(false) }
   var pendingDelete by remember { mutableStateOf<RecurringTemplate?>(null) }
+  var editingScheduleTemplate by remember { mutableStateOf<RecurringTemplate?>(null) }
 
   Column(
     modifier = modifier.fillMaxWidth(),
@@ -124,12 +132,10 @@ fun RecurringTemplatesSection(
     }
 
     if (templates.isEmpty()) {
-      Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        modifier = Modifier
-          .fillMaxWidth()
-          .clickable { showAddDialog = true },
+      SculptedSurfaceCard(
+        cornerRadius = 16,
+        onClick = { showAddDialog = true },
+        modifier = Modifier.fillMaxWidth(),
       ) {
         Text(
           text = stringResource(R.string.recurring_empty_hint),
@@ -146,12 +152,12 @@ fun RecurringTemplatesSection(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
       ) {
         templates.forEach { template ->
-          Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+          LiquidGlassDialogSurface(
+            cornerRadius = 18,
+            accentColor = template.categoryEnum.accentColor,
             modifier = Modifier
               .widthIn(min = 176.dp, max = 230.dp)
+              .clip(RoundedCornerShape(18.dp))
               .clickable { onLogTemplate(template) }
               .testTag("recurring_card_${template.id}"),
           ) {
@@ -203,6 +209,21 @@ fun RecurringTemplatesSection(
                       maxLines = 1,
                       overflow = TextOverflow.Ellipsis,
                     )
+                    if (schedule.autoLogEnabled) {
+                      Surface(
+                        shape = RoundedCornerShape(50),
+                        color = EmeraldSafe.copy(alpha = 0.18f),
+                        border = BorderStroke(0.8.dp, EmeraldSafe.copy(alpha = 0.45f)),
+                      ) {
+                        Text(
+                          text = stringResource(R.string.bill_autolog_badge),
+                          style = MaterialTheme.typography.labelSmall,
+                          fontWeight = FontWeight.Bold,
+                          color = EmeraldSafe,
+                          modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                        )
+                      }
+                    }
                   }
                 } else {
                   Text(
@@ -211,6 +232,20 @@ fun RecurringTemplatesSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                   )
                 }
+              }
+              IconButton(
+                onClick = { editingScheduleTemplate = template },
+                modifier = Modifier
+                  .size(48.dp)
+                  .testTag("edit_bill_due_${template.id}"),
+              ) {
+                val hasReminder = dueSchedules[template.id] != null
+                Icon(
+                  imageVector = if (hasReminder) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsNone,
+                  contentDescription = stringResource(R.string.bill_due_edit_cd, template.title),
+                  tint = if (hasReminder) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                  modifier = Modifier.size(18.dp),
+                )
               }
               IconButton(
                 onClick = { pendingDelete = template },
@@ -235,16 +270,129 @@ fun RecurringTemplatesSection(
   if (showAddDialog) {
     AddRecurringTemplateDialog(
       onDismiss = { showAddDialog = false },
-      onSave = { title, amount, category, method, note, dueDay ->
-        onAddTemplate(title, amount, category, method, note, dueDay)
+      onSave = { title, amount, category, method, note, dueDay, autoLog ->
+        onAddTemplate(title, amount, category, method, note, dueDay, autoLog)
         showAddDialog = false
       },
     )
   }
 
+  editingScheduleTemplate?.let { target ->
+    val currentSchedule = dueSchedules[target.id]
+    var dueDayText by remember(target.id) {
+      mutableStateOf(currentSchedule?.dueDayOfMonth?.toString().orEmpty())
+    }
+    var autoLogEnabled by remember(target.id) {
+      mutableStateOf(currentSchedule?.autoLogEnabled ?: false)
+    }
+    val parsedDueDay = dueDayText.toIntOrNull()?.takeIf { it in 1..31 }
+    LiquidGlassAlertDialog(
+      onDismissRequest = { editingScheduleTemplate = null },
+      title = {
+        Text(
+          text = stringResource(R.string.bill_due_edit_title, target.title),
+          fontWeight = FontWeight.Bold,
+        )
+      },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Text(
+            text = stringResource(R.string.bill_due_edit_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          OutlinedTextField(
+            value = dueDayText,
+            onValueChange = { raw ->
+              val digits = raw.filter { it.isDigit() }.take(2)
+              val parsed = digits.toIntOrNull()
+              dueDayText = if (parsed != null && parsed > 31) "31" else digits
+            },
+            label = { Text(stringResource(R.string.bill_due_day_input_label)) },
+            placeholder = { Text(stringResource(R.string.bill_due_day_input_hint)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier
+              .fillMaxWidth()
+              .testTag("edit_bill_due_day_input"),
+          )
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+          ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+              Text(
+                text = stringResource(R.string.bill_autolog_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+              Text(
+                text = stringResource(R.string.bill_autolog_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+            Switch(
+              checked = autoLogEnabled && parsedDueDay != null,
+              onCheckedChange = { enabled ->
+                autoLogEnabled = enabled
+                if (enabled && parsedDueDay == null) {
+                  dueDayText = "1"
+                }
+              },
+              modifier = Modifier.testTag("edit_bill_autolog_switch"),
+            )
+          }
+        }
+      },
+      confirmButton = {
+        Button(
+          onClick = {
+            val day = dueDayText.toIntOrNull()?.takeIf { it in 1..31 }
+            val saved = BillDueReminderManager.setDueSchedule(
+              context = context,
+              templateId = target.id,
+              title = target.title,
+              dueDayOfMonth = day,
+              reminderEnabled = day != null,
+              autoLogEnabled = day != null && autoLogEnabled,
+            )
+            onScheduleChanged(target.id, saved)
+            editingScheduleTemplate = null
+          },
+          modifier = Modifier.testTag("save_bill_due_button"),
+        ) {
+          Text(stringResource(R.string.action_save))
+        }
+      },
+      dismissButton = {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+          if (currentSchedule != null) {
+            TextButton(
+              onClick = {
+                BillDueReminderManager.removeDueSchedule(context, target.id)
+                onScheduleChanged(target.id, null)
+                editingScheduleTemplate = null
+              },
+              modifier = Modifier.testTag("clear_bill_due_button"),
+            ) {
+              Text(stringResource(R.string.bill_due_clear_action), color = CoralDanger)
+            }
+          }
+          TextButton(onClick = { editingScheduleTemplate = null }) {
+            Text(stringResource(R.string.action_cancel))
+          }
+        }
+      },
+    )
+  }
+
   pendingDelete?.let { target ->
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { pendingDelete = null },
+      accentColor = CoralDanger,
       title = { Text(stringResource(R.string.recurring_delete_title)) },
       text = {
         Text(
@@ -285,6 +433,7 @@ private fun AddRecurringTemplateDialog(
     paymentMethod: PaymentMethod,
     note: String,
     dueDayOfMonth: Int?,
+    autoLogEnabled: Boolean,
   ) -> Unit,
 ) {
   val context = LocalContext.current
@@ -296,9 +445,10 @@ private fun AddRecurringTemplateDialog(
   var selectedMethod by remember { mutableStateOf(PaymentMethod.TRANSFER) }
   var note by remember { mutableStateOf("") }
   var dueDayText by remember { mutableStateOf("") }
+  var autoLogEnabled by remember { mutableStateOf(false) }
   var validationError by remember { mutableStateOf<String?>(null) }
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.recurring_add_title)) },
     text = {
@@ -400,6 +550,35 @@ private fun AddRecurringTemplateDialog(
             )
           }
         }
+        val parsedDue = dueDayText.toIntOrNull()?.takeIf { it in 1..31 }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+              text = stringResource(R.string.bill_autolog_title),
+              style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+              text = stringResource(R.string.bill_autolog_subtitle),
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+          Switch(
+            checked = autoLogEnabled && parsedDue != null,
+            onCheckedChange = { enabled ->
+              autoLogEnabled = enabled
+              if (enabled && parsedDue == null) {
+                dueDayText = "1"
+              }
+            },
+            modifier = Modifier.testTag("add_recurring_autolog_switch"),
+          )
+        }
         OutlinedTextField(
           value = note,
           onValueChange = { note = it.take(200) },
@@ -424,7 +603,15 @@ private fun AddRecurringTemplateDialog(
           when {
             title.isBlank() -> validationError = context.getString(R.string.recurring_error_name)
             parsed <= 0L -> validationError = context.getString(R.string.recurring_error_amount)
-            else -> onSave(title.trim(), parsed, selectedCategory, selectedMethod, note.trim(), dueDay)
+            else -> onSave(
+              title.trim(),
+              parsed,
+              selectedCategory,
+              selectedMethod,
+              note.trim(),
+              dueDay,
+              dueDay != null && autoLogEnabled,
+            )
           }
         },
         modifier = Modifier

@@ -374,4 +374,457 @@
     <string name="profile_support_subtitle">通过 Trakteer 赞助支持应用持续更新</string>
     <string name="profile_support_button">Support</string>
     <string name="profile_support_browser_error">无法打开浏览器，请访问 trakteer.id/ramabilekk/gift。</string>
+
+    <!-- Plain Text Export & Backup Preview -->
+    <string name="export_txt_title">纯文本备份 (.txt)</string>
+    <string name="export_txt_subtitle">轻量易读的 .txt 文件，包含月度汇总及全部消费明细</string>
+    <string name="export_backup_preview_title">预览纯文本 / CSV 备份</string>
+    <string name="export_backup_preview_show">显示预览</string>
+    <string name="export_backup_preview_hide">隐藏预览</string>
+    <string name="export_backup_copy_action">复制 %1$s</string>
+    <string name="export_backup_copied_status">已将本月 %1$s 备份复制到剪贴板。</string>
+    <string name="export_txt_header">SAKUPINTAR 月度消费备份</string>
+    <string name="export_txt_period_label">期间</string>
+    <string name="export_txt_all_transactions">全部交易 (%1$d)</string>
+    <string name="export_txt_empty_transactions">本月暂无支出记录。</string>
+    <string name="export_txt_note_prefix">备注</string>
+    <string name="export_receipt_preview_title">小票照片汇总就绪（%1$d 张）</string>
+    <string name="export_receipt_preview_subtitle">照片自动嵌入 Excel (.xlsx) 单元格与 PDF (.pdf) 双栏图库</string>
+    <string name="report_col_receipt_photo">小票照片</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">小票凭证</string>
+    <string name="report_sheet_receipts">小票照片</string>
+    <string name="report_receipt_section_title">附带的小票与发票照片</string>
+    <string name="report_receipt_attached_count">已附 %1$d 张小票照片</string>
+    <string name="report_receipt_yes">已附 (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">自动包含在 PDF 与 Excel 报表中</string>
+
+    <!-- Login Methods -->
+    <string name="auth_tab_sign_in">登录</string>
+    <string name="auth_tab_sign_up">注册</string>
+    <string name="auth_choose_method_sign_in">选择登录方式</string>
+    <string name="auth_choose_method_sign_up">选择注册方式</string>
+    <string name="auth_sign_up_google">使用 Google 注册</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">访客账号</string>
+    <string name="auth_or_other_methods">或选择其他方式</string>
+    <string name="auth_guest_continue">以访客身份继续</string>
+    <string name="auth_guest_subtitle">访客模式：无需云端备份即可立即使用</string>
+    <string name="guest_visitor_banner">访客模式 • 临时会话，无云端备份</string>
+    <string name="guest_account_display_name">访客用户</string>
+    <string name="guest_account_badge">访客模式（无云端备份）</string>
+    <string name="auth_landing_enter_action">进入</string>
+    <string name="auth_landing_subtitle">点击进入以选择登录或注册方式</string>
+    <string name="auth_method_screen_sign_in_title">选择登录方式</string>
+    <string name="auth_method_screen_sign_up_title">选择注册方式</string>
+    <string name="auth_back_action">返回</string>
+    <string name="topbar_expenses_title">日常账本</string>
+    <string name="topbar_expenses_subtitle">管理每日消费与周期性账单</string>
+    <string name="topbar_budget_title">月度预算规划</string>
+    <string name="topbar_budget_subtitle">智能 50/30/20 分配与每日安全额度</string>
+    <string name="topbar_savings_title">储蓄目标与钱包</string>
+    <string name="topbar_savings_subtitle">追踪你的储蓄进度与活跃钱包余额</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">登录你的账号</string>
+    <string name="auth_simple_signin_subtitle">轻松管理每日消费与月度预算。</string>
+    <string name="auth_simple_google_continue">使用 Google 继续</string>
+    <string name="auth_or_divider">或</string>
+    <string name="auth_guest_simple_cta">以访客继续</string>
+    <string name="auth_simple_divider_signin">或快速体验</string>
+    <string name="auth_simple_guest_name_label">显示名称（可选）</string>
+    <string name="auth_simple_guest_name_placeholder">例如：小明</string>
+    <string name="auth_simple_help_link">登录遇到问题？</string>
+    <string name="auth_simple_guest_cta">以访客继续</string>
+    <string name="auth_simple_no_account_prompt">还没有账号？</string>
+    <string name="auth_simple_register_action">立即注册</string>
+    <string name="auth_simple_signup_title">开始使用 SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">轻松记账并自动规划你的月度预算。</string>
+    <string name="auth_simple_divider_signup">或立即试用</string>
+    <string name="auth_simple_guest_signup_cta">试用访客模式</string>
+    <string name="auth_simple_have_account_prompt">已有账号？</string>
+    <string name="auth_simple_login_action">登录账号</string>
+    <string name="auth_simple_feature_cloud">Google 自动云端同步</string>
+    <string name="auth_simple_feature_budget">智能 50/30/20 预算规划器</string>
+    <string name="auth_simple_feature_ai">AI 小票识别与消费洞察</string>
+    <string name="auth_help_back">返回登录</string>
+    <string name="auth_help_title">登录遇到问题？</string>
+    <string name="auth_help_body">SakuPintar 使用 Google 登录，无需单独密码。如忘记账号，请在下方找回你的 Google 账号。</string>
+    <string name="auth_help_recover_cta">找回 Google 账号</string>
+    <string name="auth_help_retry_google">重新尝试 Google 登录</string>
+    <string name="auth_help_footer_prompt">需要快速使用？</string>
+    <string name="auth_help_footer_action">使用访客模式</string>
+    <string name="auth_help_browser_error">无法打开浏览器，请访问 accounts.google.com/signin/recovery。</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">AI 识别小票</string>
+    <string name="ai_scan_quick_subtitle">拍照或选择小票自动填充账单</string>
+    <string name="ai_scan_camera_action">AI 拍照</string>
+    <string name="ai_scan_gallery_action">AI 相册</string>
+    <string name="ai_scan_chooser_title">AI 智能识别小票</string>
+    <string name="ai_scan_chooser_subtitle">拍摄清晰照片或选择已有小票，AI 将自动识别商户、总金额、日期和分类。</string>
+    <string name="ai_scan_success_banner">AI 已识别小票 — 请核对以下信息</string>
+    <string name="ai_scan_date_detected">识别到小票日期：%1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">将访客数据同步至 Google</string>
+    <string name="guest_sync_card_subtitle">将你的 %1$d 条本地记录安全备份至云端，多设备随时访问。</string>
+    <string name="guest_sync_card_subtitle_empty">绑定 Google 账号即可开启跨设备自动云备份。</string>
+    <string name="guest_sync_cta">绑定 Google 并迁移</string>
+    <string name="guest_sync_in_progress">正在同步数据至 Google 云端…</string>
+    <string name="guest_sync_success">已绑定 Google！已同步 %1$d 条记录。</string>
+    <string name="guest_sync_partial">已绑定！已同步 %1$d 条，%2$d 条上传失败。</string>
+    <string name="guest_sync_connected_empty">已连接至 Google 云端！</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">自定义分类</string>
+    <string name="custom_cat_add_action">添加分类</string>
+    <string name="custom_cat_dialog_title">新建自定义分类</string>
+    <string name="custom_cat_name_label">分类名称</string>
+    <string name="custom_cat_name_hint">例如：咖啡、分期、护肤</string>
+    <string name="custom_cat_parent_label">预算分组</string>
+    <string name="custom_cat_color_label">主题颜色</string>
+    <string name="custom_cat_empty_hint">创建自定义标签，如咖啡或健身</string>
+    <string name="custom_cat_error_name">请输入分类名称。</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">每月到期日（可选）</string>
+    <string name="bill_due_day_none">无到期日</string>
+    <string name="bill_due_day_format">每月 %1$d 日</string>
+    <string name="bill_due_today_badge">今天到期！</string>
+    <string name="bill_due_in_days_badge">%1$d 天后到期</string>
+    <string name="bill_due_upcoming_title">即将到期的账单</string>
+    <string name="bill_due_pay_now">立即记录</string>
+    <string name="bill_due_notif_title">账单到期提醒</string>
+    <string name="bill_due_notif_channel_desc">周期性账单临近到期日时发送提醒</string>
+    <string name="bill_due_notif_today">%1$s 今天到期，点击在 SakuPintar 中记录付款。</string>
+    <string name="bill_due_notif_tomorrow">%1$s 明天到期，请提前准备预算。</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">SakuPintar 快捷记账</string>
+    <string name="widget_description">查看今日安全额度，一键记账或扫描小票</string>
+    <string name="widget_safe_limit_label">今日安全额度</string>
+    <string name="widget_today_spent_format">今日已消费：%1$s</string>
+    <string name="widget_action_add">+ 记账</string>
+    <string name="widget_action_scan">AI 扫描</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">隐藏余额</string>
+    <string name="privacy_toggle_show_cd">显示余额</string>
+    <string name="privacy_security_section_title">隐私与安全</string>
+    <string name="privacy_hide_balances_title">隐藏金额</string>
+    <string name="privacy_hide_balances_subtitle">在公共场合用 •••••• 隐藏余额数字</string>
+    <string name="app_lock_title">应用锁（PIN / 生物识别）</string>
+    <string name="app_lock_subtitle_on">打开 SakuPintar 时受密码保护</string>
+    <string name="app_lock_subtitle_off">启动时验证 PIN 码或设备解锁</string>
+    <string name="app_lock_setup_title">设置 4 位应用 PIN 码</string>
+    <string name="app_lock_setup_subtitle">输入 4 位数字 PIN 码以保护你的财务数据。</string>
+    <string name="app_lock_setup_confirm">再次输入 PIN 码确认</string>
+    <string name="app_lock_pin_mismatch">两次输入的 PIN 码不一致，请重试。</string>
+    <string name="app_lock_pin_saved">应用锁已开启！</string>
+    <string name="app_lock_disabled_status">应用锁已关闭。</string>
+    <string name="app_lock_screen_title">SakuPintar 已锁定</string>
+    <string name="app_lock_screen_subtitle">请输入 4 位 PIN 码以继续</string>
+    <string name="app_lock_wrong_pin">PIN 码错误，请重试。</string>
+    <string name="app_lock_use_biometric">使用生物识别 / 设备密码解锁</string>
+    <string name="app_lock_change_pin">修改 PIN 码</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">自动扣减钱包余额</string>
+    <string name="wallet_auto_deduct_subtitle">记录支出时自动更新对应钱包余额</string>
+    <string name="cashflow_record_income_action">记录收入</string>
+    <string name="cashflow_transfer_action">钱包转账</string>
+    <string name="cashflow_income_dialog_title">记录收入</string>
+    <string name="cashflow_income_source_label">收入来源</string>
+    <string name="cashflow_income_source_hint">例如：工资、奖金、兼职</string>
+    <string name="cashflow_income_target_wallet">存入钱包</string>
+    <string name="cashflow_income_saved">已将收入 %1$s 存入 %2$s！</string>
+    <string name="cashflow_transfer_dialog_title">钱包间转账</string>
+    <string name="cashflow_transfer_from_label">转出钱包</string>
+    <string name="cashflow_transfer_to_label">转入钱包</string>
+    <string name="cashflow_transfer_same_wallet_error">请选择两个不同的钱包。</string>
+    <string name="cashflow_transfer_insufficient">%1$s 余额不足。</string>
+    <string name="cashflow_transfer_saved">已从 %2$s 转出 %1$s 至 %3$s！</string>
+    <string name="cashflow_history_title">本月资金流水</string>
+    <string name="cashflow_history_income_badge">收入</string>
+    <string name="cashflow_history_transfer_badge">转账</string>
+    <string name="cashflow_entry_deleted">流水记录已删除。</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">分类占比</string>
+    <string name="analytics_donut_total_label">总支出</string>
+    <string name="analytics_mom_lower">较上月减少 %1$d%%</string>
+    <string name="analytics_mom_higher">较上月增加 %1$d%%</string>
+    <string name="analytics_mom_same">与上月消费节奏持平</string>
+    <string name="analytics_mom_no_prev">暂无上月消费数据</string>
+    <string name="analytics_top_expense_label">本月最大单笔支出</string>
+    <string name="budget_alert_over">预算预警：%1$s 已超支 (%2$d%%)！</string>
+    <string name="budget_alert_caution">提醒：%1$s 已用本月预算的 %2$d%%。</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">AI 语音记账</string>
+    <string name="voice_ai_prompt">说出消费，例如：午餐 35 元刷卡</string>
+    <string name="voice_ai_unavailable">此设备不支持语音输入。</string>
+    <string name="action_undo">撤销</string>
+    <string name="expense_restored_status">支出记录已恢复。</string>
+    <string name="expense_duplicated_status">已将「%1$s」复制到今天！</string>
+    <string name="duplicate_expense_cd">复制支出</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">快速上手指南</string>
+    <string name="onboarding_progress_format">已完成 %1$d / 3 项</string>
+    <string name="onboarding_step_budget_title">设置月度预算</string>
+    <string name="onboarding_step_budget_sub">自动计算每日安全消费额度</string>
+    <string name="onboarding_step_wallet_title">设置钱包余额</string>
+    <string name="onboarding_step_wallet_sub">自动追踪现金、电子钱包、银行卡余额</string>
+    <string name="onboarding_step_expense_title">扫描或记录首笔支出</string>
+    <string name="onboarding_step_expense_sub">试试一键 AI 扫小票或快速记账</string>
+    <string name="onboarding_dismiss">隐藏</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">发薪日周期</string>
+    <string name="payday_default_subtitle">每月 1 日（标准自然月）</string>
+    <string name="payday_custom_subtitle">每月 %1$d 日开始</string>
+    <string name="payday_cycle_desc">让每月预算重置和每日安全额度与你的实际发薪日保持一致。</string>
+    <string name="payday_preset_1">1 日</string>
+    <string name="payday_preset_25">25 日</string>
+    <string name="payday_preset_28">28 日</string>
+    <string name="payday_day_label">周期起始日：%1$d 日</string>
+    <string name="payday_preview_label">当前周期：%1$s</string>
+    <string name="payday_saved_status">发薪日周期已更新为每月 %1$d 日。</string>
+    <string name="payday_badge_label">周期 %1$s</string>
+    <string name="payday_change_action">更改</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">全部钱包</string>
+    <string name="filter_with_receipt">含小票</string>
+    <string name="filter_reset">重置</string>
+    <string name="sort_label_prefix">排序：</string>
+    <string name="sort_newest">最新优先</string>
+    <string name="sort_highest">金额从高到低</string>
+    <string name="sort_lowest">金额从低到高</string>
+    <string name="sort_title_az">名称 A–Z</string>
+    <string name="filter_sort_cd">排序交易</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">收支趋势</string>
+    <string name="trend_6_months">6 个月</string>
+    <string name="trend_12_months">12 个月</string>
+    <string name="trend_legend_spending">支出</string>
+    <string name="trend_legend_income">收入</string>
+    <string name="trend_tap_hint">点击柱状图查看月度详情</string>
+    <string name="trend_total_spent">累计支出</string>
+    <string name="trend_total_income">累计收入</string>
+    <string name="trend_avg_monthly">月均支出</string>
+    <string name="trend_net_cashflow">净现金流</string>
+    <string name="trend_lowest_month">最省月份：%1$s (%2$s)</string>
+    <string name="trend_highest_month">最高月份：%1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d 笔</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">编辑储蓄目标</string>
+    <string name="savings_edit_save">保存修改</string>
+    <string name="savings_edit_cd">编辑储蓄目标</string>
+    <string name="savings_history_cd">查看存取记录</string>
+    <string name="savings_history_button">记录</string>
+    <string name="savings_goal_updated">储蓄目标「%1$s」已更新！</string>
+    <string name="savings_history_sheet_title">目标进度与记录</string>
+    <string name="savings_history_total_deposits">累计存入</string>
+    <string name="savings_history_total_withdrawals">累计取出</string>
+    <string name="savings_history_eta_label">预计达成时间</string>
+    <string name="savings_history_eta_done">目标已达成！🎉</string>
+    <string name="savings_history_eta_days">预计还需 %1$d 天 (%2$s)</string>
+    <string name="savings_history_eta_months">预计还需 %1$d 个月 (%2$s)</string>
+    <string name="savings_history_eta_need_more">定期存入即可自动估算目标达成日期。</string>
+    <string name="savings_history_empty">该目标暂无存取记录。</string>
+    <string name="savings_history_initial_label">初始金额</string>
+    <string name="savings_history_deposit_label">存入</string>
+    <string name="savings_history_withdraw_label">取出</string>
+    <string name="savings_history_balance_after">余额：%1$s</string>
+
+    <!-- Ask SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">问问 SakuPintar AI</string>
+    <string name="ai_chat_subtitle">基于实时账单数据的个人财务顾问</string>
+    <string name="ai_chat_open_button">问 AI</string>
+    <string name="ai_chat_open_cd">打开 SakuPintar AI 对话</string>
+    <string name="ai_chat_reset_cd">重置对话</string>
+    <string name="ai_chat_close_cd">关闭 AI 对话</string>
+    <string name="ai_chat_input_hint">询问关于你的消费、预算或储蓄的任何问题…</string>
+    <string name="ai_chat_send_cd">发送问题</string>
+    <string name="ai_chat_welcome_title">你好！我是 SakuPintar AI</string>
+    <string name="ai_chat_welcome_body">你可以向我咨询消费习惯、每日安全预算、储蓄进度或实用的省钱建议。</string>
+    <string name="ai_chat_chip_1">这个周期我在哪方面花钱最多？</string>
+    <string name="ai_chat_chip_2">为本周期剩余天数制定一份省钱计划</string>
+    <string name="ai_chat_chip_3">我的储蓄进度如何？怎样更快达成目标？</string>
+    <string name="ai_chat_chip_4">对比我最近几个月的消费趋势</string>
+    <string name="ai_chat_typing">SakuPintar AI 正在分析…</string>
+    <string name="ai_chat_retry">重试</string>
+    <string name="ai_chat_context_badge">实时数据：%1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">设置</string>
+    <string name="settings_section_general">通用</string>
+    <string name="settings_section_finance">财务与安全</string>
+    <string name="settings_section_account">账号</string>
+    <string name="settings_section_about">关于应用</string>
+    <string name="settings_connected_account_title">已绑定账号</string>
+    <string name="settings_sign_out_subtitle">退出当前账号</string>
+    <string name="settings_app_version_title">应用版本</string>
+    <string name="settings_quick_edit_profile">编辑资料</string>
+    <string name="settings_quick_change_photo">更换头像</string>
+    <string name="settings_guest_subtitle_fallback">访客模式 • 仅保存在本设备</string>
+    <string name="settings_edit_profile_dialog_title">编辑资料</string>
+    <string name="settings_haptic_title">触感反馈</string>
+    <string name="settings_haptic_subtitle_on">点击与导航时提供轻微震动反馈</string>
+    <string name="settings_haptic_subtitle_off">震动反馈已关闭</string>
+    <string name="settings_export_title">导出财务报表</string>
+    <string name="settings_export_subtitle">保存月度 Excel、PDF、CSV 或纯文本 (.txt) 备份</string>
+    <string name="settings_cache_title">缓存设置</string>
+    <string name="settings_cache_subtitle">清理缓存 (%1$s)</string>
+    <string name="settings_cache_dialog_title">清理应用缓存？</string>
+    <string name="settings_cache_dialog_body">将清除 %1$s 临时预览与导出文件，不会影响你的账单、预算和储蓄数据。</string>
+    <string name="settings_cache_clear_action">清理缓存</string>
+    <string name="settings_cache_cleared_status">已清理 %1$s 缓存。</string>
+    <string name="settings_sign_out_confirm_title">退出登录？</string>
+    <string name="settings_sign_out_confirm_body_google">你的数据仍安全同步在 Google 账号中，可随时重新登录。</string>
+    <string name="settings_sign_out_confirm_body_guest">当前为访客模式，本地数据将保留在此设备上。</string>
+    <string name="settings_delete_account_title">注销账号</string>
+    <string name="settings_delete_account_title_guest">清除所有数据</string>
+    <string name="settings_delete_account_subtitle">永久删除账号及所有数据</string>
+    <string name="settings_delete_account_subtitle_guest">清除本设备上的全部本地记录</string>
+    <string name="settings_delete_account_dialog_title">永久删除所有数据？</string>
+    <string name="settings_delete_account_dialog_body_google">你的所有支出、预算、储蓄目标和钱包余额都将从云端永久清除，无法恢复。</string>
+    <string name="settings_delete_account_dialog_body_guest">本设备上的所有本地支出、预算、目标与钱包数据都将永久清除，无法恢复。</string>
+    <string name="settings_delete_account_checkbox">我理解此操作为永久删除且无法撤销</string>
+    <string name="settings_delete_account_confirm">永久删除</string>
+    <string name="settings_delete_account_in_progress">正在删除数据…</string>
+    <string name="settings_delete_account_success">账号及全部财务数据已删除。</string>
+    <string name="settings_delete_account_failed">删除账号失败：%1$s</string>
+    <string name="settings_privacy_policy_title">隐私政策</string>
+    <string name="settings_privacy_policy_subtitle">查看隐私政策</string>
+    <string name="settings_privacy_policy_body">1. 数据存储\n• Google 登录：你的财务数据安全存储在个人 Firebase Firestore 云端。\n• 访客模式：所有记录仅保存在本设备。\n\n2. 相机与 AI\n• 扫描小票或咨询 AI 时，仅传输完成该请求所需的必要信息。\n• 我们绝不出售你的个人数据。\n\n3. 安全与控制\n• PIN 码在本地加密存储。\n• 你可随时在 设置 &gt; 注销账号 中导出或永久删除数据。</string>
+    <string name="settings_terms_title">服务条款</string>
+    <string name="settings_terms_subtitle">查看服务条款</string>
+    <string name="settings_terms_body">1. 用途\nSakuPintar 是一款个人记账与预算管理助手。\n\n2. AI 免责声明\n小票识别和 AI 建议仅供参考，不构成专业财务或投资建议，保存前请核对金额。\n\n3. 用户责任\n请妥善保管你的设备与 Google 账号安全。</string>
+    <string name="settings_contact_title">联系我们</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">SakuPintar 支持与反馈</string>
+    <string name="settings_contact_copied_status">已复制客服邮箱：%1$s</string>
+
+    <!-- Budget Threshold Alerts -->
+    <string name="budget_alert_channel_name">预算限额提醒</string>
+    <string name="budget_alert_channel_desc" formatted="false">当分类消费达到月度预算 80% 或 100% 时发送提醒</string>
+    <string name="budget_alert_80_title">预算提醒：%1$s</string>
+    <string name="budget_alert_80_body">本月已使用 %1$d%%（%2$s / %3$s）的预算。</string>
+    <string name="budget_alert_100_title">预算已达上限：%1$s</string>
+    <string name="budget_alert_100_body">消费已达 %1$s，触及 %2$s 预算上限。</string>
+    <string name="settings_budget_alerts_title">预算超支提醒</string>
+    <string name="settings_budget_alerts_subtitle_on" formatted="false">分类消费达到 80% 或 100% 时自动通知</string>
+    <string name="settings_budget_alerts_subtitle_off">自动预算提醒已关闭</string>
+    <string name="settings_budget_alerts_enabled_status">已开启预算提醒。</string>
+    <string name="settings_budget_alerts_disabled_status">已关闭预算提醒。</string>
+
+    <!-- JSON Backup & Restore -->
+    <string name="settings_backup_restore_title">数据备份与恢复</string>
+    <string name="settings_backup_restore_subtitle">保存、恢复 JSON 备份或导入 CSV</string>
+    <string name="backup_dialog_title">数据备份与恢复</string>
+    <string name="backup_dialog_desc">将全部支出、预算、目标、钱包与债务导出为 JSON 文件，随时恢复或从 CSV 导入账单。</string>
+    <string name="backup_export_title">创建备份文件</string>
+    <string name="backup_export_subtitle">保存便携 .json 副本到设备或网盘</string>
+    <string name="backup_export_button">导出 JSON</string>
+    <string name="backup_restore_title">从备份恢复</string>
+    <string name="backup_restore_subtitle">从之前保存的 SakuPintar .json 文件导入记录</string>
+    <string name="backup_restore_button">选择 JSON 文件</string>
+    <string name="backup_in_progress">正在导出备份…</string>
+    <string name="backup_restore_in_progress">正在恢复记录…</string>
+    <string name="backup_export_success">备份已保存（共 %1$d 项）。</string>
+    <string name="backup_restore_success">已成功恢复 %1$d 条记录！</string>
+    <string name="backup_error_generic">备份出错：%1$s</string>
+    <string name="backup_restore_confirm_title">确认恢复备份文件？</string>
+    <string name="backup_restore_confirm_body">在此备份文件中发现 %1$d 条财务记录，是否恢复到你的账号？</string>
+    <string name="backup_restore_confirm_action">立即恢复</string>
+
+    <!-- Custom Wallets -->
+    <string name="custom_wallets_section_title">自定义钱包与账户</string>
+    <string name="custom_wallets_section_subtitle">分别追踪银行卡与电子钱包余额</string>
+    <string name="custom_wallets_add_button">添加钱包</string>
+    <string name="custom_wallets_empty_hint">暂无自定义钱包，添加银行卡或电子钱包以计入总资产。</string>
+    <string name="custom_wallet_dialog_add_title">添加自定义钱包</string>
+    <string name="custom_wallet_dialog_edit_title">编辑钱包</string>
+    <string name="custom_wallet_name_label">钱包 / 账户名称</string>
+    <string name="custom_wallet_name_hint">例如：银行卡、支付宝、微信、现金</string>
+    <string name="custom_wallet_type_label">账户类型</string>
+    <string name="custom_wallet_balance_label">当前余额 (%1$s)</string>
+    <string name="custom_wallet_color_label">主题颜色</string>
+    <string name="custom_wallet_type_bank">银行</string>
+    <string name="custom_wallet_type_ewallet">电子钱包</string>
+    <string name="custom_wallet_type_cash">现金</string>
+    <string name="custom_wallet_type_card">卡片</string>
+    <string name="custom_wallet_type_investment">投资</string>
+    <string name="custom_wallet_error_name">请输入钱包名称。</string>
+    <string name="custom_wallet_saved_status">钱包「%1$s」已保存。</string>
+    <string name="custom_wallet_deleted_status">钱包已移除。</string>
+
+    <!-- Debt / Receivable & Split Bill -->
+    <string name="debt_section_title">借贷、应收与 AA 分账</string>
+    <string name="debt_section_subtitle">记录借入借出，并轻松计算多人 AA 聚餐分账</string>
+    <string name="debt_add_button">添加记录</string>
+    <string name="debt_empty_hint">暂无借贷或 AA 分账记录，点击添加记录开始追踪。</string>
+    <string name="debt_summary_owed_to_me">别人欠我</string>
+    <string name="debt_summary_i_owe">我欠别人</string>
+    <string name="debt_filter_all">全部</string>
+    <string name="debt_filter_active">未结清</string>
+    <string name="debt_filter_settled">已结清</string>
+    <string name="debt_type_owed_to_me">别人欠我</string>
+    <string name="debt_type_i_owe">我欠别人</string>
+    <string name="debt_status_settled">已结清</string>
+    <string name="debt_status_overdue">已逾期</string>
+    <string name="debt_due_label">到期 %1$s</string>
+    <string name="debt_mark_settled_cd">切换结清状态</string>
+    <string name="debt_dialog_title">新建借贷 / AA 分账</string>
+    <string name="debt_person_label">对方姓名</string>
+    <string name="debt_person_hint">例如：张三、李四、同事</string>
+    <string name="debt_amount_label">金额 (%1$s)</string>
+    <string name="debt_due_date_label">约定归还日</string>
+    <string name="debt_due_7d">+7 天</string>
+    <string name="debt_due_14d">+14 天</string>
+    <string name="debt_due_30d">+30 天</string>
+    <string name="debt_note_label">备注（可选）</string>
+    <string name="debt_note_hint">例如：聚餐 AA、演出门票</string>
+    <string name="debt_error_person">请输入对方姓名。</string>
+    <string name="debt_error_amount">请输入大于 0 的金额。</string>
+    <string name="debt_saved_status">已保存 %1$s 的记录。</string>
+    <string name="debt_settled_status">已将 %1$s 标记为已结清！</string>
+    <string name="debt_reopened_status">已将 %1$s 标记为未结清。</string>
+    <string name="debt_deleted_status">借贷记录已删除。</string>
+    <string name="split_bill_toggle_title">AA 分账计算器</string>
+    <string name="split_bill_total_label">账单总额 (%1$s)</string>
+    <string name="split_bill_people_label">人数</string>
+    <string name="split_bill_result_preview">每人应付：%1$s</string>
+    <string name="split_bill_apply_action">使用金额</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">从自定义钱包扣款（可选）</string>
+    <string name="csv_import_title">从 CSV 导入交易</string>
+    <string name="csv_import_subtitle">从 SakuPintar 导出的 .csv 或银行账单导入支出</string>
+    <string name="csv_import_button">选择 CSV 文件</string>
+    <string name="csv_import_in_progress">正在导入 CSV…</string>
+    <string name="csv_import_empty_error">在此 CSV 文件中未找到有效交易记录。</string>
+    <string name="csv_import_confirm_title">导入 CSV 交易？</string>
+    <string name="csv_import_confirm_body">在此 CSV 文件中找到 %1$d 条交易，是否添加到支出账本？</string>
+    <string name="csv_import_confirm_action">立即导入</string>
+    <string name="csv_import_success">已从 CSV 成功导入 %1$d 条交易！</string>
+    <string name="bill_due_edit_cd">编辑 %1$s 的到期提醒</string>
+    <string name="bill_due_edit_title">账单提醒：%1$s</string>
+    <string name="bill_due_edit_desc">设置每月到期日（1–31）以在账单到期前接收自动提醒。</string>
+    <string name="bill_due_day_input_label">每月到期日（1–31）</string>
+    <string name="bill_due_day_input_hint">例如：25</string>
+    <string name="bill_due_clear_action">清除提醒</string>
+    <string name="budget_rollover_title">预算结转</string>
+    <string name="budget_rollover_subtitle">将上月未用完的可支配预算结转至本周期</string>
+    <string name="budget_rollover_active_bonus">已开启 • 上周期结转 +%1$s</string>
+    <string name="filter_last_7_days">最近 7 天</string>
+    <string name="sort_oldest">最早优先</string>
 </resources>

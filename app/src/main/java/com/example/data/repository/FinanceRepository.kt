@@ -120,6 +120,23 @@ class FinanceRepository(
       }
   }
 
+  suspend fun getAllBudgets(): List<MonthlyBudget> {
+    val uid = requireUserId()
+    val path = "users/$uid/budgets"
+    return try {
+      val snapshot = db.collection("users").document(uid).collection("budgets").get().await()
+      snapshot.toObjects(
+        MonthlyBudget::class.java,
+        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE,
+      )
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.LIST, path, auth)
+      emptyList()
+    }
+  }
+
   suspend fun addExpense(
     title: String,
     amount: Long,
@@ -388,6 +405,43 @@ class FinanceRepository(
       throw e
     } catch (e: Exception) {
       handleFirestoreError(e, OperationType.WRITE, docRef.path, auth)
+      throw e
+    }
+  }
+
+  suspend fun deleteAllUserData() {
+    val uid = requireUserId()
+    val userDocRef = db.collection("users").document(uid)
+    val subcollections = listOf(
+      "expenses",
+      "budgets",
+      "recurringTemplates",
+      "savingsGoals",
+      "walletBalances",
+      "cashflowEntries",
+      "customCategories",
+      "savingsHistory",
+      "debtRecords",
+      "customWallets",
+    )
+    try {
+      for (colName in subcollections) {
+        val snapshot = userDocRef.collection(colName).get().await()
+        val docs = snapshot.documents
+        docs.chunked(400).forEach { chunk ->
+          val batch = db.batch()
+          chunk.forEach { doc -> batch.delete(doc.reference) }
+          batch.commit().await()
+        }
+      }
+      val profileSnap = userDocRef.get().await()
+      if (profileSnap.exists()) {
+        userDocRef.delete().await()
+      }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      handleFirestoreError(e, OperationType.DELETE, userDocRef.path, auth)
       throw e
     }
   }

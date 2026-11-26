@@ -79,7 +79,7 @@ fun MonthYearPickerDialog(
   val nowYm = remember { YearMonth.now() }
   var pickerYear by remember(parsedYm) { mutableIntStateOf(parsedYm.year) }
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

@@ -109,6 +109,18 @@ object CashflowLedgerManager {
     return target
   }
 
+  fun replaceAll(context: Context, userId: String, entries: List<CashflowEntry>) {
+    val sorted = entries.sortedByDescending { it.dateEpochDay }.take(MAX_ENTRIES)
+    updateFlowAndDisk(context, userId, sorted)
+  }
+
+  fun clearAll(context: Context, userId: String) {
+    synchronized(flowsByUser) {
+      flowsByUser[userId]?.value = emptyList()
+    }
+    prefs(context, userId).edit().clear().apply()
+  }
+
   private fun prependEntry(context: Context, userId: String, entry: CashflowEntry) {
     val current = observeEntries(context, userId).value
     val updated = (listOf(entry) + current).take(MAX_ENTRIES)

@@ -372,7 +372,22 @@ fun DashboardScreen(
         )
       }
 
-      // 4. 7-Day Daily Pace Chart
+      // 4. Interactive Monthly Spending Distribution & Budget Visual Dashboard
+      item {
+        CategoryDonutChartCard(
+          monthKey = data.monthKey,
+          expenses = data.expenses,
+          allHistoricalExpenses = data.allHistoricalExpenses,
+          currency = activeCurrency,
+          locale = activeLocale,
+          hideBalances = hideBalances,
+          categoryBreakdown = data.categoryBreakdown,
+          totalBudget = data.dailyInsight.totalBudget,
+          onSetupBudgetClick = onNavigateToAutoBudget,
+        )
+      }
+
+      // 4b. 7-Day Daily Pace Chart
       item {
         SculptedSurfaceCard(
           accentColor = MaterialTheme.colorScheme.primary,
@@ -384,18 +399,6 @@ fun DashboardScreen(
             modifier = Modifier.padding(18.dp),
           )
         }
-      }
-
-      // 4b. Animated Category Donut Chart + Month-over-Month Trend + Top Expense
-      item {
-        CategoryDonutChartCard(
-          monthKey = data.monthKey,
-          expenses = data.expenses,
-          allHistoricalExpenses = data.allHistoricalExpenses,
-          currency = activeCurrency,
-          locale = activeLocale,
-          hideBalances = hideBalances,
-        )
       }
 
       // 4c. 6-12 Month Multi-Month Trend & Annual Recap Card

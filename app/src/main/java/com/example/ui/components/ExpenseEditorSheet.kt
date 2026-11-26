@@ -63,6 +63,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -114,6 +115,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.local.CustomCategory
 import com.example.data.local.CustomCategoryManager
+import com.example.data.local.CustomWallet
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.PaymentMethod
@@ -125,6 +127,7 @@ import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.AiExpenseParseState
+import com.example.util.EventTagHelper
 import com.example.util.Formatters
 import com.example.util.ImageUtils
 import kotlinx.coroutines.launch
@@ -153,6 +156,10 @@ fun ExpenseEditorSheet(
   initialEpochDay: Long? = null,
   onScanReceiptBase64: (String) -> Unit = {},
   autoLaunchReceiptScan: Boolean = false,
+  onCustomCategoryAdded: (CustomCategory) -> Unit = {},
+  onCustomCategoryDeleted: (String) -> Unit = {},
+  customWallets: List<CustomWallet> = emptyList(),
+  onDeductCustomWallet: ((walletId: String, amount: Long) -> Unit)? = null,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
@@ -161,6 +168,7 @@ fun ExpenseEditorSheet(
   val customCategories by CustomCategoryManager.observeCategories(context).collectAsStateWithLifecycle()
   val activeLocale = activeLanguage.toLocale()
   val isDarkTheme = rememberIsEffectiveDarkTheme()
+  var selectedCustomWalletId by remember(existingExpense?.id) { mutableStateOf<String?>(null) }
 
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val today = remember { LocalDate.now() }
@@ -372,9 +380,12 @@ fun ExpenseEditorSheet(
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.background,
+    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    containerColor = rememberLiquidGlassSheetContainerColor(),
     tonalElevation = 0.dp,
+    dragHandle = { LiquidGlassSheetDragHandle() },
   ) {
+    LiquidGlassWindowBlurEffect()
     Box(
       modifier = Modifier.fillMaxWidth(),
       contentAlignment = Alignment.TopCenter,
@@ -993,10 +1004,9 @@ fun ExpenseEditorSheet(
 
             if (receiptPhotoBase64.isNotBlank() && decodedReceiptBitmap != null) {
               // Attached Receipt Preview + Actions
-              Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, EmeraldSafe.copy(alpha = 0.35f)),
+              SculptedSurfaceCard(
+                accentColor = EmeraldSafe,
+                cornerRadius = 18,
                 modifier = Modifier
                   .fillMaxWidth()
                   .testTag("receipt_photo_preview_card"),
@@ -1299,6 +1309,7 @@ fun ExpenseEditorSheet(
                             .size(15.dp)
                             .clickable {
                               CustomCategoryManager.deleteCategory(context, customCat.id)
+                              onCustomCategoryDeleted(customCat.id)
                             },
                         )
                       },
@@ -1339,12 +1350,16 @@ fun ExpenseEditorSheet(
                   label = { Text(stringResource(R.string.label_yesterday)) },
                 )
                 Surface(
-                  shape = RoundedCornerShape(10.dp),
-                  color = MaterialTheme.colorScheme.surface,
-                  border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                  shape = RoundedCornerShape(12.dp),
+                  color = MaterialTheme.colorScheme.surface.copy(alpha = if (isDarkTheme) 0.56f else 0.72f),
+                  border = BorderStroke(
+                    1.dp,
+                    if (isDarkTheme) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.80f),
+                  ),
                   modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { showDatePicker = true }
                     .testTag("pick_date_button"),
                 ) {
@@ -1400,6 +1415,153 @@ fun ExpenseEditorSheet(
                   )
                 }
               }
+
+              if (existingExpense == null && customWallets.isNotEmpty() && onDeductCustomWallet != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                  text = stringResource(R.string.editor_custom_wallet_deduct_label),
+                  style = MaterialTheme.typography.labelMedium,
+                  fontWeight = FontWeight.SemiBold,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                  customWallets.forEach { wallet ->
+                    val isSelected = selectedCustomWalletId == wallet.id
+                    FilterChip(
+                      selected = isSelected,
+                      onClick = {
+                        if (isSelected) {
+                          selectedCustomWalletId = null
+                        } else {
+                          selectedCustomWalletId = wallet.id
+                          selectedMethod = wallet.walletType.defaultPaymentMethod()
+                        }
+                      },
+                      label = {
+                        Text(
+                          text = "${wallet.name} (${Formatters.formatMoney(wallet.balance, activeCurrency)})",
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      },
+                      leadingIcon = {
+                        Box(
+                          modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(wallet.accentColor),
+                        )
+                      },
+                      colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = wallet.accentColor.copy(alpha = 0.16f),
+                        selectedLabelColor = wallet.accentColor,
+                      ),
+                      modifier = Modifier.testTag("editor_custom_wallet_${wallet.id}"),
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Event / Project #Tags Quick Picker
+        var customEventTagDraft by remember { mutableStateOf("") }
+        val activeNoteTags = remember(note) { EventTagHelper.extractTags(note) }
+        val suggestedEventTags = remember(activeNoteTags) {
+          (EventTagHelper.presetEventTags + activeNoteTags).distinct()
+        }
+        SculptedSurfaceCard(
+          accentColor = SkyPositiveAccent,
+          cornerRadius = 18,
+          modifier = Modifier.testTag("event_tags_editor_section"),
+        ) {
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.Tag,
+                contentDescription = null,
+                tint = SkyPositiveAccent,
+                modifier = Modifier.size(16.dp),
+              )
+              Text(
+                text = stringResource(R.string.event_tags_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+            }
+            Text(
+              text = stringResource(R.string.event_tags_section_hint),
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FlowRow(
+              horizontalArrangement = Arrangement.spacedBy(6.dp),
+              verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+              suggestedEventTags.forEach { tag ->
+                val isTagged = EventTagHelper.hasTag(note, tag)
+                FilterChip(
+                  selected = isTagged,
+                  onClick = { note = EventTagHelper.toggleTag(note, tag) },
+                  label = { Text(tag) },
+                  colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = SkyPositiveAccent.copy(alpha = 0.18f),
+                    selectedLabelColor = SkyPositiveAccent,
+                  ),
+                  modifier = Modifier.testTag("editor_event_tag_$tag"),
+                )
+              }
+            }
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              OutlinedTextField(
+                value = customEventTagDraft,
+                onValueChange = { customEventTagDraft = it.take(25) },
+                placeholder = { Text(stringResource(R.string.event_tags_custom_hint)) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                  .weight(1f)
+                  .testTag("custom_event_tag_input"),
+              )
+              FilledTonalIconButton(
+                onClick = {
+                  val normalized = EventTagHelper.normalizeTag(customEventTagDraft)
+                  if (normalized != null) {
+                    if (!EventTagHelper.hasTag(note, normalized)) {
+                      note = EventTagHelper.toggleTag(note, normalized)
+                    }
+                    customEventTagDraft = ""
+                  }
+                },
+                enabled = EventTagHelper.normalizeTag(customEventTagDraft) != null,
+                modifier = Modifier
+                  .size(48.dp)
+                  .testTag("add_custom_event_tag_button"),
+              ) {
+                Icon(
+                  imageVector = Icons.Rounded.Add,
+                  contentDescription = stringResource(R.string.event_tags_add_cd),
+                )
+              }
             }
           }
         }
@@ -1452,15 +1614,20 @@ fun ExpenseEditorSheet(
               when {
                 parsedAmount <= 0L -> validationError = context.getString(R.string.editor_error_amount)
                 title.isBlank() -> validationError = context.getString(R.string.editor_error_title)
-                else -> onSave(
-                  title.trim(),
-                  parsedAmount,
-                  selectedCategory,
-                  selectedMethod,
-                  selectedEpochDay,
-                  note.trim(),
-                  receiptPhotoBase64,
-                )
+                else -> {
+                  if (existingExpense == null && selectedCustomWalletId != null) {
+                    onDeductCustomWallet?.invoke(selectedCustomWalletId!!, parsedAmount)
+                  }
+                  onSave(
+                    title.trim(),
+                    parsedAmount,
+                    selectedCategory,
+                    selectedMethod,
+                    selectedEpochDay,
+                    note.trim(),
+                    receiptPhotoBase64,
+                  )
+                }
               }
             },
             enabled = !isEncodingReceipt,
@@ -1513,6 +1680,7 @@ fun ExpenseEditorSheet(
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
     DatePickerDialog(
       onDismissRequest = { showDatePicker = false },
+      shape = RoundedCornerShape(28.dp),
       confirmButton = {
         TextButton(
           onClick = {
@@ -1532,12 +1700,13 @@ fun ExpenseEditorSheet(
         }
       },
     ) {
+      LiquidGlassWindowBlurEffect()
       DatePicker(state = datePickerState)
     }
   }
 
   if (showQuickScanChooser) {
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { showQuickScanChooser = false },
       title = { Text(stringResource(R.string.ai_scan_chooser_title)) },
       text = {
@@ -1600,6 +1769,7 @@ fun ExpenseEditorSheet(
       onCreate = { name, parent, colorHex ->
         val created = CustomCategoryManager.addCategory(context, name, parent, colorHex)
         if (created != null) {
+          onCustomCategoryAdded(created)
           selectedCategory = created.parentCategory
           if (title.isBlank()) title = created.name
           note = CustomCategoryManager.applyTagToNote(note, created)
@@ -1622,7 +1792,7 @@ private fun AddCustomCategoryDialog(
   var selectedColor by remember { mutableLongStateOf(CustomCategoryManager.presetColorPalette.first()) }
   var errorText by remember { mutableStateOf<String?>(null) }
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.custom_cat_dialog_title)) },
     text = {

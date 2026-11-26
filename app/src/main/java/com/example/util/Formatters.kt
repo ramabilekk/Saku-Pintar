@@ -106,6 +106,15 @@ object Formatters {
     }
   }
 
+  fun formatMonthShort(
+    monthKey: String,
+    locale: Locale = LanguagePreferenceManager.currentLocale(),
+  ): String {
+    val ym = runCatching { YearMonth.parse(monthKey) }.getOrElse { YearMonth.now() }
+    val formatter = DateTimeFormatter.ofPattern("MMM", locale)
+    return ym.atDay(1).format(formatter)
+  }
+
   fun formatDateGroupLabel(
     epochDay: Long,
     today: LocalDate = LocalDate.now(),

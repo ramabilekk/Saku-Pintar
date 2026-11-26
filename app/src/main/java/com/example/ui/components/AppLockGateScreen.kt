@@ -127,33 +127,47 @@ fun AppLockGateScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(
-        Brush.verticalGradient(
-          colors = listOf(
-            Color(0xFF0A1020),
-            Color(0xFF0F172A),
-            Color(0xFF0B1324),
-          )
-        )
-      )
-      .safeDrawingPadding()
-      .padding(horizontal = 24.dp, vertical = 20.dp)
       .testTag("app_lock_gate_screen"),
     contentAlignment = Alignment.Center,
   ) {
+    AppAmbientBackdrop()
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(
+          Brush.verticalGradient(
+            colors = listOf(
+              Color(0xFF040914).copy(alpha = 0.72f),
+              Color(0xFF071324).copy(alpha = 0.66f),
+              Color(0xFF040A16).copy(alpha = 0.78f),
+            )
+          )
+        ),
+    )
     Column(
       modifier = Modifier
+        .safeDrawingPadding()
+        .padding(horizontal = 24.dp, vertical = 20.dp)
         .widthIn(max = 360.dp)
         .fillMaxWidth(),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
       Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = Color(0xFF141E33),
-        border = BorderStroke(1.dp, EmeraldSafe.copy(alpha = 0.45f)),
-        shadowElevation = 10.dp,
-        modifier = Modifier.size(68.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White.copy(alpha = 0.10f),
+        border = BorderStroke(
+          1.3.dp,
+          Brush.linearGradient(
+            colors = listOf(
+              Color.White.copy(alpha = 0.55f),
+              EmeraldSafe.copy(alpha = 0.55f),
+              Color.White.copy(alpha = 0.14f),
+            ),
+          ),
+        ),
+        shadowElevation = 12.dp,
+        modifier = Modifier.size(72.dp),
       ) {
         Image(
           painter = painterResource(id = R.drawable.img_sakupintar_logo),
@@ -344,14 +358,37 @@ private fun PinKeyButton(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val rimBrush = remember {
+    Brush.linearGradient(
+      colors = listOf(
+        Color.White.copy(alpha = 0.50f),
+        Color.White.copy(alpha = 0.14f),
+        Color.White.copy(alpha = 0.24f),
+      ),
+    )
+  }
+  val fillBrush = remember {
+    Brush.verticalGradient(
+      colors = listOf(
+        Color.White.copy(alpha = 0.20f),
+        Color.White.copy(alpha = 0.08f),
+      ),
+    )
+  }
   Surface(
     onClick = onClick,
     shape = CircleShape,
-    color = Color.White.copy(alpha = 0.10f),
-    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f)),
-    modifier = modifier.size(66.dp),
+    color = Color.Transparent,
+    border = BorderStroke(1.1.dp, rimBrush),
+    shadowElevation = 4.dp,
+    modifier = modifier.size(68.dp),
   ) {
-    Box(contentAlignment = Alignment.Center) {
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(fillBrush),
+      contentAlignment = Alignment.Center,
+    ) {
       Text(
         text = label,
         fontFamily = JetBrainsMonoFontFamily,
@@ -376,7 +413,7 @@ fun SetupPinDialog(
   var pin2 by remember { mutableStateOf("") }
   var errorMsg by remember { mutableStateOf<String?>(null) }
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

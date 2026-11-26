@@ -25,6 +25,7 @@ data class DailyBudgetInsight(
   val todaySpent: Long,
   val todayRemaining: Long,
   val paceStatus: BudgetPaceStatus,
+  val rolloverAmount: Long = 0L,
 )
 
 object BudgetAutoComposer {
@@ -176,6 +177,7 @@ object BudgetAutoComposer {
     monthKey: String,
     today: LocalDate = LocalDate.now(),
     paydayStartDay: Int = 1,
+    rolloverAmount: Long = 0L,
   ): DailyBudgetInsight {
     val cycle = PaydayCycleManager.resolveCycle(
       monthKey = monthKey,
@@ -183,7 +185,8 @@ object BudgetAutoComposer {
       fallbackDate = today,
     )
     val daysInMonth = cycle.totalDays
-    val totalBudget = budget?.totalAllocatedSpendBudget ?: 0L
+    val effectiveRollover = if (budget != null) rolloverAmount.coerceAtLeast(0L) else 0L
+    val totalBudget = (budget?.totalAllocatedSpendBudget ?: 0L) + effectiveRollover
     val totalSpent = monthExpenses.sumOf { it.amount }
     val remaining = totalBudget - totalSpent
 
@@ -219,6 +222,7 @@ object BudgetAutoComposer {
       todaySpent = todaySpent,
       todayRemaining = todayRemaining,
       paceStatus = status,
+      rolloverAmount = effectiveRollover,
     )
   }
 

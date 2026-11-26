@@ -128,17 +128,16 @@ fun ReceiptPhotoViewerDialog(
     onDismissRequest = onDismiss,
     properties = DialogProperties(usePlatformDefaultWidth = false),
   ) {
+    LiquidGlassWindowBlurEffect()
     Box(
       modifier = Modifier
         .fillMaxSize()
-        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.82f))
+        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.62f))
         .padding(16.dp),
       contentAlignment = Alignment.Center,
     ) {
-      Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+      LiquidGlassDialogSurface(
+        cornerRadius = 26,
         modifier = Modifier
           .widthIn(max = 520.dp)
           .fillMaxWidth(),

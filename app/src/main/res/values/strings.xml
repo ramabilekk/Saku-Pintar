@@ -275,12 +275,25 @@
     <string name="export_primary_badge">Best for Spreadsheet</string>
     <string name="export_pdf_title">PDF Document (.pdf)</string>
     <string name="export_pdf_subtitle">A4 executive report with inline receipt badges &amp; 2-column photo gallery</string>
-    <string name="export_csv_title">CSV Table &amp; Receipt Index (.csv)</string>
-    <string name="export_csv_subtitle">Universal spreadsheet table with structured receipt attachment index</string>
-    <string name="export_share_section">Share Directly via WhatsApp / Email / Drive</string>
+    <string name="export_csv_title">Simple CSV Table (.csv)</string>
+    <string name="export_csv_subtitle">Universal spreadsheet backup compatible with Excel, Google Sheets &amp; text editors</string>
+    <string name="export_txt_title">Plain Text Backup (.txt)</string>
+    <string name="export_txt_subtitle">Lightweight readable .txt file containing full monthly summary &amp; all transactions</string>
+    <string name="export_share_section">Share File Directly via WhatsApp / Email / Drive</string>
     <string name="export_btn_excel">Excel</string>
     <string name="export_btn_pdf">PDF</string>
-    <string name="export_btn_text">Text</string>
+    <string name="export_btn_csv">CSV</string>
+    <string name="export_btn_text">Text (.txt)</string>
+    <string name="export_backup_preview_title">Preview Simple Text / CSV Backup</string>
+    <string name="export_backup_preview_show">Show Preview</string>
+    <string name="export_backup_preview_hide">Hide Preview</string>
+    <string name="export_backup_copy_action">Copy %1$s</string>
+    <string name="export_backup_copied_status">%1$s monthly backup copied to clipboard.</string>
+    <string name="export_txt_header">SAKUPINTAR MONTHLY EXPENSE BACKUP</string>
+    <string name="export_txt_period_label">Period</string>
+    <string name="export_txt_all_transactions">All Transactions (%1$d)</string>
+    <string name="export_txt_empty_transactions">No expenses recorded for this month.</string>
+    <string name="export_txt_note_prefix">Note</string>
     <string name="export_saved_success">%1$s recap saved successfully.</string>
     <string name="export_saved_error">Failed to save %1$s: %2$s</string>
     <string name="export_no_app_file">No app found to share %1$s file.</string>
@@ -652,6 +665,252 @@
     <string name="ai_chat_typing">SakuPintar AI is analyzing…</string>
     <string name="ai_chat_retry">Retry</string>
     <string name="ai_chat_context_badge">Live context: %1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_finance">Finance &amp; Security</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_section_about">About App</string>
+    <string name="settings_connected_account_title">Connected Account</string>
+    <string name="settings_sign_out_subtitle">Sign out from your account</string>
+    <string name="settings_app_version_title">App Version</string>
+    <string name="settings_quick_edit_profile">Edit Profile</string>
+    <string name="settings_quick_change_photo">Change Photo</string>
+    <string name="settings_guest_subtitle_fallback">Guest Mode • Stored on this device</string>
+    <string name="settings_edit_profile_dialog_title">Edit Profile</string>
+    <string name="settings_haptic_title">Haptic Feedback</string>
+    <string name="settings_haptic_subtitle_on">Subtle vibration on taps &amp; navigation</string>
+    <string name="settings_haptic_subtitle_off">Vibration feedback is turned off</string>
+    <string name="settings_export_title">Export Financial Report</string>
+    <string name="settings_export_subtitle">Save monthly Excel, PDF, CSV, or Plain Text (.txt) backups</string>
+    <string name="settings_cache_title">Cache Settings</string>
+    <string name="settings_cache_subtitle">Clear cache (%1$s)</string>
+    <string name="settings_cache_dialog_title">Clear App Cache?</string>
+    <string name="settings_cache_dialog_body">This removes %1$s of temporary image previews and export files. Your transactions, budgets, and savings will not be affected.</string>
+    <string name="settings_cache_clear_action">Clear Cache</string>
+    <string name="settings_cache_cleared_status">Cleared %1$s of cache.</string>
+    <string name="settings_sign_out_confirm_title">Sign Out?</string>
+    <string name="settings_sign_out_confirm_body_google">Your data stays safely synced in your Google account. You can sign back in anytime.</string>
+    <string name="settings_sign_out_confirm_body_guest">You are in Guest mode. Local data stays on this device unless you delete it.</string>
+    <string name="settings_delete_account_title">Delete Account</string>
+    <string name="settings_delete_account_title_guest">Delete All Data</string>
+    <string name="settings_delete_account_subtitle">Delete account and all its data</string>
+    <string name="settings_delete_account_subtitle_guest">Wipe all local records on this device</string>
+    <string name="settings_delete_account_dialog_title">Permanently Delete All Data?</string>
+    <string name="settings_delete_account_dialog_body_google">All your expenses, budgets, savings goals, wallet balances, and profile info will be permanently erased from cloud storage. This action cannot be undone.</string>
+    <string name="settings_delete_account_dialog_body_guest">All local expenses, budgets, savings goals, and wallet balances stored on this device will be permanently erased. This action cannot be undone.</string>
+    <string name="settings_delete_account_checkbox">I understand this action is permanent and cannot be undone</string>
+    <string name="settings_delete_account_confirm">Delete Permanently</string>
+    <string name="settings_delete_account_in_progress">Deleting data…</string>
+    <string name="settings_delete_account_success">Account and all financial data deleted.</string>
+    <string name="settings_delete_account_failed">Failed to delete account: %1$s</string>
+    <string name="settings_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_privacy_policy_subtitle">Read our privacy policy</string>
+    <string name="settings_privacy_policy_body">1. Data Storage\n• Google Sign-In: Your expenses, monthly budgets, wallets, and savings goals are stored securely in your private cloud account (Firebase Firestore) and are accessible only by you.\n• Guest Mode: All financial records stay strictly on your device until you choose to sync with Google or delete them.\n\n2. Camera, Photos &amp; AI Processing\n• When you scan a receipt or ask SakuPintar AI, only the image or financial summary needed for that request is sent to generate your expense extraction or insight.\n• We never sell your personal or financial data to third parties.\n\n3. Security &amp; Your Control\n• App Lock PINs are hashed locally using salted SHA-256 and never leave your device.\n• You can export your data anytime or permanently erase all your records from Settings &gt; Delete Account.</string>
+    <string name="settings_terms_title">Terms &amp; Conditions</string>
+    <string name="settings_terms_subtitle">Read our terms &amp; conditions</string>
+    <string name="settings_terms_body">1. Purpose of App\nSakuPintar is a personal finance tracking and budgeting companion designed to help you log daily expenses, monitor wallets, and plan savings goals.\n\n2. AI Insights Disclaimer\nAutomated receipt scanning, budget recommendations, and SakuPintar AI chat responses are provided for informational convenience only and do not constitute licensed financial, tax, or investment advice. Always verify scanned receipt totals before saving.\n\n3. User Responsibility\nYou are responsible for keeping your device and Google account credentials secure. You may export or permanently delete your data at any time through the Settings screen.</string>
+    <string name="settings_contact_title">Contact Us</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">SakuPintar Support &amp; Feedback</string>
+    <string name="settings_contact_copied_status">Support email copied: %1$s</string>
+
+    <!-- Budget Threshold Alerts (80% & 100%) -->
+    <string name="budget_alert_channel_name">Budget Limit Alerts</string>
+    <string name="budget_alert_channel_desc" formatted="false">Alerts when a spending category reaches 80% or 100% of its monthly budget</string>
+    <string name="budget_alert_80_title">Budget Caution: %1$s</string>
+    <string name="budget_alert_80_body">You have used %1$d%% (%2$s of %3$s) of this month\'s budget.</string>
+    <string name="budget_alert_100_title">Budget Limit Reached: %1$s</string>
+    <string name="budget_alert_100_body">Spending reached %1$s against your %2$s limit.</string>
+    <string name="settings_budget_alerts_title">Budget Limit Alerts</string>
+    <string name="settings_budget_alerts_subtitle_on" formatted="false">Auto-notify when category spending reaches 80% or 100%</string>
+    <string name="settings_budget_alerts_subtitle_off">Automatic budget alerts are turned off</string>
+    <string name="settings_budget_alerts_enabled_status">Budget limit alerts enabled.</string>
+    <string name="settings_budget_alerts_disabled_status">Budget limit alerts disabled.</string>
+
+    <!-- JSON Backup & Restore -->
+    <string name="settings_backup_restore_title">Backup &amp; Restore Data</string>
+    <string name="settings_backup_restore_subtitle">Save or restore full JSON backup file</string>
+    <string name="backup_dialog_title">Backup &amp; Restore (JSON)</string>
+    <string name="backup_dialog_desc">Export all expenses, budgets, savings goals, wallets, cashflow, custom categories, and debts to a single JSON file, or restore them anytime.</string>
+    <string name="backup_export_title">Create Backup File</string>
+    <string name="backup_export_subtitle">Save a portable .json copy to your device or cloud drive</string>
+    <string name="backup_export_button">Export JSON</string>
+    <string name="backup_restore_title">Restore From Backup</string>
+    <string name="backup_restore_subtitle">Import records from a previously saved SakuPintar .json file</string>
+    <string name="backup_restore_button">Select JSON File</string>
+    <string name="backup_in_progress">Exporting backup…</string>
+    <string name="backup_restore_in_progress">Restoring records…</string>
+    <string name="backup_export_success">Backup saved (%1$d items).</string>
+    <string name="backup_restore_success">Restored %1$d records from backup!</string>
+    <string name="backup_error_generic">Backup error: %1$s</string>
+    <string name="backup_restore_confirm_title">Restore Backup File?</string>
+    <string name="backup_restore_confirm_body">Found %1$d financial records in this backup file. Proceed to restore them into your account?</string>
+    <string name="backup_restore_confirm_action">Restore Now</string>
+
+    <!-- Custom Wallets -->
+    <string name="custom_wallets_section_title">Custom Wallets &amp; Accounts</string>
+    <string name="custom_wallets_section_subtitle">Track specific banks &amp; e-wallets (BCA, GoPay, OVO, SeaBank)</string>
+    <string name="custom_wallets_add_button">Add Wallet</string>
+    <string name="custom_wallets_empty_hint">No custom wallets yet. Add BCA, GoPay, OVO, or cash pockets to include them in your total wallet balance.</string>
+    <string name="custom_wallet_dialog_add_title">Add Custom Wallet</string>
+    <string name="custom_wallet_dialog_edit_title">Edit Wallet</string>
+    <string name="custom_wallet_name_label">Wallet / Account Name</string>
+    <string name="custom_wallet_name_hint">e.g., BCA, GoPay, SeaBank, Cash Pocket</string>
+    <string name="custom_wallet_type_label">Account Type</string>
+    <string name="custom_wallet_balance_label">Current Balance (%1$s)</string>
+    <string name="custom_wallet_color_label">Accent Color</string>
+    <string name="custom_wallet_type_bank">Bank</string>
+    <string name="custom_wallet_type_ewallet">E-Wallet</string>
+    <string name="custom_wallet_type_cash">Cash</string>
+    <string name="custom_wallet_type_card">Card</string>
+    <string name="custom_wallet_type_investment">Investment</string>
+    <string name="custom_wallet_error_name">Please enter a wallet name.</string>
+    <string name="custom_wallet_saved_status">Wallet \"%1$s\" saved.</string>
+    <string name="custom_wallet_deleted_status">Wallet removed.</string>
+
+    <!-- Debt / Receivable & Split Bill -->
+    <string name="debt_section_title">Debts, Receivables &amp; Split Bill</string>
+    <string name="debt_section_subtitle">Track who owes you, what you owe, and split group bills</string>
+    <string name="debt_add_button">Add Record</string>
+    <string name="debt_empty_hint">No debt or split bill records yet. Tap Add Record to track IOUs or split a group meal.</string>
+    <string name="debt_summary_owed_to_me">Owed to Me</string>
+    <string name="debt_summary_i_owe">I Owe</string>
+    <string name="debt_filter_all">All</string>
+    <string name="debt_filter_active">Active</string>
+    <string name="debt_filter_settled">Settled</string>
+    <string name="debt_type_owed_to_me">Owed to Me</string>
+    <string name="debt_type_i_owe">I Owe</string>
+    <string name="debt_status_settled">Settled</string>
+    <string name="debt_status_overdue">Overdue</string>
+    <string name="debt_due_label">Due %1$s</string>
+    <string name="debt_mark_settled_cd">Toggle settled status</string>
+    <string name="debt_dialog_title">New Debt / Split Bill</string>
+    <string name="debt_person_label">Person Name</string>
+    <string name="debt_person_hint">e.g., Budi, Rina, Office Team</string>
+    <string name="debt_amount_label">Amount (%1$s)</string>
+    <string name="debt_due_date_label">Due Date</string>
+    <string name="debt_due_7d">+7 Days</string>
+    <string name="debt_due_14d">+14 Days</string>
+    <string name="debt_due_30d">+30 Days</string>
+    <string name="debt_note_label">Note (Optional)</string>
+    <string name="debt_note_hint">e.g., Dinner split, concert ticket</string>
+    <string name="debt_error_person">Please enter the person\'s name.</string>
+    <string name="debt_error_amount">Please enter an amount greater than 0.</string>
+    <string name="debt_saved_status">Record for %1$s saved.</string>
+    <string name="debt_settled_status">Marked %1$s as settled!</string>
+    <string name="debt_reopened_status">Marked %1$s as unpaid.</string>
+    <string name="debt_deleted_status">Debt record deleted.</string>
+    <string name="split_bill_toggle_title">Split Bill Calculator</string>
+    <string name="split_bill_total_label">Total Bill (%1$s)</string>
+    <string name="split_bill_people_label">People</string>
+    <string name="split_bill_result_preview">Per person: %1$s</string>
+    <string name="split_bill_apply_action">Use Amount</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">Deduct from Custom Wallet (Optional)</string>
+    <string name="csv_import_title">Import Transactions from CSV</string>
+    <string name="csv_import_subtitle">Load expenses from a SakuPintar .csv export or bank spreadsheet</string>
+    <string name="csv_import_button">Select CSV File</string>
+    <string name="csv_import_in_progress">Importing CSV…</string>
+    <string name="csv_import_empty_error">No valid transactions were found in this CSV file.</string>
+    <string name="csv_import_confirm_title">Import CSV Transactions?</string>
+    <string name="csv_import_confirm_body">Found %1$d transaction(s) in this CSV file. Add them to your expense ledger?</string>
+    <string name="csv_import_confirm_action">Import Now</string>
+    <string name="csv_import_success">Imported %1$d transaction(s) from CSV!</string>
+    <string name="bill_due_edit_cd">Edit due-date reminder for %1$s</string>
+    <string name="bill_due_edit_title">Bill Reminder: %1$s</string>
+    <string name="bill_due_edit_desc">Set the monthly due day (1–31) to get automatic reminders before this bill is due.</string>
+    <string name="bill_due_day_input_label">Due Day of Month (1–31)</string>
+    <string name="bill_due_day_input_hint">e.g. 25</string>
+    <string name="bill_due_clear_action">Clear Reminder</string>
+    <string name="budget_rollover_title">Budget Rollover</string>
+    <string name="budget_rollover_subtitle">Carry unused spendable budget from last month into this period</string>
+    <string name="budget_rollover_active_bonus">Active • +%1$s carried over from last period</string>
+    <string name="filter_last_7_days">Last 7 Days</string>
+    <string name="sort_oldest">Oldest</string>
+
+    <!-- Interactive Monthly Spending Distribution Dashboard -->
+    <string name="analytics_mode_donut">Donut</string>
+    <string name="analytics_mode_budget_bar">Budget</string>
+    <string name="analytics_budget_kpi_budget">Budget</string>
+    <string name="analytics_budget_kpi_spent">Spent</string>
+    <string name="analytics_budget_kpi_remaining">Remaining</string>
+    <string name="analytics_budget_kpi_over">Over Budget</string>
+    <string name="analytics_budget_not_set">Not set</string>
+    <string name="analytics_budget_used_pct">%1$d%% used</string>
+    <string name="analytics_tap_chart_hint">Tap a slice, bar, or category to inspect budget details</string>
+    <string name="analytics_legend_allocated">Budget</string>
+    <string name="analytics_legend_spent">Spent</string>
+    <string name="analytics_legend_over">Over</string>
+    <string name="analytics_tooltip_share">%1$d%% of monthly spend</string>
+    <string name="analytics_tooltip_tx_count">%1$d tx</string>
+    <string name="analytics_tooltip_budget_usage">%1$d%% of budget</string>
+    <string name="analytics_tooltip_no_budget">No limit set</string>
+    <string name="analytics_empty_title">No spending recorded yet</string>
+    <string name="analytics_empty_subtitle">Log your first expense or set a monthly budget to unlock live category charts.</string>
+    <string name="analytics_setup_budget_cta">Set Budget</string>
+    <string name="analytics_clear_selection_cd">Clear category selection</string>
+
+    <!-- Subscription Tracker -->
+    <string name="sub_section_title">Subscriptions</string>
+    <string name="sub_section_subtitle">Track recurring memberships &amp; renewal schedules</string>
+    <string name="sub_add_button">Add</string>
+    <string name="sub_empty_hint">No subscriptions tracked yet. Add Netflix, Spotify, iCloud, or gym plans to monitor your monthly &amp; yearly fixed costs.</string>
+    <string name="sub_monthly_total_label">Monthly Est.</string>
+    <string name="sub_yearly_total_label">Yearly Est.</string>
+    <string name="sub_active_count">%1$d active</string>
+    <string name="sub_cycle_weekly">Weekly</string>
+    <string name="sub_cycle_monthly">Monthly</string>
+    <string name="sub_cycle_yearly">Yearly</string>
+    <string name="sub_renews_today">Renews today</string>
+    <string name="sub_renews_in_days">Renews in %1$dd</string>
+    <string name="sub_status_paused">Paused</string>
+    <string name="sub_log_payment_action">Log</string>
+    <string name="sub_log_payment_cd">Log subscription payment as expense</string>
+    <string name="sub_toggle_active_cd">Pause or resume subscription</string>
+    <string name="sub_edit_cd">Edit subscription</string>
+    <string name="sub_delete_cd">Delete subscription</string>
+    <string name="sub_dialog_add_title">Add Subscription</string>
+    <string name="sub_dialog_edit_title">Edit Subscription</string>
+    <string name="sub_name_label">Service Name</string>
+    <string name="sub_name_hint">e.g., Netflix, Spotify, iCloud, Gym</string>
+    <string name="sub_cycle_label">Billing Cycle</string>
+    <string name="sub_renewal_day_label">Renewal Day (1–31)</string>
+    <string name="sub_error_name">Please enter the subscription name.</string>
+    <string name="sub_error_amount">Please enter an amount greater than 0.</string>
+    <string name="sub_saved_status">Subscription \"%1$s\" saved.</string>
+    <string name="sub_deleted_status">Subscription removed.</string>
+    <string name="sub_logged_expense_status">Logged \"%1$s\" to expenses!</string>
+
+    <!-- Auto-Log Recurring Bills -->
+    <string name="bill_autolog_title">Auto-Log on Due Date</string>
+    <string name="bill_autolog_subtitle">Automatically record this bill as an expense once a month when due</string>
+    <string name="bill_autolog_badge">Auto</string>
+    <string name="bill_autolog_triggered_status">Auto-logged %1$d due bill(s) to today\'s expenses.</string>
+
+    <!-- Net Worth Tracker & Trend Chart -->
+    <string name="net_worth_title">Net Worth</string>
+    <string name="net_worth_subtitle">Wallets + Savings minus Unpaid Debts</string>
+    <string name="net_worth_assets_label">Total Assets</string>
+    <string name="net_worth_liabilities_label">Liabilities</string>
+    <string name="net_worth_receivables_pill">Receivables: +%1$s</string>
+    <string name="net_worth_trend_hint">Tap a point to inspect monthly snapshot</string>
+    <string name="net_worth_single_month_hint">Monthly snapshots record automatically as you track wallets, savings &amp; debts.</string>
+    <string name="net_worth_delta_up">+%1$s vs prev mo</string>
+    <string name="net_worth_delta_down">-%1$s vs prev mo</string>
+
+    <!-- Event / Project #Tags -->
+    <string name="event_tags_section_title">Event / Project Tags</string>
+    <string name="event_tags_section_hint">Group expenses across categories (e.g., #liburan, #mudik, #proyek)</string>
+    <string name="event_tags_custom_hint">Add #tag…</string>
+    <string name="event_tags_add_cd">Add custom event tag</string>
+    <string name="event_tags_filter_label">Events:</string>
+    <string name="event_tags_all_chip">All Events</string>
+    <string name="event_summary_title">Event Summary: %1$s</string>
+    <string name="event_summary_tx_count">%1$d transactions across %2$d categories</string>
 </resources>
+
 
 

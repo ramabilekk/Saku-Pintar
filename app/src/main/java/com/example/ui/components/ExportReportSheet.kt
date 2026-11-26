@@ -20,15 +20,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Article
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.TableChart
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +43,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,16 +58,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.ui.theme.AmberTertiary
 import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -84,6 +96,7 @@ fun ExportReportSheet(
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
   val scope = rememberCoroutineScope()
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val latestData by rememberUpdatedState(data)
   var isWorking by remember { mutableStateOf(false) }
@@ -148,12 +161,19 @@ fun ExportReportSheet(
     if (uri != null) launchSave(ReportFormat.CSV, uri)
   }
 
+  val txtLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.CreateDocument(ReportFormat.TXT.mimeType),
+  ) { uri ->
+    if (uri != null) launchSave(ReportFormat.TXT, uri)
+  }
+
   fun saveWithPicker(format: ReportFormat) {
     val fileName = ReportExporter.defaultFileName(latestData.monthKey, format)
     when (format) {
       ReportFormat.EXCEL -> excelLauncher.launch(fileName)
       ReportFormat.PDF -> pdfLauncher.launch(fileName)
       ReportFormat.CSV -> csvLauncher.launch(fileName)
+      ReportFormat.TXT -> txtLauncher.launch(fileName)
     }
   }
 
@@ -203,39 +223,15 @@ fun ExportReportSheet(
     }
   }
 
-  fun shareSummaryText() {
-    val snapshot = latestData
-    val summaryText = ReportExporter.buildMonthlyShareText(
-      monthKey = snapshot.monthKey,
-      expenses = snapshot.expenses,
-      budget = snapshot.budget,
-      dailyInsight = snapshot.dailyInsight,
-      context = context,
-      currency = activeCurrency,
-    )
-    val monthTitle = Formatters.formatMonthTitle(snapshot.monthKey, activeLocale)
-    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-      type = "text/plain"
-      putExtra(
-        Intent.EXTRA_SUBJECT,
-        context.getString(R.string.export_subject, monthTitle),
-      )
-      putExtra(Intent.EXTRA_TEXT, summaryText)
-    }
-    runCatching {
-      context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_share_action)))
-      onDismiss()
-    }.onFailure {
-      onStatusMessage(context.getString(R.string.export_no_app_text))
-    }
-  }
-
   ModalBottomSheet(
     onDismissRequest = { if (!isWorking) onDismiss() },
     sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.background,
+    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    containerColor = rememberLiquidGlassSheetContainerColor(),
     tonalElevation = 0.dp,
+    dragHandle = { LiquidGlassSheetDragHandle() },
   ) {
+    LiquidGlassWindowBlurEffect()
     Box(modifier = Modifier.fillMaxWidth()) {
       AppAmbientBackdrop()
 
@@ -245,7 +241,7 @@ fun ExportReportSheet(
           .verticalScroll(rememberScrollState())
           .padding(horizontal = 20.dp)
           .navigationBarsPadding()
-          .padding(bottom = 24.dp),
+          .padding(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         DimensionalVaultCard {
@@ -449,7 +445,7 @@ fun ExportReportSheet(
 
         ExportFormatCard(
           icon = Icons.Rounded.Description,
-          badgeColors = listOf(Color(0xFF0284C7), Color(0xFF06B6D4)),
+          badgeColors = listOf(Color(0xFF0E7490), Color(0xFF0D8A68)),
           accentColor = SkyPositiveAccent,
           title = stringResource(R.string.export_csv_title),
           subtitle = stringResource(R.string.export_csv_subtitle),
@@ -458,6 +454,162 @@ fun ExportReportSheet(
           onClick = { saveWithPicker(ReportFormat.CSV) },
           modifier = Modifier.testTag("export_option_csv"),
         )
+
+        ExportFormatCard(
+          icon = Icons.Rounded.Article,
+          badgeColors = listOf(Color(0xFFB76E14), Color(0xFFE6A23C)),
+          accentColor = AmberTertiary,
+          title = stringResource(R.string.export_txt_title),
+          subtitle = stringResource(R.string.export_txt_subtitle),
+          badge = null,
+          enabled = !isWorking,
+          onClick = { saveWithPicker(ReportFormat.TXT) },
+          modifier = Modifier.testTag("export_option_txt"),
+        )
+
+        // Interactive Simple Text / CSV Backup Preview & Quick Copy
+        var showBackupPreview by remember { mutableStateOf(false) }
+        var previewFormat by remember { mutableStateOf(ReportFormat.TXT) }
+        @Suppress("DEPRECATION")
+        val clipboardManager = LocalClipboardManager.current
+        val previewContent = remember(showBackupPreview, previewFormat, data, activeCurrency, activeLanguage) {
+          if (!showBackupPreview) {
+            ""
+          } else if (previewFormat == ReportFormat.CSV) {
+            ReportExporter.buildMonthlyCsv(
+              monthKey = data.monthKey,
+              expenses = data.expenses,
+              budget = data.budget,
+              context = context,
+              currency = activeCurrency,
+            ).removePrefix("\uFEFF")
+          } else {
+            ReportExporter.buildMonthlyPlainText(
+              monthKey = data.monthKey,
+              expenses = data.expenses,
+              budget = data.budget,
+              dailyInsight = data.dailyInsight,
+              context = context,
+              currency = activeCurrency,
+            )
+          }
+        }
+
+        SculptedSurfaceCard(
+          cornerRadius = 18,
+          modifier = Modifier.testTag("export_backup_preview_card"),
+        ) {
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+          ) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+              Column(modifier = Modifier.weight(1f)) {
+                Text(
+                  text = stringResource(R.string.export_backup_preview_title),
+                  style = MaterialTheme.typography.labelLarge,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                )
+              }
+              TextButton(
+                onClick = { showBackupPreview = !showBackupPreview },
+                modifier = Modifier.testTag("export_toggle_preview_button"),
+              ) {
+                Text(
+                  text = stringResource(
+                    if (showBackupPreview) R.string.export_backup_preview_hide else R.string.export_backup_preview_show
+                  ),
+                  style = MaterialTheme.typography.labelMedium,
+                  fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                  imageVector = if (showBackupPreview) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                  contentDescription = null,
+                  modifier = Modifier.size(18.dp),
+                )
+              }
+            }
+
+            AnimatedVisibility(visible = showBackupPreview) {
+              Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                ) {
+                  FilterChip(
+                    selected = previewFormat == ReportFormat.TXT,
+                    onClick = { previewFormat = ReportFormat.TXT },
+                    label = { Text("TXT") },
+                    modifier = Modifier.testTag("preview_tab_txt"),
+                  )
+                  FilterChip(
+                    selected = previewFormat == ReportFormat.CSV,
+                    onClick = { previewFormat = ReportFormat.CSV },
+                    label = { Text("CSV") },
+                    modifier = Modifier.testTag("preview_tab_csv"),
+                  )
+                  Spacer(modifier = Modifier.weight(1f))
+                  FilledTonalButton(
+                    onClick = {
+                      val shortName = if (previewFormat == ReportFormat.CSV) "CSV" else "TXT"
+                      clipboardManager.setText(AnnotatedString(previewContent))
+                      onStatusMessage(context.getString(R.string.export_backup_copied_status, shortName))
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                      .height(48.dp)
+                      .testTag("export_copy_backup_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.ContentCopy,
+                      contentDescription = null,
+                      modifier = Modifier.size(15.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                      text = stringResource(
+                        R.string.export_backup_copy_action,
+                        if (previewFormat == ReportFormat.CSV) "CSV" else "TXT",
+                      ),
+                      style = MaterialTheme.typography.labelMedium,
+                      fontWeight = FontWeight.Bold,
+                    )
+                  }
+                }
+
+                Surface(
+                  shape = RoundedCornerShape(12.dp),
+                  color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                  modifier = Modifier.fillMaxWidth(),
+                ) {
+                  Text(
+                    text = previewContent.take(2400) + if (previewContent.length > 2400) "\n…" else "",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                      fontFamily = JetBrainsMonoFontFamily,
+                      fontSize = 11.sp,
+                      lineHeight = 16.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(12.dp)
+                      .testTag("export_backup_preview_content"),
+                  )
+                }
+              }
+            }
+          }
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
 
@@ -478,72 +630,105 @@ fun ExportReportSheet(
           )
         }
 
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          FilledTonalButton(
-            onClick = { shareReportFile(ReportFormat.EXCEL) },
-            enabled = !isWorking,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-              .weight(1f)
-              .height(48.dp)
-              .testTag("share_option_excel"),
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Icon(
-              imageVector = Icons.Rounded.TableChart,
-              contentDescription = null,
-              modifier = Modifier.size(16.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-              text = stringResource(R.string.export_btn_excel),
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
+            FilledTonalButton(
+              onClick = { shareReportFile(ReportFormat.EXCEL) },
+              enabled = !isWorking,
+              shape = RoundedCornerShape(12.dp),
+              colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = EmeraldSafe.copy(alpha = if (isDarkTheme) 0.22f else 0.14f),
+                contentColor = if (isDarkTheme) Color(0xFF6EE7B7) else Color(0xFF047857),
+              ),
+              modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .testTag("share_option_excel"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.TableChart,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.export_btn_excel),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+            OutlinedButton(
+              onClick = { shareReportFile(ReportFormat.PDF) },
+              enabled = !isWorking,
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .testTag("share_option_pdf"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.PictureAsPdf,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.export_btn_pdf),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
-          OutlinedButton(
-            onClick = { shareReportFile(ReportFormat.PDF) },
-            enabled = !isWorking,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-              .weight(1f)
-              .height(48.dp)
-              .testTag("share_option_pdf"),
+
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Icon(
-              imageVector = Icons.Rounded.PictureAsPdf,
-              contentDescription = null,
-              modifier = Modifier.size(16.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-              text = stringResource(R.string.export_btn_pdf),
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
-          }
-          OutlinedButton(
-            onClick = { shareSummaryText() },
-            enabled = !isWorking,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-              .weight(1f)
-              .height(48.dp)
-              .testTag("share_option_text"),
-          ) {
-            Icon(
-              imageVector = Icons.Rounded.Share,
-              contentDescription = null,
-              modifier = Modifier.size(16.dp),
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-              text = stringResource(R.string.export_btn_text),
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
+            OutlinedButton(
+              onClick = { shareReportFile(ReportFormat.CSV) },
+              enabled = !isWorking,
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .testTag("share_option_csv"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.Description,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.export_btn_csv),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+            OutlinedButton(
+              onClick = { shareReportFile(ReportFormat.TXT) },
+              enabled = !isWorking,
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .testTag("share_option_text"),
+            ) {
+              Icon(
+                imageVector = Icons.Rounded.Article,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.export_btn_text),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
         }
       }
@@ -615,36 +800,39 @@ private fun ExportFormatCard(
       }
       Column(
         modifier = Modifier.weight(1f),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
       ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-          Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-          )
-          if (badge != null) {
-            Surface(
-              shape = RoundedCornerShape(50),
-              color = accentColor.copy(alpha = 0.18f),
-            ) {
-              Text(
-                text = badge,
-                style = MaterialTheme.typography.labelSmall,
-                color = accentColor,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-              )
-            }
+        if (badge != null) {
+          Surface(
+            shape = RoundedCornerShape(50),
+            color = accentColor.copy(alpha = 0.16f),
+            border = BorderStroke(0.8.dp, accentColor.copy(alpha = 0.42f)),
+          ) {
+            Text(
+              text = badge,
+              style = MaterialTheme.typography.labelSmall,
+              color = accentColor,
+              fontWeight = FontWeight.Bold,
+              maxLines = 1,
+              softWrap = false,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp),
+            )
           }
         }
+        Text(
+          text = title,
+          style = MaterialTheme.typography.titleSmall,
+          fontWeight = FontWeight.Bold,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
         Text(
           text = subtitle,
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 3,
+          overflow = TextOverflow.Ellipsis,
         )
       }
       Icon(

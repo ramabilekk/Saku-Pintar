@@ -374,4 +374,457 @@
     <string name="profile_support_subtitle">Поддержите развитие приложения на Trakteer</string>
     <string name="profile_support_button">Support</string>
     <string name="profile_support_browser_error">Не удалось открыть браузер. Перейдите на trakteer.id/ramabilekk/gift.</string>
+
+    <!-- Plain Text Export & Backup Preview -->
+    <string name="export_txt_title">Текстовая копия (.txt)</string>
+    <string name="export_txt_subtitle">Лёгкий читаемый файл .txt со сводкой за месяц и всеми расходами</string>
+    <string name="export_backup_preview_title">Предпросмотр копии Текст / CSV</string>
+    <string name="export_backup_preview_show">Показать</string>
+    <string name="export_backup_preview_hide">Скрыть</string>
+    <string name="export_backup_copy_action">Копировать %1$s</string>
+    <string name="export_backup_copied_status">Копия %1$s за месяц скопирована в буфер обмена.</string>
+    <string name="export_txt_header">ЕЖЕМЕСЯЧНАЯ КОПИЯ РАСХОДОВ SAKUPINTAR</string>
+    <string name="export_txt_period_label">Период</string>
+    <string name="export_txt_all_transactions">Все транзакции (%1$d)</string>
+    <string name="export_txt_empty_transactions">В этом месяце расходы не записаны.</string>
+    <string name="export_txt_note_prefix">Заметка</string>
+    <string name="export_receipt_preview_title">Фото чеков готовы (%1$d шт.)</string>
+    <string name="export_receipt_preview_subtitle">Фото аккуратно встроены в Excel (.xlsx) и сетку 2 колонки в PDF (.pdf)</string>
+    <string name="report_col_receipt_photo">Фото чека</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">Чек</string>
+    <string name="report_sheet_receipts">Фото чеков</string>
+    <string name="report_receipt_section_title">Прикреплённые фото чеков и квитанций</string>
+    <string name="report_receipt_attached_count">Прикреплено %1$d фото чеков</string>
+    <string name="report_receipt_yes">Прикреплён (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">Автоматически включается в отчёты PDF и Excel</string>
+
+    <!-- Login Methods -->
+    <string name="auth_tab_sign_in">Вход</string>
+    <string name="auth_tab_sign_up">Регистрация</string>
+    <string name="auth_choose_method_sign_in">Выберите способ входа</string>
+    <string name="auth_choose_method_sign_up">Выберите способ регистрации</string>
+    <string name="auth_sign_up_google">Регистрация через Google</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">Гостевой аккаунт</string>
+    <string name="auth_or_other_methods">Или выберите другой способ</string>
+    <string name="auth_guest_continue">Продолжить как гость</string>
+    <string name="auth_guest_subtitle">Гостевой режим: быстрый доступ без облачной копии</string>
+    <string name="guest_visitor_banner">Гостевой режим • Локальная сессия без облачной копии</string>
+    <string name="guest_account_display_name">Гость</string>
+    <string name="guest_account_badge">Гостевой режим (без облака)</string>
+    <string name="auth_landing_enter_action">Войти</string>
+    <string name="auth_landing_subtitle">Нажмите Войти, чтобы выбрать способ авторизации</string>
+    <string name="auth_method_screen_sign_in_title">Способ входа</string>
+    <string name="auth_method_screen_sign_up_title">Способ регистрации</string>
+    <string name="auth_back_action">Назад</string>
+    <string name="topbar_expenses_title">Дневник расходов</string>
+    <string name="topbar_expenses_subtitle">Ежедневные траты и регулярные платежи</string>
+    <string name="topbar_budget_title">Планировщик бюджета</string>
+    <string name="topbar_budget_subtitle">Умное распределение 50/30/20 и дневной лимит</string>
+    <string name="topbar_savings_title">Накопления и кошельки</string>
+    <string name="topbar_savings_subtitle">Отслеживайте цели накоплений и активные кошельки</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">Войдите в аккаунт</string>
+    <string name="auth_simple_signin_subtitle">Управляйте ежедневными расходами и бюджетом.</string>
+    <string name="auth_simple_google_continue">Продолжить с Google</string>
+    <string name="auth_or_divider">или</string>
+    <string name="auth_guest_simple_cta">Продолжить как гость</string>
+    <string name="auth_simple_divider_signin">или быстрый вход</string>
+    <string name="auth_simple_guest_name_label">Отображаемое имя (необязательно)</string>
+    <string name="auth_simple_guest_name_placeholder">напр. Алекс</string>
+    <string name="auth_simple_help_link">Проблемы со входом?</string>
+    <string name="auth_simple_guest_cta">Продолжить как гость</string>
+    <string name="auth_simple_no_account_prompt">Нет аккаунта?</string>
+    <string name="auth_simple_register_action">Регистрация</string>
+    <string name="auth_simple_signup_title">Начните с SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">Учитывайте расходы и автоматизируйте бюджет без усилий.</string>
+    <string name="auth_simple_divider_signup">или попробуйте сразу</string>
+    <string name="auth_simple_guest_signup_cta">Гостевой режим</string>
+    <string name="auth_simple_have_account_prompt">Уже есть аккаунт?</string>
+    <string name="auth_simple_login_action">Войти</string>
+    <string name="auth_simple_feature_cloud">Автоматическая облачная синхронизация Google</string>
+    <string name="auth_simple_feature_budget">Умный бюджет 50/30/20</string>
+    <string name="auth_simple_feature_ai">ИИ-сканер чеков и аналитика трат</string>
+    <string name="auth_help_back">Назад ко входу</string>
+    <string name="auth_help_title">Проблемы со входом?</string>
+    <string name="auth_help_body">SakuPintar использует вход через Google без отдельного пароля. При утере доступа восстановите аккаунт Google ниже.</string>
+    <string name="auth_help_recover_cta">Восстановить аккаунт Google</string>
+    <string name="auth_help_retry_google">Повторить вход через Google</string>
+    <string name="auth_help_footer_prompt">Нужен быстрый доступ?</string>
+    <string name="auth_help_footer_action">Использовать гостевой режим</string>
+    <string name="auth_help_browser_error">Не удалось открыть браузер. Перейдите на accounts.google.com/signin/recovery.</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">ИИ-сканер чеков</string>
+    <string name="ai_scan_quick_subtitle">Сфотографируйте или выберите чек для автозаполнения</string>
+    <string name="ai_scan_camera_action">Камера ИИ</string>
+    <string name="ai_scan_gallery_action">Галерея ИИ</string>
+    <string name="ai_scan_chooser_title">Сканировать чек с ИИ</string>
+    <string name="ai_scan_chooser_subtitle">Сделайте чёткое фото или выберите изображение чека. ИИ автоматически распознает магазин, сумму, дату и категорию.</string>
+    <string name="ai_scan_success_banner">Чек распознан ИИ — проверьте данные ниже</string>
+    <string name="ai_scan_date_detected">Распознанная дата: %1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">Синхронизация с Google</string>
+    <string name="guest_sync_card_subtitle">Сохраните %1$d локальных записей в облаке и открывайте их на любом устройстве.</string>
+    <string name="guest_sync_card_subtitle_empty">Подключите Google для автоматического облачного резервного копирования.</string>
+    <string name="guest_sync_cta">Подключить Google и перенести</string>
+    <string name="guest_sync_in_progress">Синхронизация с Google Cloud…</string>
+    <string name="guest_sync_success">Подключено к Google! Синхронизировано записей: %1$d.</string>
+    <string name="guest_sync_partial">Подключено! Синхронизировано: %1$d, ошибок: %2$d.</string>
+    <string name="guest_sync_connected_empty">Подключено к Google Cloud!</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">Свои категории</string>
+    <string name="custom_cat_add_action">Добавить</string>
+    <string name="custom_cat_dialog_title">Новая категория</string>
+    <string name="custom_cat_name_label">Название категории</string>
+    <string name="custom_cat_name_hint">напр. Кофе, Рассрочка, Уход</string>
+    <string name="custom_cat_parent_label">Группа бюджета</string>
+    <string name="custom_cat_color_label">Цвет</string>
+    <string name="custom_cat_empty_hint">Создавайте собственные теги, например Кофе или Спорт</string>
+    <string name="custom_cat_error_name">Введите название категории.</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">День оплаты в месяце (необязательно)</string>
+    <string name="bill_due_day_none">Без даты</string>
+    <string name="bill_due_day_format">%1$d-го числа</string>
+    <string name="bill_due_today_badge">Оплата сегодня!</string>
+    <string name="bill_due_in_days_badge">Через %1$d дн.</string>
+    <string name="bill_due_upcoming_title">Предстоящие счета</string>
+    <string name="bill_due_pay_now">Записать</string>
+    <string name="bill_due_notif_title">Напоминание об оплате</string>
+    <string name="bill_due_notif_channel_desc">Уведомления о приближении срока регулярных платежей</string>
+    <string name="bill_due_notif_today">Срок оплаты «%1$s» сегодня. Нажмите, чтобы записать платёж.</string>
+    <string name="bill_due_notif_tomorrow">Срок оплаты «%1$s» завтра. Подготовьте бюджет в SakuPintar.</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">Быстрый ввод SakuPintar</string>
+    <string name="widget_description">Дневной лимит и быстрая запись расходов в 1 касание</string>
+    <string name="widget_safe_limit_label">Лимит на сегодня</string>
+    <string name="widget_today_spent_format">Потрачено сегодня: %1$s</string>
+    <string name="widget_action_add">+ Расход</string>
+    <string name="widget_action_scan">ИИ Скан</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">Скрыть суммы</string>
+    <string name="privacy_toggle_show_cd">Показать суммы</string>
+    <string name="privacy_security_section_title">Приватность и безопасность</string>
+    <string name="privacy_hide_balances_title">Скрыть балансы</string>
+    <string name="privacy_hide_balances_subtitle">Маскировать суммы как •••••• на экране</string>
+    <string name="app_lock_title">Блокировка (PIN / Биометрия)</string>
+    <string name="app_lock_subtitle_on">Защищено при открытии SakuPintar</string>
+    <string name="app_lock_subtitle_off">Запрашивать PIN или биометрию при входе</string>
+    <string name="app_lock_setup_title">Задайте 4-значный PIN</string>
+    <string name="app_lock_setup_subtitle">Введите 4-значный PIN для защиты финансовых данных.</string>
+    <string name="app_lock_setup_confirm">Повторите PIN для подтверждения</string>
+    <string name="app_lock_pin_mismatch">PIN-коды не совпадают. Попробуйте снова.</string>
+    <string name="app_lock_pin_saved">Блокировка включена!</string>
+    <string name="app_lock_disabled_status">Блокировка отключена.</string>
+    <string name="app_lock_screen_title">SakuPintar заблокирован</string>
+    <string name="app_lock_screen_subtitle">Введите 4-значный PIN для продолжения</string>
+    <string name="app_lock_wrong_pin">Неверный PIN. Попробуйте ещё раз.</string>
+    <string name="app_lock_use_biometric">Разблокировать по биометрии</string>
+    <string name="app_lock_change_pin">Изменить PIN</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">Автосписание с кошелька</string>
+    <string name="wallet_auto_deduct_subtitle">Автоматически обновлять баланс при записи расхода</string>
+    <string name="cashflow_record_income_action">Добавить доход</string>
+    <string name="cashflow_transfer_action">Перевод</string>
+    <string name="cashflow_income_dialog_title">Записать доход</string>
+    <string name="cashflow_income_source_label">Источник дохода</string>
+    <string name="cashflow_income_source_hint">напр. Зарплата, Премия, Фриланс</string>
+    <string name="cashflow_income_target_wallet">Зачислить в кошелёк</string>
+    <string name="cashflow_income_saved">Доход %1$s зачислен в %2$s!</string>
+    <string name="cashflow_transfer_dialog_title">Перевод между кошельками</string>
+    <string name="cashflow_transfer_from_label">Из кошелька</string>
+    <string name="cashflow_transfer_to_label">В кошелёк</string>
+    <string name="cashflow_transfer_same_wallet_error">Выберите два разных кошелька.</string>
+    <string name="cashflow_transfer_insufficient">Недостаточно средств в %1$s.</string>
+    <string name="cashflow_transfer_saved">Переведено %1$s из %2$s в %3$s!</string>
+    <string name="cashflow_history_title">Движение средств за месяц</string>
+    <string name="cashflow_history_income_badge">Доход</string>
+    <string name="cashflow_history_transfer_badge">Перевод</string>
+    <string name="cashflow_entry_deleted">Запись удалена.</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">Расходы по категориям</string>
+    <string name="analytics_donut_total_label">Всего потрачено</string>
+    <string name="analytics_mom_lower">На %1$d%% меньше, чем в прошлом месяце</string>
+    <string name="analytics_mom_higher">На %1$d%% больше, чем в прошлом месяце</string>
+    <string name="analytics_mom_same">Тот же темп трат, что в прошлом месяце</string>
+    <string name="analytics_mom_no_prev">Нет данных за прошлый месяц</string>
+    <string name="analytics_top_expense_label">Крупнейшая трата месяца</string>
+    <string name="budget_alert_over">Превышение бюджета: %1$s (%2$d%%)!</string>
+    <string name="budget_alert_caution">Внимание: %1$s достиг %2$d%% месячного бюджета.</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">Голосовой ввод расхода</string>
+    <string name="voice_ai_prompt">Скажите расход, напр. Обед 500 картой</string>
+    <string name="voice_ai_unavailable">Голосовой ввод недоступен на этом устройстве.</string>
+    <string name="action_undo">Отменить</string>
+    <string name="expense_restored_status">Расход восстановлен.</string>
+    <string name="expense_duplicated_status">«%1$s» продублирован на сегодня!</string>
+    <string name="duplicate_expense_cd">Дублировать расход</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">Быстрый старт</string>
+    <string name="onboarding_progress_format">Выполнено %1$d из 3</string>
+    <string name="onboarding_step_budget_title">Настройте месячный бюджет</string>
+    <string name="onboarding_step_budget_sub">Авторасчёт безопасного дневного лимита</string>
+    <string name="onboarding_step_wallet_title">Укажите балансы кошельков</string>
+    <string name="onboarding_step_wallet_sub">Учёт наличных, QRIS, банка и карт</string>
+    <string name="onboarding_step_expense_title">Запишите первый расход</string>
+    <string name="onboarding_step_expense_sub">Попробуйте ИИ-сканер чека или быстрый ввод</string>
+    <string name="onboarding_dismiss">Скрыть</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">Зарплатный цикл</string>
+    <string name="payday_default_subtitle">1-е число каждого месяца (стандартный)</string>
+    <string name="payday_custom_subtitle">Начинается %1$d-го числа каждого месяца</string>
+    <string name="payday_cycle_desc">Синхронизируйте начало бюджетного месяца с днём вашей зарплаты.</string>
+    <string name="payday_preset_1">1-е</string>
+    <string name="payday_preset_25">25-е</string>
+    <string name="payday_preset_28">28-е</string>
+    <string name="payday_day_label">День начала цикла: %1$d</string>
+    <string name="payday_preview_label">Активный период: %1$s</string>
+    <string name="payday_saved_status">Зарплатный цикл обновлён на %1$d-е число.</string>
+    <string name="payday_badge_label">Цикл %1$s</string>
+    <string name="payday_change_action">Изменить</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">Все кошельки</string>
+    <string name="filter_with_receipt">С чеком</string>
+    <string name="filter_reset">Сбросить</string>
+    <string name="sort_label_prefix">Сортировка:</string>
+    <string name="sort_newest">Сначала новые</string>
+    <string name="sort_highest">По убыванию</string>
+    <string name="sort_lowest">По возрастанию</string>
+    <string name="sort_title_az">Имя А–Я</string>
+    <string name="filter_sort_cd">Сортировать транзакции</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">Динамика расходов и доходов</string>
+    <string name="trend_6_months">6 мес</string>
+    <string name="trend_12_months">12 мес</string>
+    <string name="trend_legend_spending">Расходы</string>
+    <string name="trend_legend_income">Доходы</string>
+    <string name="trend_tap_hint">Нажмите на столбец для подробностей за месяц</string>
+    <string name="trend_total_spent">Всего потрачено</string>
+    <string name="trend_total_income">Всего доходов</string>
+    <string name="trend_avg_monthly">В среднем / мес</string>
+    <string name="trend_net_cashflow">Чистый поток</string>
+    <string name="trend_lowest_month">Самый экономный: %1$s (%2$s)</string>
+    <string name="trend_highest_month">Максимум трат: %1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d оп.</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">Изменить цель накопления</string>
+    <string name="savings_edit_save">Сохранить</string>
+    <string name="savings_edit_cd">Изменить цель</string>
+    <string name="savings_history_cd">История пополнений</string>
+    <string name="savings_history_button">История</string>
+    <string name="savings_goal_updated">Цель «%1$s» обновлена!</string>
+    <string name="savings_history_sheet_title">Прогресс и история</string>
+    <string name="savings_history_total_deposits">Всего пополнено</string>
+    <string name="savings_history_total_withdrawals">Всего снято</string>
+    <string name="savings_history_eta_label">Ожидаемое завершение</string>
+    <string name="savings_history_eta_done">Цель достигнута! 🎉</string>
+    <string name="savings_history_eta_days">~%1$d дн. осталось (%2$s)</string>
+    <string name="savings_history_eta_months">~%1$d мес. осталось (%2$s)</string>
+    <string name="savings_history_eta_need_more">Регулярно пополняйте цель для расчёта срока достижения.</string>
+    <string name="savings_history_empty">Пока нет записей пополнений или снятий.</string>
+    <string name="savings_history_initial_label">Начальный баланс</string>
+    <string name="savings_history_deposit_label">Пополнение</string>
+    <string name="savings_history_withdraw_label">Снятие</string>
+    <string name="savings_history_balance_after">Баланс: %1$s</string>
+
+    <!-- Ask SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">Спросить SakuPintar ИИ</string>
+    <string name="ai_chat_subtitle">Персональный финансовый коуч на основе ваших данных</string>
+    <string name="ai_chat_open_button">Спросить ИИ</string>
+    <string name="ai_chat_open_cd">Открыть чат с SakuPintar ИИ</string>
+    <string name="ai_chat_reset_cd">Сбросить диалог</string>
+    <string name="ai_chat_close_cd">Закрыть чат ИИ</string>
+    <string name="ai_chat_input_hint">Спросите о расходах, бюджете или накоплениях…</string>
+    <string name="ai_chat_send_cd">Отправить вопрос</string>
+    <string name="ai_chat_welcome_title">Привет! Я SakuPintar ИИ</string>
+    <string name="ai_chat_welcome_body">Спросите меня о ваших тратах, дневном лимите, целях накоплений или советах по экономии.</string>
+    <string name="ai_chat_chip_1">На что я трачу больше всего в этом периоде?</string>
+    <string name="ai_chat_chip_2">Дай практический план экономии до конца цикла</string>
+    <string name="ai_chat_chip_3">Как идут мои накопления и как достичь целей быстрее?</string>
+    <string name="ai_chat_chip_4">Сравни динамику моих трат за последние месяцы</string>
+    <string name="ai_chat_typing">SakuPintar ИИ анализирует…</string>
+    <string name="ai_chat_retry">Повторить</string>
+    <string name="ai_chat_context_badge">Данные в реальном времени: %1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">Настройки</string>
+    <string name="settings_section_general">Общие</string>
+    <string name="settings_section_finance">Финансы и безопасность</string>
+    <string name="settings_section_account">Аккаунт</string>
+    <string name="settings_section_about">О приложении</string>
+    <string name="settings_connected_account_title">Подключённый аккаунт</string>
+    <string name="settings_sign_out_subtitle">Выйти из аккаунта</string>
+    <string name="settings_app_version_title">Версия приложения</string>
+    <string name="settings_quick_edit_profile">Редактировать профиль</string>
+    <string name="settings_quick_change_photo">Сменить фото</string>
+    <string name="settings_guest_subtitle_fallback">Гостевой режим • Хранится на устройстве</string>
+    <string name="settings_edit_profile_dialog_title">Редактировать профиль</string>
+    <string name="settings_haptic_title">Тактильный отклик</string>
+    <string name="settings_haptic_subtitle_on">Лёгкая вибрация при нажатиях</string>
+    <string name="settings_haptic_subtitle_off">Вибрация отключена</string>
+    <string name="settings_export_title">Экспорт финансового отчёта</string>
+    <string name="settings_export_subtitle">Сохраняйте отчёты в Excel, PDF, CSV или Текст (.txt)</string>
+    <string name="settings_cache_title">Кэш приложения</string>
+    <string name="settings_cache_subtitle">Очистить кэш (%1$s)</string>
+    <string name="settings_cache_dialog_title">Очистить кэш?</string>
+    <string name="settings_cache_dialog_body">Будет удалено %1$s временных файлов. Ваши транзакции, бюджеты и цели не пострадают.</string>
+    <string name="settings_cache_clear_action">Очистить кэш</string>
+    <string name="settings_cache_cleared_status">Очищено %1$s кэша.</string>
+    <string name="settings_sign_out_confirm_title">Выйти из аккаунта?</string>
+    <string name="settings_sign_out_confirm_body_google">Ваши данные безопасно синхронизированы в аккаунте Google.</string>
+    <string name="settings_sign_out_confirm_body_guest">Вы в гостевом режиме. Локальные данные останутся на устройстве.</string>
+    <string name="settings_delete_account_title">Удалить аккаунт</string>
+    <string name="settings_delete_account_title_guest">Удалить все данные</string>
+    <string name="settings_delete_account_subtitle">Удалить аккаунт и все данные</string>
+    <string name="settings_delete_account_subtitle_guest">Очистить все локальные записи на устройстве</string>
+    <string name="settings_delete_account_dialog_title">Удалить все данные навсегда?</string>
+    <string name="settings_delete_account_dialog_body_google">Все расходы, бюджеты, цели накопления и кошельки будут безвозвратно удалены из облака.</string>
+    <string name="settings_delete_account_dialog_body_guest">Все локальные расходы, бюджеты, цели и кошельки будут безвозвратно удалены.</string>
+    <string name="settings_delete_account_checkbox">Я понимаю, что это действие необратимо</string>
+    <string name="settings_delete_account_confirm">Удалить навсегда</string>
+    <string name="settings_delete_account_in_progress">Удаление данных…</string>
+    <string name="settings_delete_account_success">Аккаунт и все финансовые данные удалены.</string>
+    <string name="settings_delete_account_failed">Ошибка удаления: %1$s</string>
+    <string name="settings_privacy_policy_title">Политика конфиденциальности</string>
+    <string name="settings_privacy_policy_subtitle">Ознакомиться с политикой конфиденциальности</string>
+    <string name="settings_privacy_policy_body">1. Хранение данных\n• Google Sign-In: Данные хранятся в вашем личном облаке Firebase Firestore.\n• Гостевой режим: Все записи хранятся только на устройстве.\n\n2. Камера и ИИ\n• Передаются только данные, необходимые для сканирования чека или ответа ИИ.\n• Мы никогда не продаём ваши данные.\n\n3. Безопасность\n• PIN хранится в хэшированном виде локально.\n• Вы можете экспортировать или удалить данные в разделе Настройки &gt; Удалить аккаунт.</string>
+    <string name="settings_terms_title">Условия использования</string>
+    <string name="settings_terms_subtitle">Ознакомиться с условиями использования</string>
+    <string name="settings_terms_body">1. Назначение\nSakuPintar помогает вести учёт расходов, кошельков и целей накопления.\n\n2. Отказ от ответственности ИИ\nРекомендации ИИ носят информационный характер и не являются профессиональной финансовой консультацией.\n\n3. Ответственность\nВы отвечаете за безопасность устройства и аккаунта Google.</string>
+    <string name="settings_contact_title">Связаться с нами</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">Поддержка SakuPintar</string>
+    <string name="settings_contact_copied_status">Email поддержки скопирован: %1$s</string>
+
+    <!-- Budget Threshold Alerts -->
+    <string name="budget_alert_channel_name">Уведомления о лимите бюджета</string>
+    <string name="budget_alert_channel_desc" formatted="false">Предупреждения при достижении 80% или 100% бюджета категории</string>
+    <string name="budget_alert_80_title">Внимание к бюджету: %1$s</string>
+    <string name="budget_alert_80_body">Использовано %1$d%% (%2$s из %3$s) месячного бюджета.</string>
+    <string name="budget_alert_100_title">Лимит достигнут: %1$s</string>
+    <string name="budget_alert_100_body">Расходы достигли %1$s при лимите %2$s.</string>
+    <string name="settings_budget_alerts_title">Уведомления о бюджете</string>
+    <string name="settings_budget_alerts_subtitle_on" formatted="false">Уведомлять при достижении 80% или 100% лимита</string>
+    <string name="settings_budget_alerts_subtitle_off">Автоматические уведомления выключены</string>
+    <string name="settings_budget_alerts_enabled_status">Уведомления о бюджете включены.</string>
+    <string name="settings_budget_alerts_disabled_status">Уведомления о бюджете отключены.</string>
+
+    <!-- JSON Backup & Restore -->
+    <string name="settings_backup_restore_title">Резервное копирование</string>
+    <string name="settings_backup_restore_subtitle">Сохранить, восстановить JSON или импортировать CSV</string>
+    <string name="backup_dialog_title">Резервное копирование</string>
+    <string name="backup_dialog_desc">Экспортируйте все данные в JSON, восстановите резервную копию или импортируйте транзакции из CSV.</string>
+    <string name="backup_export_title">Создать резервную копию</string>
+    <string name="backup_export_subtitle">Сохраните файл .json на устройство или в облако</string>
+    <string name="backup_export_button">Экспорт JSON</string>
+    <string name="backup_restore_title">Восстановить из копии</string>
+    <string name="backup_restore_subtitle">Импортируйте данные из файла .json SakuPintar</string>
+    <string name="backup_restore_button">Выбрать файл JSON</string>
+    <string name="backup_in_progress">Экспорт копии…</string>
+    <string name="backup_restore_in_progress">Восстановление записей…</string>
+    <string name="backup_export_success">Копия сохранена (элементов: %1$d).</string>
+    <string name="backup_restore_success">Восстановлено записей: %1$d!</string>
+    <string name="backup_error_generic">Ошибка копирования: %1$s</string>
+    <string name="backup_restore_confirm_title">Восстановить резервную копию?</string>
+    <string name="backup_restore_confirm_body">Найдено записей: %1$d. Продолжить восстановление в ваш аккаунт?</string>
+    <string name="backup_restore_confirm_action">Восстановить</string>
+
+    <!-- Custom Wallets -->
+    <string name="custom_wallets_section_title">Свои кошельки и счета</string>
+    <string name="custom_wallets_section_subtitle">Отслеживайте конкретные банки и электронные кошельки</string>
+    <string name="custom_wallets_add_button">Добавить</string>
+    <string name="custom_wallets_empty_hint">Пока нет своих кошельков. Добавьте банковские счета или электронные кошельки.</string>
+    <string name="custom_wallet_dialog_add_title">Добавить кошелёк</string>
+    <string name="custom_wallet_dialog_edit_title">Изменить кошелёк</string>
+    <string name="custom_wallet_name_label">Название кошелька / счёта</string>
+    <string name="custom_wallet_name_hint">напр. Банк, Кошелёк, Наличные</string>
+    <string name="custom_wallet_type_label">Тип счёта</string>
+    <string name="custom_wallet_balance_label">Текущий баланс (%1$s)</string>
+    <string name="custom_wallet_color_label">Цвет</string>
+    <string name="custom_wallet_type_bank">Банк</string>
+    <string name="custom_wallet_type_ewallet">Кошелёк</string>
+    <string name="custom_wallet_type_cash">Наличные</string>
+    <string name="custom_wallet_type_card">Карта</string>
+    <string name="custom_wallet_type_investment">Инвестиции</string>
+    <string name="custom_wallet_error_name">Введите название кошелька.</string>
+    <string name="custom_wallet_saved_status">Кошелёк «%1$s» сохранён.</string>
+    <string name="custom_wallet_deleted_status">Кошелёк удалён.</string>
+
+    <!-- Debt / Receivable & Split Bill -->
+    <string name="debt_section_title">Долги и разделение счёта</string>
+    <string name="debt_section_subtitle">Учитывайте долги и делите общие счета с друзьями</string>
+    <string name="debt_add_button">Добавить</string>
+    <string name="debt_empty_hint">Пока нет записей о долгах или разделённых счетах.</string>
+    <string name="debt_summary_owed_to_me">Мне должны</string>
+    <string name="debt_summary_i_owe">Я должен</string>
+    <string name="debt_filter_all">Все</string>
+    <string name="debt_filter_active">Активные</string>
+    <string name="debt_filter_settled">Погашенные</string>
+    <string name="debt_type_owed_to_me">Мне должны</string>
+    <string name="debt_type_i_owe">Я должен</string>
+    <string name="debt_status_settled">Погашено</string>
+    <string name="debt_status_overdue">Просрочено</string>
+    <string name="debt_due_label">Срок %1$s</string>
+    <string name="debt_mark_settled_cd">Переключить статус</string>
+    <string name="debt_dialog_title">Новый долг / Разделить счёт</string>
+    <string name="debt_person_label">Имя человека</string>
+    <string name="debt_person_hint">напр. Иван, Анна, Команда</string>
+    <string name="debt_amount_label">Сумма (%1$s)</string>
+    <string name="debt_due_date_label">Срок возврата</string>
+    <string name="debt_due_7d">+7 дней</string>
+    <string name="debt_due_14d">+14 дней</string>
+    <string name="debt_due_30d">+30 дней</string>
+    <string name="debt_note_label">Заметка (необязательно)</string>
+    <string name="debt_note_hint">напр. Общий ужин, билеты</string>
+    <string name="debt_error_person">Введите имя человека.</string>
+    <string name="debt_error_amount">Введите сумму больше 0.</string>
+    <string name="debt_saved_status">Запись для %1$s сохранена.</string>
+    <string name="debt_settled_status">%1$s отмечен как погашенный!</string>
+    <string name="debt_reopened_status">%1$s отмечен как непогашенный.</string>
+    <string name="debt_deleted_status">Запись о долге удалена.</string>
+    <string name="split_bill_toggle_title">Калькулятор разделения счёта</string>
+    <string name="split_bill_total_label">Общая сумма (%1$s)</string>
+    <string name="split_bill_people_label">Человек</string>
+    <string name="split_bill_result_preview">На человека: %1$s</string>
+    <string name="split_bill_apply_action">Использовать</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">Списать со своего кошелька (необязательно)</string>
+    <string name="csv_import_title">Импорт транзакций из CSV</string>
+    <string name="csv_import_subtitle">Загрузите расходы из файла .csv SakuPintar или выписки банка</string>
+    <string name="csv_import_button">Выбрать файл CSV</string>
+    <string name="csv_import_in_progress">Импорт CSV…</string>
+    <string name="csv_import_empty_error">В этом CSV-файле не найдено корректных транзакций.</string>
+    <string name="csv_import_confirm_title">Импортировать транзакции CSV?</string>
+    <string name="csv_import_confirm_body">В файле найдено транзакций: %1$d. Добавить их в журнал расходов?</string>
+    <string name="csv_import_confirm_action">Импортировать</string>
+    <string name="csv_import_success">Импортировано транзакций из CSV: %1$d!</string>
+    <string name="bill_due_edit_cd">Изменить напоминание об оплате для %1$s</string>
+    <string name="bill_due_edit_title">Напоминание: %1$s</string>
+    <string name="bill_due_edit_desc">Задайте день ежемесячной оплаты (1–31) для автоматических уведомлений.</string>
+    <string name="bill_due_day_input_label">День оплаты (1–31)</string>
+    <string name="bill_due_day_input_hint">напр. 25</string>
+    <string name="bill_due_clear_action">Удалить напоминание</string>
+    <string name="budget_rollover_title">Перенос остатка бюджета</string>
+    <string name="budget_rollover_subtitle">Переносить неизрасходованный бюджет прошлого месяца в этот период</string>
+    <string name="budget_rollover_active_bonus">Активно • +%1$s перенесено с прошлого периода</string>
+    <string name="filter_last_7_days">За 7 дней</string>
+    <string name="sort_oldest">Сначала старые</string>
 </resources>

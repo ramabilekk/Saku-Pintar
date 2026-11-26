@@ -255,4 +255,208 @@ test("Wallet balances enforce owner isolation and valid paymentMethod keys", asy
   }));
 });
 
+test("Cashflow entries enforce owner isolation and schema validation", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("cashflowEntries");
 
+  const validIncome = {
+    userId: ALICE_UID,
+    type: "INCOME",
+    title: "Gaji Bulanan",
+    amount: 7500000,
+    targetWallet: "TRANSFER",
+    dateEpochDay: 20770,
+    monthKey: "2026-11",
+    note: "Gaji November",
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("cf_1").set(validIncome));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("cf_2").set({ ...validIncome, type: "TRANSFER", sourceWallet: "TRANSFER", targetWallet: "QRIS" }));
+  await assertFails(col.doc("cf_bad").set({ ...validIncome, amount: 0 }));
+  await assertFails(col.doc("cf_bad_type").set({ ...validIncome, type: "UNKNOWN" }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("cashflowEntries").get());
+  await assertSucceeds(col.doc("cf_1").delete());
+});
+
+test("Custom categories enforce owner isolation and valid parentCategory", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("customCategories");
+
+  const validCat = {
+    userId: ALICE_UID,
+    name: "Kopi",
+    parentCategory: "FOOD",
+    colorHex: 4279150057,
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("cat_1").set(validCat));
+  await assertSucceeds(col.get());
+  await assertFails(col.doc("cat_bad").set({ ...validCat, parentCategory: "INVALID" }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("customCategories").get());
+  await assertSucceeds(col.doc("cat_1").delete());
+});
+
+test("Savings history enforces owner isolation and immutability", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("savingsHistory");
+
+  const validHist = {
+    userId: ALICE_UID,
+    goalId: "goal_1",
+    type: "DEPOSIT",
+    amount: 500000,
+    balanceAfter: 1500000,
+    timestampMillis: Date.now(),
+    note: "Setoran gajian",
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("sh_1").set(validHist));
+  await assertSucceeds(col.get());
+  await assertFails(col.doc("sh_1").update({ amount: 999999, updatedAt: serverTime() }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("savingsHistory").get());
+  await assertSucceeds(col.doc("sh_1").delete());
+});
+
+test("Debt records enforce owner isolation, valid types, and settle updates", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("debtRecords");
+
+  const validDebt = {
+    userId: ALICE_UID,
+    personName: "Budi",
+    type: "OWED_TO_ME",
+    amount: 150000,
+    dueDateEpochDay: 20780,
+    settled: false,
+    note: "Patungan makan malam",
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("debt_1").set(validDebt));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("debt_1").update({ settled: true, updatedAt: serverTime() }));
+  await assertFails(col.doc("debt_bad").set({ ...validDebt, amount: -100 }));
+  await assertFails(col.doc("debt_bad_type").set({ ...validDebt, type: "LOAN" }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("debtRecords").get());
+  await assertSucceeds(col.doc("debt_1").delete());
+});
+
+test("Custom wallets enforce owner isolation, valid walletType, and non-negative balance", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("customWallets");
+
+  const validWallet = {
+    userId: ALICE_UID,
+    name: "BCA Utama",
+    walletType: "BANK",
+    balance: 4250000,
+    colorHex: 4279150057,
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("cw_1").set(validWallet));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("cw_1").update({ balance: 5000000, updatedAt: serverTime() }));
+  await assertFails(col.doc("cw_1").update({ balance: -500, updatedAt: serverTime() }));
+  await assertFails(col.doc("cw_bad").set({ ...validWallet, walletType: "CRYPTO" }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("customWallets").get());
+  await assertSucceeds(col.doc("cw_1").delete());
+});
+
+test("Subscriptions enforce owner isolation, valid billingCycle, renewalDay, and updates", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("subscriptions");
+
+  const validSub = {
+    userId: ALICE_UID,
+    name: "Spotify Duo",
+    amount: 71500,
+    billingCycle: "MONTHLY",
+    renewalDay: 15,
+    category: "ENTERTAINMENT",
+    paymentMethod: "QRIS",
+    active: true,
+    note: "Paket keluarga",
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("sub_1").set(validSub));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("sub_1").update({ active: false, amount: 75000, updatedAt: serverTime() }));
+  await assertFails(col.doc("sub_bad_cycle").set({ ...validSub, billingCycle: "DAILY" }));
+  await assertFails(col.doc("sub_bad_day").set({ ...validSub, renewalDay: 35 }));
+  await assertFails(col.doc("sub_zero").set({ ...validSub, amount: 0 }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("subscriptions").get());
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("subscriptions").doc("sub_1").delete());
+  await assertSucceeds(col.doc("sub_1").delete());
+});
+
+test("Bill schedules enforce owner isolation, valid dueDayOfMonth, autoLogEnabled, and monthKey format", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("billSchedules");
+
+  const validSchedule = {
+    userId: ALICE_UID,
+    title: "Internet IndiHome",
+    dueDayOfMonth: 10,
+    reminderEnabled: true,
+    autoLogEnabled: true,
+    lastAutoLoggedMonthKey: "",
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("tpl_1").set(validSchedule));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("tpl_1").update({ lastAutoLoggedMonthKey: "2026-11", updatedAt: serverTime() }));
+  await assertFails(col.doc("tpl_1").update({ lastAutoLoggedMonthKey: "2026-99", updatedAt: serverTime() }));
+  await assertFails(col.doc("tpl_bad_day").set({ ...validSchedule, dueDayOfMonth: 0 }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("billSchedules").get());
+  await assertSucceeds(col.doc("tpl_1").delete());
+});
+
+test("Net worth snapshots enforce owner isolation, valid monthKey, and consistent netWorth arithmetic", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const col = aliceDb.collection("users").doc(ALICE_UID).collection("netWorthSnapshots");
+
+  const validSnap = {
+    userId: ALICE_UID,
+    monthKey: "2026-11",
+    totalAssets: 15000000,
+    totalLiabilities: 2000000,
+    netWorth: 13000000,
+    createdAt: serverTime(),
+    updatedAt: serverTime(),
+  };
+
+  await assertSucceeds(col.doc("2026-11").set(validSnap));
+  await assertSucceeds(col.get());
+  await assertSucceeds(col.doc("2026-11").update({
+    totalAssets: 16500000,
+    totalLiabilities: 1500000,
+    netWorth: 15000000,
+    updatedAt: serverTime(),
+  }));
+  await assertFails(col.doc("2026-12").set({ ...validSnap, monthKey: "2026-12", netWorth: 999999 }));
+  await assertFails(col.doc("2026-12").set({ ...validSnap, monthKey: "2026-11" }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("netWorthSnapshots").get());
+  await assertSucceeds(col.doc("2026-11").delete());
+});

@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,16 +19,15 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -54,11 +52,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -76,8 +69,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -91,7 +85,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -109,8 +102,13 @@ import com.example.auth.AuthMethodType
 import com.example.data.ai.AiFinanceContextSnapshot
 import com.example.data.ai.FinanceAiAssistant
 import com.example.data.budget.BudgetAutoComposer
+import com.example.data.budget.BudgetRolloverManager
 import com.example.data.budget.PaydayCycleManager
 import com.example.data.local.CashflowLedgerManager
+import com.example.data.local.CustomCategoryManager
+import com.example.data.local.CustomWalletManager
+import com.example.data.local.DebtLedgerManager
+import com.example.data.local.FullAppBackup
 import com.example.data.local.LocalAccountVault
 import com.example.data.local.SavingsHistoryManager
 import com.example.data.local.SavingsHistoryType
@@ -124,6 +122,7 @@ import com.example.data.model.SavingsGoalCategory
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.notifications.BillDueReminderManager
+import com.example.notifications.BudgetAlertNotificationManager
 import com.example.notifications.DailyReminderManager
 import com.example.security.PrivacySecurityManager
 import com.example.ui.components.AccountProfileDialog
@@ -133,7 +132,9 @@ import com.example.ui.components.ExpenseEditorSheet
 import com.example.ui.components.ExportReportSheet
 import com.example.ui.components.FloatingNavItem
 import com.example.ui.components.FloatingPillBottomBar
+import com.example.ui.components.LiquidGlassIconBadge
 import com.example.ui.components.ProfileAvatar
+import com.example.ui.components.SculptedSurfaceCard
 import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactilePressScale
@@ -141,6 +142,7 @@ import com.example.ui.screens.AutoBudgetScreen
 import com.example.ui.screens.DailyExpensesScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.SavingsScreen
+import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.ObsidianInk
 import com.example.ui.theme.ThemePreferenceManager
 import com.example.ui.viewmodel.AiExpenseParseState
@@ -212,9 +214,17 @@ fun LocalAccountScaffold(
   val themeMode by ThemePreferenceManager.observeThemeMode(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val paydayStartDay by PaydayCycleManager.observePaydayStartDay(context).collectAsStateWithLifecycle()
+  val rolloverEnabled by BudgetRolloverManager.observeRolloverEnabled(context).collectAsStateWithLifecycle()
   val cashflowEntries by CashflowLedgerManager.observeEntries(context, session.userId).collectAsStateWithLifecycle()
+  val customWallets by CustomWalletManager.observeWallets(context, session.userId).collectAsStateWithLifecycle()
+  val debtRecords by DebtLedgerManager.observeRecords(context, session.userId).collectAsStateWithLifecycle()
+  val billSchedules by BillDueReminderManager.observeSchedules(context).collectAsStateWithLifecycle()
   var reminderSettings by remember(context) {
     mutableStateOf(DailyReminderManager.getSettings(context))
+  }
+
+  LaunchedEffect(Unit) {
+    BillDueReminderManager.notifyDueBillsIfAny(context)
   }
 
   var selectedMonthKey by remember {
@@ -243,6 +253,38 @@ fun LocalAccountScaffold(
   }
   var walletBalances by remember(session.userId) {
     mutableStateOf(LocalAccountVault.loadWallets(context, session.userId))
+  }
+
+  // Auto-log due recurring bills once per month in Guest / Local mode
+  LaunchedEffect(recurringTemplates, billSchedules) {
+    val today = LocalDate.now()
+    val currentMonth = Formatters.currentMonthKey(today)
+    val dueTemplates = BillDueReminderManager.findDueAutoLogTemplates(
+      templates = recurringTemplates,
+      schedules = billSchedules,
+      today = today,
+    )
+    if (dueTemplates.isNotEmpty()) {
+      val newExpenses = dueTemplates.map { (tpl, _) ->
+        BillDueReminderManager.markAutoLogged(context, tpl.id, currentMonth)
+        Expense(
+          id = UUID.randomUUID().toString(),
+          userId = session.userId,
+          title = tpl.title,
+          amount = tpl.amount,
+          category = tpl.category,
+          paymentMethod = tpl.paymentMethod,
+          dateEpochDay = today.toEpochDay(),
+          monthKey = currentMonth,
+          note = tpl.note.ifBlank { context.getString(R.string.recurring_section_title) },
+        )
+      }
+      allExpenses = allExpenses + newExpenses
+      LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+      snackbarHostState.showSnackbar(
+        context.getString(R.string.bill_autolog_triggered_status, dueTemplates.size)
+      )
+    }
   }
 
   var aiInsightState by remember { mutableStateOf<AiInsightUiState>(AiInsightUiState.Idle) }
@@ -289,6 +331,28 @@ fun LocalAccountScaffold(
     }
   }
 
+  fun triggerLocalBudgetNotification(
+    category: ExpenseCategory,
+    monthKey: String,
+    updatedExpenses: List<Expense>,
+  ) {
+    val budgetForMonth = budgetsByMonth[monthKey] ?: return
+    val periodList = if (paydayStartDay <= 1) {
+      updatedExpenses.filter { it.monthKey == monthKey }
+    } else {
+      val cycle = PaydayCycleManager.resolveCycle(monthKey, paydayStartDay)
+      updatedExpenses.filter { cycle.contains(it.dateEpochDay) }
+    }
+    BudgetAlertNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+      context = context,
+      monthKey = monthKey,
+      category = category,
+      budget = budgetForMonth,
+      periodExpenses = periodList,
+      newlyAddedAmount = 0L,
+    )
+  }
+
   fun logRecurringTemplateItem(template: RecurringTemplate) {
     val today = LocalDate.now()
     val monthKey = Formatters.currentMonthKey(today)
@@ -304,12 +368,14 @@ fun LocalAccountScaffold(
       monthKey = monthKey,
       note = template.note,
     )
-    allExpenses = listOf(newExpense) + allExpenses
+    val updatedList = listOf(newExpense) + allExpenses
+    allExpenses = updatedList
     selectedMonthKey = monthKey
-    LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+    LocalAccountVault.saveExpenses(context, session.userId, updatedList)
     if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
       adjustLocalWallet(template.paymentMethodEnum, -template.amount)
     }
+    triggerLocalBudgetNotification(template.categoryEnum, monthKey, updatedList)
     showToastMessage(alertMsg ?: context.getString(R.string.vm_expense_added))
   }
 
@@ -323,12 +389,14 @@ fun LocalAccountScaffold(
       monthKey = monthKey,
       receiptPhotoBase64 = "",
     )
-    allExpenses = listOf(copy) + allExpenses
+    val updatedList = listOf(copy) + allExpenses
+    allExpenses = updatedList
     selectedMonthKey = monthKey
-    LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+    LocalAccountVault.saveExpenses(context, session.userId, updatedList)
     if (PrivacySecurityManager.isAutoDeductWalletEnabled(context)) {
       adjustLocalWallet(expense.paymentMethodEnum, -expense.amount)
     }
+    triggerLocalBudgetNotification(expense.categoryEnum, monthKey, updatedList)
     showToastMessage(
       alertMsg ?: context.getString(R.string.expense_duplicated_status, expense.title),
     )
@@ -396,12 +464,26 @@ fun LocalAccountScaffold(
     }
   }
   val activeBudget = budgetsByMonth[selectedMonthKey]
-  val dailyInsight = remember(activeBudget, monthExpenses, selectedMonthKey, paydayStartDay) {
+  val rolloverAmount = remember(rolloverEnabled, selectedMonthKey, paydayStartDay, budgetsByMonth, allExpenses) {
+    if (!rolloverEnabled) {
+      0L
+    } else {
+      val prevBudget = budgetsByMonth[BudgetRolloverManager.previousMonthKey(selectedMonthKey)]
+      BudgetRolloverManager.computeRolloverAmount(
+        monthKey = selectedMonthKey,
+        paydayStartDay = paydayStartDay,
+        previousBudget = prevBudget,
+        allExpenses = allExpenses,
+      )
+    }
+  }
+  val dailyInsight = remember(activeBudget, monthExpenses, selectedMonthKey, paydayStartDay, rolloverAmount) {
     BudgetAutoComposer.calculateDailyInsight(
       budget = activeBudget,
       monthExpenses = monthExpenses,
       monthKey = selectedMonthKey,
       paydayStartDay = paydayStartDay,
+      rolloverAmount = rolloverAmount,
     )
   }
   val categoryBreakdown = remember(monthExpenses, activeBudget) {
@@ -504,68 +586,32 @@ fun LocalAccountScaffold(
     showExpenseSheet = true
   }
 
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-    val useNavigationRail = maxWidth >= 600.dp
-
-    Row(modifier = Modifier.fillMaxSize()) {
-      if (useNavigationRail) {
-        NavigationRail(
-          containerColor = MaterialTheme.colorScheme.surface,
-          header = {
-            Spacer(modifier = Modifier.height(8.dp))
-            CenterScanRailButton(
-              onClick = ::openQuickReceiptScanner,
-            )
-          },
-          modifier = Modifier.fillMaxHeight(),
-        ) {
-          Spacer(modifier = Modifier.height(12.dp))
-          localNavTabs.forEach { tab ->
-            val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-            val label = stringResource(tab.labelRes)
-            val railInteractionSource = remember { MutableInteractionSource() }
-            val iconScale by animateFloatAsState(
-              targetValue = if (selected) 1.12f else 1.0f,
-              animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-              ),
-              label = "rail_icon_scale_${tab.route}",
-            )
-            NavigationRailItem(
-              selected = selected,
-              onClick = { navigateToTab(tab.route) },
-              interactionSource = railInteractionSource,
-              icon = {
-                Icon(
-                  imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                  contentDescription = label,
-                  modifier = Modifier.graphicsLayer {
-                    scaleX = iconScale
-                    scaleY = iconScale
-                  },
-                )
-              },
-              label = { Text(label) },
-              modifier = Modifier
-                .tactilePressScale(
-                  interactionSource = railInteractionSource,
-                  pressedScale = 0.92f,
-                  enablePressHaptic = false,
-                )
-                .testTag(tab.testTag),
-            )
-          }
-        }
-      }
-
-      Scaffold(
-        modifier = Modifier.weight(1f),
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.safeDrawing,
+  Box(modifier = modifier.fillMaxSize()) {
+  AppAmbientBackdrop()
+  Scaffold(
+    modifier = Modifier.fillMaxSize(),
+    containerColor = Color.Transparent,
+    contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
           TopAppBar(
+            modifier = Modifier.background(
+              Brush.verticalGradient(
+                colors = if (isDarkTheme) {
+                  listOf(
+                    Color(0xFF0A1426).copy(alpha = 0.72f),
+                    Color(0xFF0A1426).copy(alpha = 0.34f),
+                    Color.Transparent,
+                  )
+                } else {
+                  listOf(
+                    Color.White.copy(alpha = 0.72f),
+                    Color.White.copy(alpha = 0.30f),
+                    Color.Transparent,
+                  )
+                },
+              ),
+            ),
             colors = TopAppBarDefaults.topAppBarColors(
               containerColor = Color.Transparent,
               titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -594,20 +640,17 @@ fun LocalAccountScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.primary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.primary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -633,20 +676,17 @@ fun LocalAccountScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.tertiary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.Rounded.AutoAwesome,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.tertiary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -672,20 +712,17 @@ fun LocalAccountScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = MaterialTheme.colorScheme.secondary,
                       ) {
-                        Box(contentAlignment = Alignment.Center) {
-                          Icon(
-                            imageVector = Icons.Rounded.Savings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp),
-                          )
-                        }
+                        Icon(
+                          imageVector = Icons.Rounded.Savings,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.secondary,
+                          modifier = Modifier.size(20.dp),
+                        )
                       }
                       Column {
                         Text(
@@ -711,17 +748,18 @@ fun LocalAccountScaffold(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                      Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier.size(38.dp),
+                      LiquidGlassIconBadge(
+                        size = 40.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        tintColor = EmeraldSafe,
                       ) {
                         Image(
                           painter = painterResource(id = R.drawable.img_sakupintar_logo),
                           contentDescription = stringResource(R.string.app_name),
                           contentScale = ContentScale.Crop,
-                          modifier = Modifier.fillMaxSize(),
+                          modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(13.dp)),
                         )
                       }
                       Column {
@@ -766,22 +804,17 @@ fun LocalAccountScaffold(
                   .semantics { contentDescription = aiChatDesc }
                   .testTag("topbar_ai_chat_button"),
               ) {
-                Surface(
+                LiquidGlassIconBadge(
+                  size = 38.dp,
                   shape = CircleShape,
-                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                  tintColor = MaterialTheme.colorScheme.primary,
                 ) {
-                  Box(
-                    modifier = Modifier.size(36.dp),
-                    contentAlignment = Alignment.Center,
-                  ) {
-                    Icon(
-                      imageVector = Icons.Rounded.Forum,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(18.dp),
-                    )
-                  }
+                  Icon(
+                    imageVector = Icons.Rounded.Forum,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                  )
                 }
               }
               val profileDesc = stringResource(R.string.profile_cd, session.displayName)
@@ -802,33 +835,29 @@ fun LocalAccountScaffold(
                   .semantics { contentDescription = profileDesc }
                   .testTag("account_menu_button"),
               ) {
-                Surface(
+                LiquidGlassIconBadge(
+                  size = 38.dp,
                   shape = CircleShape,
-                  color = MaterialTheme.colorScheme.surface,
-                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                  tintColor = EmeraldSafe,
                 ) {
-                  Box(modifier = Modifier.padding(2.dp)) {
-                    ProfileAvatar(
-                      displayName = session.displayName,
-                      customPhotoBase64 = session.customPhotoBase64,
-                      googlePhotoUrl = null,
-                      size = 34.dp,
-                    )
-                  }
+                  ProfileAvatar(
+                    displayName = session.displayName,
+                    customPhotoBase64 = session.customPhotoBase64,
+                    googlePhotoUrl = null,
+                    size = 34.dp,
+                  )
                 }
               }
             },
           )
         },
         bottomBar = {
-          if (!useNavigationRail) {
-            FloatingPillBottomBar(
-              tabs = localNavTabs,
-              currentRoute = currentRoute,
-              onSelectTab = ::navigateToTab,
-              onQuickScanClick = ::openQuickReceiptScanner,
-            )
-          }
+          FloatingPillBottomBar(
+            tabs = localNavTabs,
+            currentRoute = currentRoute,
+            onSelectTab = ::navigateToTab,
+            onQuickScanClick = ::openQuickReceiptScanner,
+          )
         },
         floatingActionButton = {
           AnimatedVisibility(
@@ -852,9 +881,9 @@ fun LocalAccountScaffold(
                 showExpenseSheet = true
               },
               interactionSource = fabInteractionSource,
-              containerColor = if (isDarkTheme) Color(0xFFF8FAFC) else ObsidianInk,
-              contentColor = if (isDarkTheme) ObsidianInk else Color.White,
-              shape = RoundedCornerShape(16.dp),
+              containerColor = if (isDarkTheme) Color(0xFF0E9F77).copy(alpha = 0.88f) else ObsidianInk.copy(alpha = 0.88f),
+              contentColor = Color.White,
+              shape = CircleShape,
               icon = {
                 Icon(
                   imageVector = Icons.Rounded.Add,
@@ -879,7 +908,6 @@ fun LocalAccountScaffold(
         },
       ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-          AppAmbientBackdrop()
           Column(
             modifier = Modifier
               .fillMaxSize()
@@ -887,20 +915,15 @@ fun LocalAccountScaffold(
                 top = innerPadding.calculateTopPadding(),
                 start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
                 end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
-                bottom = if (useNavigationRail) innerPadding.calculateBottomPadding() else 0.dp,
+                bottom = 0.dp,
               ),
           ) {
             if (isGuestVisitor) {
-              Surface(
+              SculptedSurfaceCard(
+                accentColor = MaterialTheme.colorScheme.primary,
+                cornerRadius = 14,
                 onClick = { showAccountDialog = true },
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(
-                  width = 1.dp,
-                  color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                ),
                 modifier = Modifier
-                  .fillMaxWidth()
                   .padding(horizontal = 16.dp, vertical = 6.dp)
                   .testTag("guest_visitor_mode_banner"),
               ) {
@@ -973,7 +996,7 @@ fun LocalAccountScaffold(
                 customPhotoBase64 = session.customPhotoBase64,
                 googlePhotoUrl = null,
                 totalSavedAmount = savingsData.totalSaved,
-                totalWalletBalance = savingsData.totalWalletBalance,
+                totalWalletBalance = savingsData.totalWalletBalance + customWallets.sumOf { it.balance },
                 aiInsightState = aiInsightState,
                 onRequestAiInsight = {
                   scope.launch {
@@ -1037,7 +1060,7 @@ fun LocalAccountScaffold(
                 onDeleteExpenseWithUndo = ::handleLocalDeleteWithUndo,
                 onDuplicateExpense = ::handleLocalDuplicateExpense,
                 onLogRecurringTemplate = ::logRecurringTemplateItem,
-                onAddRecurringTemplate = { title, amount, category, method, note, dueDayOfMonth ->
+                onAddRecurringTemplate = { title, amount, category, method, note, dueDayOfMonth, autoLogEnabled ->
                   val item = RecurringTemplate(
                     id = UUID.randomUUID().toString(),
                     userId = session.userId,
@@ -1055,6 +1078,8 @@ fun LocalAccountScaffold(
                       templateId = item.id,
                       title = item.title,
                       dueDayOfMonth = dueDayOfMonth,
+                      reminderEnabled = true,
+                      autoLogEnabled = autoLogEnabled,
                     )
                   }
                   showToastMessage(context.getString(R.string.vm_recurring_added))
@@ -1230,6 +1255,24 @@ fun LocalAccountScaffold(
                 onPreviousMonth = { shiftMonth(-1L) },
                 onNextMonth = { shiftMonth(1L) },
                 onSelectMonth = { selectedMonthKey = it },
+                onLogSubscriptionAsExpense = { sub ->
+                  val today = LocalDate.now()
+                  val entry = Expense(
+                    id = UUID.randomUUID().toString(),
+                    userId = session.userId,
+                    title = sub.name,
+                    amount = sub.amount,
+                    category = sub.category.name,
+                    paymentMethod = sub.paymentMethod.name,
+                    dateEpochDay = today.toEpochDay(),
+                    monthKey = Formatters.currentMonthKey(today),
+                    note = sub.note.ifBlank { "#langganan" },
+                  )
+                  allExpenses = allExpenses + entry
+                  LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+                  showToastMessage(context.getString(R.string.sub_logged_expense_status, sub.name))
+                },
+                onStatusMessage = ::showToastMessage,
               )
             }
             composable(ROUTE_BUDGET) {
@@ -1252,8 +1295,6 @@ fun LocalAccountScaffold(
           }
         }
       }
-    }
-  }
 
   if (showExpenseSheet) {
     ExpenseEditorSheet(
@@ -1317,6 +1358,10 @@ fun LocalAccountScaffold(
         }
       },
       onClearAiParse = { aiParseState = AiExpenseParseState.Idle },
+      customWallets = customWallets,
+      onDeductCustomWallet = { walletId, amount ->
+        CustomWalletManager.adjustBalance(context, session.userId, walletId, -amount)
+      },
       onDismiss = {
         aiParseState = AiExpenseParseState.Idle
         showExpenseSheet = false
@@ -1342,12 +1387,14 @@ fun LocalAccountScaffold(
             note = note.trim().take(200),
             receiptPhotoBase64 = receiptPhotoBase64.take(200_000),
           )
-          allExpenses = listOf(added) + allExpenses
+          val updatedList = listOf(added) + allExpenses
+          allExpenses = updatedList
           selectedMonthKey = monthKey
-          LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+          LocalAccountVault.saveExpenses(context, session.userId, updatedList)
           if (autoDeduct) {
             adjustLocalWallet(method, -amount)
           }
+          triggerLocalBudgetNotification(category, monthKey, updatedList)
           showToastMessage(alertMsg ?: context.getString(R.string.vm_expense_added))
         } else {
           val updated = currentEdit.copy(
@@ -1360,9 +1407,10 @@ fun LocalAccountScaffold(
             note = note.trim().take(200),
             receiptPhotoBase64 = receiptPhotoBase64.take(200_000),
           )
-          allExpenses = allExpenses.map { if (it.id == updated.id) updated else it }
+          val updatedList = allExpenses.map { if (it.id == updated.id) updated else it }
+          allExpenses = updatedList
           selectedMonthKey = monthKey
-          LocalAccountVault.saveExpenses(context, session.userId, allExpenses)
+          LocalAccountVault.saveExpenses(context, session.userId, updatedList)
           if (autoDeduct) {
             if (currentEdit.paymentMethodEnum == method) {
               val diff = currentEdit.amount - amount
@@ -1372,6 +1420,7 @@ fun LocalAccountScaffold(
               adjustLocalWallet(method, -amount)
             }
           }
+          triggerLocalBudgetNotification(category, monthKey, updatedList)
           showToastMessage(context.getString(R.string.vm_expense_updated))
         }
         aiParseState = AiExpenseParseState.Idle
@@ -1390,12 +1439,18 @@ fun LocalAccountScaffold(
       recurringTemplates,
       savingsGoals,
       walletBalances,
+      cashflowEntries,
+      customWallets,
+      debtRecords,
     ) {
       allExpenses.size +
         budgetsByMonth.size +
         recurringTemplates.size +
         savingsGoals.size +
-        walletBalances.values.count { it > 0L }
+        walletBalances.values.count { it > 0L } +
+        cashflowEntries.size +
+        customWallets.size +
+        debtRecords.size
     }
 
     AccountProfileDialog(
@@ -1455,6 +1510,97 @@ fun LocalAccountScaffold(
       guestLocalRecordCount = guestLocalRecordCount,
       isMigratingGuestData = isMigratingGuestData,
       onConnectGoogleAndMigrate = onConnectGoogleAndMigrate,
+      onOpenExportReport = {
+        showAccountDialog = false
+        showExportSheet = true
+      },
+      onDeleteAccount = {
+        showAccountDialog = false
+        LocalAccountVault.clearVault(context, session.userId)
+        CashflowLedgerManager.clearAll(context, session.userId)
+        SavingsHistoryManager.clearAll(context, session.userId)
+        DebtLedgerManager.clearAll(context, session.userId)
+        CustomWalletManager.clearAll(context, session.userId)
+        CustomCategoryManager.clearAll(context)
+        PrivacySecurityManager.setAppLockEnabled(context, false)
+        AccountSecurityOtpManager.clearAltSession(context)
+        onSignedOut()
+      },
+      userId = session.userId,
+      onBuildBackup = {
+        FullAppBackup(
+          expenses = allExpenses,
+          budgets = budgetsByMonth.values.toList(),
+          recurringTemplates = recurringTemplates,
+          savingsGoals = savingsGoals,
+          walletBalances = walletBalances,
+          cashflowEntries = CashflowLedgerManager.observeEntries(context, session.userId).value,
+          customCategories = CustomCategoryManager.observeCategories(context).value,
+          savingsHistory = SavingsHistoryManager.observeEntries(context, session.userId).value,
+          debtRecords = DebtLedgerManager.observeRecords(context, session.userId).value,
+          customWallets = CustomWalletManager.observeWallets(context, session.userId).value,
+        )
+      },
+      onRestoreBackup = { backup ->
+        runCatching {
+          val restoredExpenses = (backup.expenses + allExpenses)
+            .distinctBy { it.id }
+            .sortedByDescending { it.dateEpochDay }
+          allExpenses = restoredExpenses
+          LocalAccountVault.saveExpenses(context, session.userId, restoredExpenses)
+
+          val restoredBudgets = budgetsByMonth.toMutableMap().apply {
+            backup.budgets.forEach { b -> put(b.monthKey, b.copy(userId = session.userId)) }
+          }
+          budgetsByMonth = restoredBudgets
+          LocalAccountVault.saveBudgets(context, session.userId, restoredBudgets)
+
+          val restoredRecurring = (backup.recurringTemplates + recurringTemplates).distinctBy { it.id }
+          recurringTemplates = restoredRecurring
+          LocalAccountVault.saveRecurring(context, session.userId, restoredRecurring)
+
+          val restoredGoals = (backup.savingsGoals + savingsGoals).distinctBy { it.id }
+          savingsGoals = restoredGoals
+          LocalAccountVault.saveGoals(context, session.userId, restoredGoals)
+
+          if (backup.walletBalances.isNotEmpty()) {
+            val mergedWallets = walletBalances.toMutableMap().apply {
+              backup.walletBalances.forEach { (m, bal) -> if (bal > 0L) put(m, bal) }
+            }
+            walletBalances = mergedWallets
+            LocalAccountVault.saveWallets(context, session.userId, mergedWallets)
+          }
+
+          if (backup.cashflowEntries.isNotEmpty()) {
+            CashflowLedgerManager.replaceAll(context, session.userId, backup.cashflowEntries)
+          }
+          if (backup.customCategories.isNotEmpty()) {
+            CustomCategoryManager.replaceAll(context, backup.customCategories)
+          }
+          if (backup.savingsHistory.isNotEmpty()) {
+            SavingsHistoryManager.replaceAll(context, session.userId, backup.savingsHistory)
+          }
+          if (backup.debtRecords.isNotEmpty()) {
+            DebtLedgerManager.replaceAll(context, session.userId, backup.debtRecords)
+          }
+          if (backup.customWallets.isNotEmpty()) {
+            CustomWalletManager.replaceAll(context, session.userId, backup.customWallets)
+          }
+
+          backup.totalItemCount
+        }
+      },
+      onImportCsvExpenses = { csvExpenses ->
+        runCatching {
+          val normalized = csvExpenses.map { it.copy(userId = session.userId) }
+          val merged = (normalized + allExpenses)
+            .distinctBy { it.id }
+            .sortedByDescending { it.dateEpochDay }
+          allExpenses = merged
+          LocalAccountVault.saveExpenses(context, session.userId, merged)
+          normalized.size
+        }
+      },
     )
   }
 
@@ -1479,8 +1625,11 @@ fun LocalAccountScaffold(
         walletBalances = walletBalances,
         savingsGoals = savingsGoals,
         cashflowEntries = cashflowEntries,
+        customWallets = customWallets,
+        debtRecords = debtRecords,
       ),
       onDismiss = { showAiChatDialog = false },
     )
+  }
   }
 }

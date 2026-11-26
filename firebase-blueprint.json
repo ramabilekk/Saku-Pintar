@@ -307,6 +307,138 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "CashflowEntry": {
+      "title": "CashflowEntry",
+      "description": "User-recorded income or wallet-to-wallet transfer entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["INCOME", "TRANSFER"] },
+        "title": { "type": "string" },
+        "amount": { "type": "integer" },
+        "targetWallet": { "type": "string", "enum": ["QRIS", "CASH", "TRANSFER", "CARD"] },
+        "sourceWallet": { "type": "string", "enum": ["QRIS", "CASH", "TRANSFER", "CARD"] },
+        "dateEpochDay": { "type": "integer" },
+        "monthKey": { "type": "string" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "title", "amount", "targetWallet", "dateEpochDay", "monthKey", "createdAt", "updatedAt"]
+    },
+    "CustomCategory": {
+      "title": "CustomCategory",
+      "description": "User-defined custom expense tag mapped to a core ExpenseCategory.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "parentCategory": { "type": "string", "enum": ["FOOD", "TRANSPORT", "BILLS", "HEALTH", "SHOPPING", "ENTERTAINMENT", "OTHER"] },
+        "colorHex": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "parentCategory", "colorHex", "createdAt", "updatedAt"]
+    },
+    "SavingsHistoryEntry": {
+      "title": "SavingsHistoryEntry",
+      "description": "Chronological deposit or withdrawal history record for a savings goal.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "goalId": { "type": "string" },
+        "type": { "type": "string", "enum": ["INITIAL", "DEPOSIT", "WITHDRAW"] },
+        "amount": { "type": "integer" },
+        "balanceAfter": { "type": "integer" },
+        "timestampMillis": { "type": "integer" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "goalId", "type", "amount", "balanceAfter", "timestampMillis", "createdAt", "updatedAt"]
+    },
+    "DebtRecord": {
+      "title": "DebtRecord",
+      "description": "Personal debt, receivable, or split bill entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "personName": { "type": "string" },
+        "type": { "type": "string", "enum": ["OWED_TO_ME", "I_OWE"] },
+        "amount": { "type": "integer" },
+        "dueDateEpochDay": { "type": "integer" },
+        "settled": { "type": "boolean" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "personName", "type", "amount", "dueDateEpochDay", "settled", "createdAt", "updatedAt"]
+    },
+    "CustomWallet": {
+      "title": "CustomWallet",
+      "description": "User-defined bank account or e-wallet balance (e.g., BCA, GoPay, SeaBank).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "walletType": { "type": "string", "enum": ["BANK", "EWALLET", "CASH", "CARD", "INVESTMENT"] },
+        "balance": { "type": "integer" },
+        "colorHex": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "walletType", "balance", "colorHex", "createdAt", "updatedAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Recurring subscription tracked by the user (e.g., Netflix, Spotify, iCloud, Gym).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "integer" },
+        "billingCycle": { "type": "string", "enum": ["WEEKLY", "MONTHLY", "YEARLY"] },
+        "renewalDay": { "type": "integer" },
+        "category": { "type": "string", "enum": ["FOOD", "TRANSPORT", "BILLS", "HEALTH", "SHOPPING", "ENTERTAINMENT", "OTHER"] },
+        "paymentMethod": { "type": "string", "enum": ["QRIS", "CASH", "TRANSFER", "CARD"] },
+        "active": { "type": "boolean" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "amount", "billingCycle", "renewalDay", "category", "paymentMethod", "active", "createdAt", "updatedAt"]
+    },
+    "BillSchedule": {
+      "title": "BillSchedule",
+      "description": "Due-date reminder and auto-log schedule linked to a recurring bill template.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "dueDayOfMonth": { "type": "integer" },
+        "reminderEnabled": { "type": "boolean" },
+        "autoLogEnabled": { "type": "boolean" },
+        "lastAutoLoggedMonthKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "dueDayOfMonth", "reminderEnabled", "autoLogEnabled", "createdAt", "updatedAt"]
+    },
+    "NetWorthSnapshot": {
+      "title": "NetWorthSnapshot",
+      "description": "Monthly net worth snapshot tracking total assets, liabilities, and net worth.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "monthKey": { "type": "string" },
+        "totalAssets": { "type": "integer" },
+        "totalLiabilities": { "type": "integer" },
+        "netWorth": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "monthKey", "totalAssets", "totalLiabilities", "netWorth", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -333,6 +465,38 @@
     "/users/{userId}/walletBalances/{methodKey}": {
       "schema": { "$ref": "#/entities/WalletBalance" },
       "description": "User-owned tracked wallet balances keyed by PaymentMethod."
+    },
+    "/users/{userId}/cashflowEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/CashflowEntry" },
+      "description": "User-owned income and wallet transfer entries."
+    },
+    "/users/{userId}/customCategories/{categoryId}": {
+      "schema": { "$ref": "#/entities/CustomCategory" },
+      "description": "User-owned custom expense category tags."
+    },
+    "/users/{userId}/savingsHistory/{entryId}": {
+      "schema": { "$ref": "#/entities/SavingsHistoryEntry" },
+      "description": "User-owned chronological savings deposit and withdrawal history."
+    },
+    "/users/{userId}/debtRecords/{debtId}": {
+      "schema": { "$ref": "#/entities/DebtRecord" },
+      "description": "User-owned debts, receivables, and split bill records."
+    },
+    "/users/{userId}/customWallets/{walletId}": {
+      "schema": { "$ref": "#/entities/CustomWallet" },
+      "description": "User-owned custom bank accounts and e-wallets."
+    },
+    "/users/{userId}/subscriptions/{subId}": {
+      "schema": { "$ref": "#/entities/Subscription" },
+      "description": "User-owned recurring subscriptions."
+    },
+    "/users/{userId}/billSchedules/{templateId}": {
+      "schema": { "$ref": "#/entities/BillSchedule" },
+      "description": "User-owned bill due-date reminders and auto-log schedules."
+    },
+    "/users/{userId}/netWorthSnapshots/{monthKey}": {
+      "schema": { "$ref": "#/entities/NetWorthSnapshot" },
+      "description": "User-owned monthly net worth snapshots keyed by YYYY-MM."
     }
   }
 }

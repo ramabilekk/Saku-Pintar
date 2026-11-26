@@ -44,15 +44,21 @@ fun LanguagePickerDialog(
 ) {
   val context = LocalContext.current
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     icon = {
-      Icon(
-        imageVector = Icons.Rounded.Language,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.size(30.dp),
-      )
+      LiquidGlassIconBadge(
+        size = 48.dp,
+        shape = RoundedCornerShape(16.dp),
+        tintColor = MaterialTheme.colorScheme.primary,
+      ) {
+        Icon(
+          imageVector = Icons.Rounded.Language,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.primary,
+          modifier = Modifier.size(26.dp),
+        )
+      }
     },
     title = {
       Text(
@@ -84,16 +90,16 @@ fun LanguagePickerDialog(
           }
 
           Surface(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(16.dp),
             color = if (isSelected) {
               MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
             } else {
-              MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+              MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
             },
             border = if (isSelected) {
-              BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+              BorderStroke(1.4.dp, MaterialTheme.colorScheme.primary)
             } else {
-              BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+              BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
             },
             modifier = Modifier
               .fillMaxWidth()
@@ -112,11 +118,11 @@ fun LanguagePickerDialog(
               horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
               Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 color = if (isSelected) {
                   MaterialTheme.colorScheme.primary
                 } else {
-                  MaterialTheme.colorScheme.surface
+                  MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
                 },
                 modifier = Modifier.width(46.dp),
               ) {

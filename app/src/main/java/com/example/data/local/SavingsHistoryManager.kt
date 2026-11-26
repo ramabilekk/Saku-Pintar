@@ -65,8 +65,8 @@ object SavingsHistoryManager {
     balanceAfter: Long,
     note: String = "",
     timestampMillis: Long = System.currentTimeMillis(),
-  ) {
-    if (goalId.isBlank() || amount <= 0L) return
+  ): SavingsHistoryEntry? {
+    if (goalId.isBlank() || amount <= 0L) return null
     val entry = SavingsHistoryEntry(
       id = UUID.randomUUID().toString(),
       goalId = goalId,
@@ -79,6 +79,7 @@ object SavingsHistoryManager {
     val current = observeEntries(context, userId).value
     val updated = (listOf(entry) + current).take(MAX_ENTRIES)
     updateFlowAndDisk(context, userId, updated)
+    return entry
   }
 
   fun deleteHistoryForGoal(context: Context, userId: String, goalId: String) {
@@ -87,6 +88,18 @@ object SavingsHistoryManager {
     if (updated.size != current.size) {
       updateFlowAndDisk(context, userId, updated)
     }
+  }
+
+  fun replaceAll(context: Context, userId: String, entries: List<SavingsHistoryEntry>) {
+    val sorted = entries.sortedByDescending { it.timestampMillis }.take(MAX_ENTRIES)
+    updateFlowAndDisk(context, userId, sorted)
+  }
+
+  fun clearAll(context: Context, userId: String) {
+    synchronized(flowsByUser) {
+      flowsByUser[userId]?.value = emptyList()
+    }
+    prefs(context, userId).edit().clear().apply()
   }
 
   fun estimateCompletion(

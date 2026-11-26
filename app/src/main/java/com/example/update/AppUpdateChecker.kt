@@ -215,8 +215,13 @@ object AppUpdateChecker {
     val notes = json.optString("body", "")
       .lines()
       .map { it.trim() }
-      .filter { it.isNotBlank() && !it.startsWith("- SHA-1", ignoreCase = true) }
-      .take(4)
+      .filter { line ->
+        line.isNotBlank() &&
+          !line.startsWith("#") &&
+          !line.startsWith("---") &&
+          !line.startsWith("- SHA-1", ignoreCase = true)
+      }
+      .take(10)
       .joinToString("\n")
 
     return ParsedGithubRelease(
@@ -280,8 +285,8 @@ object AppUpdateChecker {
   private fun normalizeTag(versionName: String, versionCode: Int): String {
     val trimmed = versionName.trim()
     return when {
-      trimmed.isBlank() && versionCode >= 1 -> "2.0.$versionCode"
-      (trimmed == "1.0" || trimmed == "2.0") && versionCode >= 1 -> "$trimmed.$versionCode"
+      trimmed.isBlank() && versionCode >= 1 -> "3.0.$versionCode"
+      (trimmed == "1.0" || trimmed == "2.0" || trimmed == "3.0") && versionCode >= 1 -> "$trimmed.$versionCode"
       else -> trimmed
     }
   }

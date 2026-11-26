@@ -86,6 +86,19 @@ object CustomCategoryManager {
     persist(context, updated)
   }
 
+  fun replaceAll(context: Context, list: List<CustomCategory>) {
+    ensureLoaded(context)
+    val sanitized = list.distinctBy { it.id }.take(MAX_CUSTOM_CATEGORIES)
+    _categories.value = sanitized
+    persist(context, sanitized)
+  }
+
+  fun clearAll(context: Context) {
+    ensureLoaded(context)
+    _categories.value = emptyList()
+    persist(context, emptyList())
+  }
+
   /** Appends the custom category tag into an expense note without duplicating it. */
   fun applyTagToNote(existingNote: String, customCategory: CustomCategory): String {
     val tag = customCategory.noteTag

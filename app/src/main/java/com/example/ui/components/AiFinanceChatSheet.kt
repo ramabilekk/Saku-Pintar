@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -10,16 +14,19 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -45,6 +52,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -63,8 +72,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.ai.AiChatMessage
@@ -177,37 +185,51 @@ fun AiFinanceChatDialog(
     }
   }
 
-  Dialog(
-    onDismissRequest = {
-      activeJob?.cancel()
-      onDismiss()
-    },
-    properties = DialogProperties(
-      usePlatformDefaultWidth = false,
-      decorFitsSystemWindows = false,
-    ),
+  BackHandler {
+    activeJob?.cancel()
+    onDismiss()
+  }
+
+  DisposableEffect(context, isDarkTheme) {
+    val activity = generateSequence(context) { (it as? ContextWrapper)?.baseContext }
+      .filterIsInstance<Activity>()
+      .firstOrNull()
+    val window = activity?.window
+    val controller = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+    controller?.isAppearanceLightStatusBars = false
+    onDispose {
+      controller?.isAppearanceLightStatusBars = !isDarkTheme
+    }
+  }
+
+  Surface(
+    color = Color.Transparent,
+    modifier = Modifier
+      .fillMaxSize()
+      .pointerInput(Unit) {}
+      .testTag("ai_finance_chat_dialog"),
   ) {
-    Surface(
-      color = MaterialTheme.colorScheme.background,
-      modifier = Modifier
-        .fillMaxSize()
-        .testTag("ai_finance_chat_dialog"),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+      AppAmbientBackdrop()
       Column(
-        modifier = Modifier
-          .fillMaxSize()
-          .imePadding(),
+        modifier = Modifier.fillMaxSize(),
       ) {
-        // Branded Obsidian / Emerald Top Header
+        // Smoked Liquid Crystal Top Header
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .background(
               Brush.linearGradient(
                 colors = if (isDarkTheme) {
-                  listOf(Color(0xFF0D171B), Color(0xFF13262E))
+                  listOf(
+                    Color(0xFF0A1629).copy(alpha = 0.86f),
+                    Color(0xFF10283E).copy(alpha = 0.82f),
+                  )
                 } else {
-                  listOf(ObsidianInk, Color(0xFF14352C))
+                  listOf(
+                    Color(0xFF0B3534).copy(alpha = 0.88f),
+                    Color(0xFF104F4A).copy(alpha = 0.84f),
+                  )
                 }
               )
             )
@@ -334,13 +356,14 @@ fun AiFinanceChatDialog(
                           Text(
                             text = prompt,
                             style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(vertical = 4.dp),
                           )
                         },
                         colors = SuggestionChipDefaults.suggestionChipColors(
-                          containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                          containerColor = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.14f else 0.08f),
                           labelColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
                         modifier = Modifier.testTag("ai_chat_starter_$idx"),
                       )
                     }
@@ -364,9 +387,12 @@ fun AiFinanceChatDialog(
               val partial = streamingText.orEmpty()
               if (partial.isBlank()) {
                 Surface(
-                  shape = RoundedCornerShape(18.dp),
-                  color = MaterialTheme.colorScheme.surface,
-                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                  shape = RoundedCornerShape(20.dp),
+                  color = if (isDarkTheme) Color(0xFF16243D).copy(alpha = 0.64f) else Color.White.copy(alpha = 0.76f),
+                  border = BorderStroke(
+                    1.dp,
+                    if (isDarkTheme) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.90f),
+                  ),
                 ) {
                   Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -398,20 +424,25 @@ fun AiFinanceChatDialog(
           }
         }
 
-        // Bottom Input Composer
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        // Bottom Liquid Glass Input Composer
+        HorizontalDivider(
+          color = if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.72f),
+        )
         Surface(
-          color = MaterialTheme.colorScheme.surface,
-          modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+          color = if (isDarkTheme) {
+            Color(0xFF0E192D).copy(alpha = 0.76f)
+          } else {
+            Color.White.copy(alpha = 0.76f)
+          },
+          modifier = Modifier.fillMaxWidth(),
         ) {
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(horizontal = 12.dp, vertical = 10.dp),
+              .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+              .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
           ) {
             OutlinedTextField(
               value = inputText,
@@ -424,10 +455,11 @@ fun AiFinanceChatDialog(
                 )
               },
               maxLines = 3,
-              shape = RoundedCornerShape(22.dp),
+              shape = RoundedCornerShape(24.dp),
               colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                focusedContainerColor = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.72f),
+                unfocusedContainerColor = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.56f),
+                unfocusedBorderColor = if (isDarkTheme) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.85f),
               ),
               keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
               keyboardActions = KeyboardActions(
@@ -443,7 +475,11 @@ fun AiFinanceChatDialog(
               onClick = { sendQuestion(inputText) },
               enabled = canSend,
               shape = CircleShape,
-              color = if (canSend) EmeraldSafe else MaterialTheme.colorScheme.surfaceVariant,
+              color = if (canSend) EmeraldSafe else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+              border = BorderStroke(
+                1.dp,
+                if (canSend) Color.White.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.25f),
+              ),
               modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
@@ -470,27 +506,35 @@ private fun ChatBubbleRow(
   message: AiChatMessage,
   onRetry: (() -> Unit)? = null,
 ) {
+  val isDarkTheme = rememberIsEffectiveDarkTheme()
   Row(
     modifier = Modifier.fillMaxWidth(),
     horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start,
   ) {
     Surface(
       shape = RoundedCornerShape(
-        topStart = 18.dp,
-        topEnd = 18.dp,
-        bottomStart = if (message.isUser) 18.dp else 4.dp,
-        bottomEnd = if (message.isUser) 4.dp else 18.dp,
+        topStart = 20.dp,
+        topEnd = 20.dp,
+        bottomStart = if (message.isUser) 20.dp else 6.dp,
+        bottomEnd = if (message.isUser) 6.dp else 20.dp,
       ),
       color = when {
-        message.isError -> MaterialTheme.colorScheme.errorContainer
-        message.isUser -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.surface
+        message.isError -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.86f)
+        message.isUser -> MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
+        isDarkTheme -> Color(0xFF16243D).copy(alpha = 0.66f)
+        else -> Color.White.copy(alpha = 0.78f)
       },
       border = if (!message.isUser && !message.isError) {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        BorderStroke(
+          1.1.dp,
+          if (isDarkTheme) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.92f),
+        )
       } else if (message.isError) {
-        BorderStroke(1.dp, CoralDanger.copy(alpha = 0.4f))
-      } else null,
+        BorderStroke(1.dp, CoralDanger.copy(alpha = 0.45f))
+      } else {
+        BorderStroke(1.dp, Color.White.copy(alpha = 0.30f))
+      },
+      shadowElevation = if (isDarkTheme) 2.dp else 3.dp,
       modifier = Modifier.widthIn(max = 320.dp),
     ) {
       Column(
@@ -521,7 +565,7 @@ private fun ChatBubbleRow(
           style = MaterialTheme.typography.bodyMedium,
           color = when {
             message.isError -> MaterialTheme.colorScheme.onErrorContainer
-            message.isUser -> Color.White
+            message.isUser -> MaterialTheme.colorScheme.onPrimary
             else -> MaterialTheme.colorScheme.onSurface
           },
         )

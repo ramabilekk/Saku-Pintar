@@ -43,11 +43,11 @@ private val LightColorScheme = lightColorScheme(
   surfaceVariant = SurfaceVariantLight,
   onSurfaceVariant = SlateMuted,
   surfaceContainerLowest = CardSurface,
-  surfaceContainerLow = Color(0xFFF6F9F7),
-  surfaceContainer = Color(0xFFEDF3F0),
-  surfaceContainerHigh = Color(0xFFE2EBE6),
-  surfaceContainerHighest = Color(0xFFD5E2DB),
-  outline = Color(0xFFCBD8D1),
+  surfaceContainerLow = Color(0xFFF2F8FA),
+  surfaceContainer = Color(0xFFE6F0F4),
+  surfaceContainerHigh = Color(0xFFD9E8EE),
+  surfaceContainerHighest = Color(0xFFCAE0E8),
+  outline = Color(0xFFBBD3DC),
   outlineVariant = HairlineLight,
   error = CoralDanger,
   errorContainer = CoralContainer,
@@ -77,8 +77,8 @@ private val DarkColorScheme = darkColorScheme(
   surfaceContainerLow = MidnightSurface,
   surfaceContainer = ObsidianSurface,
   surfaceContainerHigh = MidnightSurfaceVariant,
-  surfaceContainerHighest = Color(0xFF334155),
-  outline = Color(0xFF334155),
+  surfaceContainerHighest = Color(0xFF283C5C),
+  outline = Color(0xFF334E73),
   outlineVariant = HairlineDark,
   error = Color(0xFFF87171),
   errorContainer = Color(0xFF450A0A),
@@ -86,10 +86,10 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 val SakuShapes = Shapes(
-  small = RoundedCornerShape(12.dp),
-  medium = RoundedCornerShape(16.dp),
-  large = RoundedCornerShape(22.dp),
-  extraLarge = RoundedCornerShape(26.dp),
+  small = RoundedCornerShape(14.dp),
+  medium = RoundedCornerShape(20.dp),
+  large = RoundedCornerShape(26.dp),
+  extraLarge = RoundedCornerShape(30.dp),
 )
 
 @Composable

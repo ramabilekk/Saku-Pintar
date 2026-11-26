@@ -28,6 +28,8 @@ data class BillDueSchedule(
   val title: String,
   val dueDayOfMonth: Int,
   val reminderEnabled: Boolean = true,
+  val autoLogEnabled: Boolean = false,
+  val lastAutoLoggedMonthKey: String = "",
 ) {
   /** Returns days remaining until the next due date (0 = due today). */
   fun daysUntilDue(today: LocalDate = LocalDate.now()): Int {
@@ -42,6 +44,16 @@ data class BillDueSchedule(
     }
     return ChronoUnit.DAYS.between(today, nextDueDate).toInt().coerceAtLeast(0)
   }
+
+  /** True if auto-log is enabled, due day for [today]'s month has been reached, and not yet auto-logged this month. */
+  fun isDueForAutoLog(today: LocalDate = LocalDate.now()): Boolean {
+    if (!autoLogEnabled) return false
+    val ym = YearMonth.from(today)
+    val currentMonthKey = ym.toString()
+    if (lastAutoLoggedMonthKey == currentMonthKey) return false
+    val clampedDueDay = dueDayOfMonth.coerceIn(1, ym.lengthOfMonth())
+    return today.dayOfMonth >= clampedDueDay
+  }
 }
 
 data class UpcomingBillAlert(
@@ -51,12 +63,13 @@ data class UpcomingBillAlert(
 )
 
 /**
- * Manages bill due-date schedules per RecurringTemplate and dispatches due-date notifications
- * without modifying Firestore schema.
+ * Manages bill due-date schedules, auto-log state, and due-date notifications per RecurringTemplate.
+ * Hydrated from Firestore via [replaceAll] when signed in with Google.
  */
 object BillDueReminderManager {
   private const val PREFS_NAME = "sakupintar_bill_due_schedules"
   private const val KEY_MAP = "schedules_json"
+  private const val KEY_LAST_NOTIFIED_DAY = "last_notified_epoch_day"
   private const val CHANNEL_ID = "sakupintar_bill_due_reminders"
   private const val NOTIFICATION_ID_BASE = 4200
 
@@ -80,22 +93,57 @@ object BillDueReminderManager {
     title: String,
     dueDayOfMonth: Int?,
     reminderEnabled: Boolean = true,
-  ) {
+    autoLogEnabled: Boolean? = null,
+  ): BillDueSchedule? {
     ensureLoaded(context)
     if (dueDayOfMonth == null || dueDayOfMonth !in 1..31) {
       removeDueSchedule(context, templateId)
-      return
+      return null
     }
-    val updated = _schedules.value + (
-      templateId to BillDueSchedule(
-        templateId = templateId,
-        title = title.trim().take(80),
-        dueDayOfMonth = dueDayOfMonth.coerceIn(1, 31),
-        reminderEnabled = reminderEnabled,
-      )
-      )
+    val existing = _schedules.value[templateId]
+    val schedule = BillDueSchedule(
+      templateId = templateId,
+      title = title.trim().take(80),
+      dueDayOfMonth = dueDayOfMonth.coerceIn(1, 31),
+      reminderEnabled = reminderEnabled,
+      autoLogEnabled = autoLogEnabled ?: existing?.autoLogEnabled ?: false,
+      lastAutoLoggedMonthKey = existing?.lastAutoLoggedMonthKey.orEmpty(),
+    )
+    val updated = _schedules.value + (templateId to schedule)
     _schedules.value = updated
     persist(context, updated)
+    return schedule
+  }
+
+  fun markAutoLogged(
+    context: Context,
+    templateId: String,
+    monthKey: String,
+  ): BillDueSchedule? {
+    ensureLoaded(context)
+    val existing = _schedules.value[templateId] ?: return null
+    val updatedSchedule = existing.copy(lastAutoLoggedMonthKey = monthKey)
+    val updated = _schedules.value + (templateId to updatedSchedule)
+    _schedules.value = updated
+    persist(context, updated)
+    return updatedSchedule
+  }
+
+  fun findDueAutoLogTemplates(
+    templates: List<RecurringTemplate>,
+    schedules: Map<String, BillDueSchedule>,
+    today: LocalDate = LocalDate.now(),
+  ): List<Pair<RecurringTemplate, BillDueSchedule>> {
+    return templates.mapNotNull { tpl ->
+      val schedule = schedules[tpl.id] ?: return@mapNotNull null
+      if (schedule.isDueForAutoLog(today)) tpl to schedule else null
+    }
+  }
+
+  fun replaceAll(context: Context, schedules: Map<String, BillDueSchedule>) {
+    ensureLoaded(context)
+    _schedules.value = schedules
+    persist(context, schedules)
   }
 
   fun removeDueSchedule(context: Context, templateId: String) {
@@ -127,7 +175,7 @@ object BillDueReminderManager {
     }.sortedBy { it.daysUntilDue }
   }
 
-  fun notifyDueBillsIfAny(context: Context) {
+  fun notifyDueBillsIfAny(context: Context, forceCheck: Boolean = false) {
     ensureLoaded(context)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       val granted = ContextCompat.checkSelfPermission(
@@ -137,6 +185,11 @@ object BillDueReminderManager {
       if (!granted) return
     }
     val today = LocalDate.now()
+    val todayEpoch = today.toEpochDay()
+    val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    if (!forceCheck && prefs.getLong(KEY_LAST_NOTIFIED_DAY, -1L) == todayEpoch) {
+      return
+    }
     val dueSoon = _schedules.value.values
       .filter { it.reminderEnabled }
       .map { it to it.daysUntilDue(today) }
@@ -174,6 +227,8 @@ object BillDueReminderManager {
 
       NotificationManagerCompat.from(localized).notify(NOTIFICATION_ID_BASE + index, notification)
     }
+
+    prefs.edit().putLong(KEY_LAST_NOTIFIED_DAY, todayEpoch).apply()
   }
 
   private fun ensureChannel(context: Context) {
@@ -216,6 +271,8 @@ object BillDueReminderManager {
                     title = item.optString("title", ""),
                     dueDayOfMonth = day,
                     reminderEnabled = item.optBoolean("reminderEnabled", true),
+                    autoLogEnabled = item.optBoolean("autoLogEnabled", false),
+                    lastAutoLoggedMonthKey = item.optString("lastAutoLoggedMonthKey", ""),
                   )
                 )
               }
@@ -237,6 +294,8 @@ object BillDueReminderManager {
           put("title", schedule.title)
           put("dueDayOfMonth", schedule.dueDayOfMonth)
           put("reminderEnabled", schedule.reminderEnabled)
+          put("autoLogEnabled", schedule.autoLogEnabled)
+          put("lastAutoLoggedMonthKey", schedule.lastAutoLoggedMonthKey)
         }
       )
     }

@@ -7,6 +7,9 @@ import com.example.data.budget.DailyBudgetInsight
 import com.example.data.budget.PaydayCycleManager
 import com.example.data.local.CashflowEntry
 import com.example.data.local.CashflowType
+import com.example.data.local.CustomWallet
+import com.example.data.local.DebtRecord
+import com.example.data.local.DebtType
 import com.example.data.model.Expense
 import com.example.data.model.ExpenseCategory
 import com.example.data.model.MonthlyBudget
@@ -68,6 +71,8 @@ data class AiFinanceContextSnapshot(
   val walletBalances: Map<PaymentMethod, Long> = emptyMap(),
   val savingsGoals: List<SavingsGoal> = emptyList(),
   val cashflowEntries: List<CashflowEntry> = emptyList(),
+  val customWallets: List<CustomWallet> = emptyList(),
+  val debtRecords: List<DebtRecord> = emptyList(),
 )
 
 class FinanceAiException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -576,6 +581,9 @@ class FinanceAiAssistant {
       if (snapshot.budget != null) {
         appendLine("- Budget Monthly Income: ${Formatters.formatMoney(snapshot.budget.monthlyIncome, currency)}")
         appendLine("- Total Spend Budget: ${Formatters.formatMoney(snapshot.dailyInsight.totalBudget, currency)}")
+        if (snapshot.dailyInsight.rolloverAmount > 0L) {
+          appendLine("- Includes Rollover Bonus from Previous Period: +${Formatters.formatMoney(snapshot.dailyInsight.rolloverAmount, currency)}")
+        }
         appendLine("- Remaining Budget: ${Formatters.formatMoney(snapshot.dailyInsight.remainingBudget, currency)}")
         appendLine("- Daily Safe Limit: ${Formatters.formatMoney(snapshot.dailyInsight.dailySafeLimit, currency)} (${snapshot.dailyInsight.daysRemaining} days remaining)")
         appendLine("- Spent Today: ${Formatters.formatMoney(snapshot.dailyInsight.todaySpent, currency)}")
@@ -583,6 +591,13 @@ class FinanceAiAssistant {
         appendLine("- Monthly Budget: Not configured yet")
       }
       appendLine("- Total Wallet Balance: ${Formatters.formatMoney(totalWallet, currency)} ($walletSummary)")
+      if (snapshot.customWallets.isNotEmpty()) {
+        val customTotal = snapshot.customWallets.sumOf { it.balance }
+        val customDetails = snapshot.customWallets.joinToString(", ") { w ->
+          "${w.name} (${w.walletType.name}): ${Formatters.formatMoney(w.balance, currency)}"
+        }
+        appendLine("- Custom Wallets Total: ${Formatters.formatMoney(customTotal, currency)} ($customDetails)")
+      }
       appendLine()
       appendLine("Category Breakdown:")
       appendLine(categorySummary)
@@ -592,6 +607,20 @@ class FinanceAiAssistant {
       appendLine()
       appendLine("Savings Goals:")
       appendLine(savingsSummary)
+      if (snapshot.debtRecords.isNotEmpty()) {
+        val unpaid = snapshot.debtRecords.filter { !it.settled }
+        val totalOwedToUser = unpaid.filter { it.type == DebtType.OWED_TO_ME }.sumOf { it.amount }
+        val totalUserOwes = unpaid.filter { it.type == DebtType.I_OWE }.sumOf { it.amount }
+        appendLine()
+        appendLine("Debts & Split Bills:")
+        appendLine("- Unpaid Receivables (Owed to User): ${Formatters.formatMoney(totalOwedToUser, currency)}")
+        appendLine("- Unpaid Payables (User Owes): ${Formatters.formatMoney(totalUserOwes, currency)}")
+        unpaid.take(10).forEach { d ->
+          val direction = if (d.type == DebtType.OWED_TO_ME) "Owed by" else "Owe to"
+          val dueStr = if (d.dueDateEpochDay > 0L) ", due ${Formatters.formatShortDate(d.dueDateEpochDay, locale)}" else ""
+          appendLine("- $direction ${d.personName}: ${Formatters.formatMoney(d.amount, currency)}$dueStr" + if (d.note.isNotBlank()) " (${d.note})" else "")
+        }
+      }
       appendLine()
       appendLine("Last 6 Months Spending Trend: $sixMonthTrend")
     }

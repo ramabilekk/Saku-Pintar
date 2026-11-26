@@ -374,4 +374,457 @@
     <string name="profile_support_subtitle">ساهم في دعم التطوير المستمر عبر Trakteer</string>
     <string name="profile_support_button">Support</string>
     <string name="profile_support_browser_error">تعذر فتح المتصفح. قم بزيارة trakteer.id/ramabilekk/gift.</string>
+
+    <!-- Plain Text Export & Backup Preview -->
+    <string name="export_txt_title">نسخة نصية بسيطة (.txt)</string>
+    <string name="export_txt_subtitle">ملف .txt خفيف وسهل القراءة يحتوي على الملخص الشهري وجميع المعاملات</string>
+    <string name="export_backup_preview_title">معاينة النسخة النصية / CSV</string>
+    <string name="export_backup_preview_show">عرض المعاينة</string>
+    <string name="export_backup_preview_hide">إخفاء المعاينة</string>
+    <string name="export_backup_copy_action">نسخ %1$s</string>
+    <string name="export_backup_copied_status">تم نسخ النسخة الشهرية %1$s إلى الحافظة.</string>
+    <string name="export_txt_header">نسخة المصروفات الشهرية - SAKUPINTAR</string>
+    <string name="export_txt_period_label">الفترة</string>
+    <string name="export_txt_all_transactions">جميع المعاملات (%1$d)</string>
+    <string name="export_txt_empty_transactions">لا توجد مصروفات مسجلة لهذا الشهر.</string>
+    <string name="export_txt_note_prefix">ملاحظة</string>
+    <string name="export_receipt_preview_title">ملخص صور الإيصالات جاهز (%1$d صور)</string>
+    <string name="export_receipt_preview_subtitle">تُدرج الصور بشكل مرتب في Excel (.xlsx) وشبكة من عمودين في PDF (.pdf)</string>
+    <string name="report_col_receipt_photo">صورة الإيصال</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">إثبات الإيصال</string>
+    <string name="report_sheet_receipts">صور الإيصالات</string>
+    <string name="report_receipt_section_title">صور الإيصالات والفواتير المرفقة</string>
+    <string name="report_receipt_attached_count">تم إرفاق %1$d صور إيصالات</string>
+    <string name="report_receipt_yes">مرفق (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">مُضمن تلقائياً في تقارير PDF و Excel</string>
+
+    <!-- Login Methods -->
+    <string name="auth_tab_sign_in">تسجيل الدخول</string>
+    <string name="auth_tab_sign_up">إنشاء حساب</string>
+    <string name="auth_choose_method_sign_in">اختر طريقة تسجيل الدخول</string>
+    <string name="auth_choose_method_sign_up">اختر طريقة إنشاء الحساب</string>
+    <string name="auth_sign_up_google">التسجيل عبر Google</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">حساب ضيف</string>
+    <string name="auth_or_other_methods">أو اختر طريقة أخرى</string>
+    <string name="auth_guest_continue">المتابعة كضيف</string>
+    <string name="auth_guest_subtitle">وضع الضيف: وصول فوري بدون نسخ احتياطي سحابي</string>
+    <string name="guest_visitor_banner">وضع الضيف • جلسة مؤقتة بدون نسخ احتياطي سحابي</string>
+    <string name="guest_account_display_name">زائر</string>
+    <string name="guest_account_badge">وضع الضيف (بدون سحابة)</string>
+    <string name="auth_landing_enter_action">دخول</string>
+    <string name="auth_landing_subtitle">اضغط دخول لتسجيل الدخول أو إنشاء حساب</string>
+    <string name="auth_method_screen_sign_in_title">اختر طريقة الدخول</string>
+    <string name="auth_method_screen_sign_up_title">اختر طريقة التسجيل</string>
+    <string name="auth_back_action">رجوع</string>
+    <string name="topbar_expenses_title">دفتر المصروفات اليومية</string>
+    <string name="topbar_expenses_subtitle">إدارة المصروفات اليومية والفواتير المتكررة</string>
+    <string name="topbar_budget_title">مخطط الميزانية الشهرية</string>
+    <string name="topbar_budget_subtitle">توزيع 50/30/20 والحد اليومي الآمن</string>
+    <string name="topbar_savings_title">أهداف الادخار والمحافظ</string>
+    <string name="topbar_savings_subtitle">تتبع أهداف الادخار والمحافظ النشطة</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">سجّل الدخول إلى حسابك</string>
+    <string name="auth_simple_signin_subtitle">أدر مصروفاتك اليومية وميزانيتك الشهرية بسهولة.</string>
+    <string name="auth_simple_google_continue">المتابعة باستخدام Google</string>
+    <string name="auth_or_divider">أو</string>
+    <string name="auth_guest_simple_cta">المتابعة كضيف</string>
+    <string name="auth_simple_divider_signin">أو وصول سريع</string>
+    <string name="auth_simple_guest_name_label">اسم العرض (اختياري)</string>
+    <string name="auth_simple_guest_name_placeholder">مثال: أحمد</string>
+    <string name="auth_simple_help_link">مشكلة في تسجيل الدخول؟</string>
+    <string name="auth_simple_guest_cta">المتابعة كضيف</string>
+    <string name="auth_simple_no_account_prompt">ليس لديك حساب؟</string>
+    <string name="auth_simple_register_action">إنشاء حساب</string>
+    <string name="auth_simple_signup_title">ابدأ مع SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">سجّل معاملاتك وأتمت ميزانيتك الشهرية بسهولة.</string>
+    <string name="auth_simple_divider_signup">أو جرّب فوراً</string>
+    <string name="auth_simple_guest_signup_cta">تجربة وضع الضيف</string>
+    <string name="auth_simple_have_account_prompt">لديك حساب بالفعل؟</string>
+    <string name="auth_simple_login_action">تسجيل الدخول</string>
+    <string name="auth_simple_feature_cloud">مزامنة سحابية تلقائية عبر Google</string>
+    <string name="auth_simple_feature_budget">مخطط ميزانية ذكي 50/30/20</string>
+    <string name="auth_simple_feature_ai">مسح الإيصالات بالذكاء الاصطناعي وتحليلات ذكية</string>
+    <string name="auth_help_back">العودة لتسجيل الدخول</string>
+    <string name="auth_help_title">مشكلة في تسجيل الدخول؟</string>
+    <string name="auth_help_body">يستخدم SakuPintar تسجيل الدخول عبر Google دون كلمة مرور منفصلة. يمكنك استرداد حساب Google أدناه.</string>
+    <string name="auth_help_recover_cta">استرداد حساب Google</string>
+    <string name="auth_help_retry_google">إعادة المحاولة عبر Google</string>
+    <string name="auth_help_footer_prompt">تحتاج وصولاً سريعاً؟</string>
+    <string name="auth_help_footer_action">استخدام وضع الضيف</string>
+    <string name="auth_help_browser_error">تعذر فتح المتصفح. قم بزيارة accounts.google.com/signin/recovery.</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">مسح الإيصال بالذكاء الاصطناعي</string>
+    <string name="ai_scan_quick_subtitle">التقط أو اختر إيصالاً للملء التلقائي</string>
+    <string name="ai_scan_camera_action">كاميرا AI</string>
+    <string name="ai_scan_gallery_action">معرض AI</string>
+    <string name="ai_scan_chooser_title">مسح الإيصال بالذكاء الاصطناعي</string>
+    <string name="ai_scan_chooser_subtitle">التقط صورة واضحة أو اختر إيصالاً. سيقرأ الذكاء الاصطناعي المتجر والمبلغ والتاريخ والفئة تلقائياً.</string>
+    <string name="ai_scan_success_banner">تم مسح الإيصال بالذكاء الاصطناعي — راجع التفاصيل أدناه</string>
+    <string name="ai_scan_date_detected">تم اكتشاف التاريخ: %1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">مزامنة بيانات الضيف مع Google</string>
+    <string name="guest_sync_card_subtitle">احفظ %1$d سجل محلي بأمان في السحابة للوصول إليه من أي جهاز.</string>
+    <string name="guest_sync_card_subtitle_empty">اربط حساب Google للنسخ الاحتياطي السحابي التلقائي.</string>
+    <string name="guest_sync_cta">ربط Google والترحيل</string>
+    <string name="guest_sync_in_progress">جارٍ المزامنة مع سحابة Google…</string>
+    <string name="guest_sync_success">تم الربط بـ Google! تمت مزامنة %1$d سجل.</string>
+    <string name="guest_sync_partial">تم الربط! تمت مزامنة %1$d وتعذر رفع %2$d.</string>
+    <string name="guest_sync_connected_empty">تم الاتصال بسحابة Google!</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">الفئات المخصصة</string>
+    <string name="custom_cat_add_action">إضافة</string>
+    <string name="custom_cat_dialog_title">فئة مخصصة جديدة</string>
+    <string name="custom_cat_name_label">اسم الفئة</string>
+    <string name="custom_cat_name_hint">مثال: قهوة، أقساط، عناية</string>
+    <string name="custom_cat_parent_label">مجموعة الميزانية</string>
+    <string name="custom_cat_color_label">اللون</string>
+    <string name="custom_cat_empty_hint">أنشئ تصنيفات مخصصة مثل القهوة أو الرياضة</string>
+    <string name="custom_cat_error_name">يرجى إدخال اسم الفئة.</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">يوم الاستحقاق الشهري (اختياري)</string>
+    <string name="bill_due_day_none">بدون تاريخ استحقاق</string>
+    <string name="bill_due_day_format">يوم %1$d</string>
+    <string name="bill_due_today_badge">تستحق اليوم!</string>
+    <string name="bill_due_in_days_badge">خلال %1$d أيام</string>
+    <string name="bill_due_upcoming_title">الفواتير القادمة</string>
+    <string name="bill_due_pay_now">تسجيل الآن</string>
+    <string name="bill_due_notif_title">تذكير باستحقاق فاتورة</string>
+    <string name="bill_due_notif_channel_desc">تنبيهات للفواتير المتكررة القريبة من موعد الاستحقاق</string>
+    <string name="bill_due_notif_today">فاتورة %1$s مستحقة اليوم. اضغط لتسجيل الدفع في SakuPintar.</string>
+    <string name="bill_due_notif_tomorrow">فاتورة %1$s مستحقة غداً. جهّز ميزانيتك في SakuPintar.</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">إضافة سريعة SakuPintar</string>
+    <string name="widget_description">عرض الحد اليومي الآمن وتسجيل المصروفات بلمسة واحدة</string>
+    <string name="widget_safe_limit_label">الحد الآمن اليوم</string>
+    <string name="widget_today_spent_format">مصروف اليوم: %1$s</string>
+    <string name="widget_action_add">+ مصروف</string>
+    <string name="widget_action_scan">مسح AI</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">إخفاء الأرصدة</string>
+    <string name="privacy_toggle_show_cd">إظهار الأرصدة</string>
+    <string name="privacy_security_section_title">الخصوصية والأمان</string>
+    <string name="privacy_hide_balances_title">إخفاء الأرصدة</string>
+    <string name="privacy_hide_balances_subtitle">إخفاء المبالغ بـ •••••• في الأماكن العامة</string>
+    <string name="app_lock_title">قفل التطبيق (PIN / البصمة)</string>
+    <string name="app_lock_subtitle_on">محمي عند فتح SakuPintar</string>
+    <string name="app_lock_subtitle_off">طلب رمز PIN أو قفل الجهاز عند التشغيل</string>
+    <string name="app_lock_setup_title">تعيين رمز PIN من 4 أرقام</string>
+    <string name="app_lock_setup_subtitle">أدخل رمز PIN من 4 أرقام لحماية سجلاتك المالية.</string>
+    <string name="app_lock_setup_confirm">أعد إدخال رمز PIN للتأكيد</string>
+    <string name="app_lock_pin_mismatch">رمزا PIN غير متطابقين. حاول مجدداً.</string>
+    <string name="app_lock_pin_saved">تم تفعيل قفل التطبيق!</string>
+    <string name="app_lock_disabled_status">تم إيقاف قفل التطبيق.</string>
+    <string name="app_lock_screen_title">تطبيق SakuPintar مقفل</string>
+    <string name="app_lock_screen_subtitle">أدخل رمز PIN المكون من 4 أرقام للمتابعة</string>
+    <string name="app_lock_wrong_pin">رمز PIN غير صحيح. حاول مرة أخرى.</string>
+    <string name="app_lock_use_biometric">الفتح بالبصمة / قفل الجهاز</string>
+    <string name="app_lock_change_pin">تغيير رمز PIN</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">الخصم التلقائي من المحفظة</string>
+    <string name="wallet_auto_deduct_subtitle">تحديث رصيد المحفظة تلقائياً عند تسجيل المصروفات</string>
+    <string name="cashflow_record_income_action">إضافة دخل</string>
+    <string name="cashflow_transfer_action">تحويل</string>
+    <string name="cashflow_income_dialog_title">تسجيل دخل</string>
+    <string name="cashflow_income_source_label">مصدر الدخل</string>
+    <string name="cashflow_income_source_hint">مثال: راتب، مكافأة، عمل حر</string>
+    <string name="cashflow_income_target_wallet">إيداع في المحفظة</string>
+    <string name="cashflow_income_saved">تمت إضافة دخل %1$s إلى %2$s!</string>
+    <string name="cashflow_transfer_dialog_title">تحويل بين المحافظ</string>
+    <string name="cashflow_transfer_from_label">من محفظة</string>
+    <string name="cashflow_transfer_to_label">إلى محفظة</string>
+    <string name="cashflow_transfer_same_wallet_error">اختر محفظتين مختلفتين.</string>
+    <string name="cashflow_transfer_insufficient">الرصيد غير كافٍ في %1$s.</string>
+    <string name="cashflow_transfer_saved">تم تحويل %1$s من %2$s إلى %3$s!</string>
+    <string name="cashflow_history_title">نشاط التدفق النقدي الشهري</string>
+    <string name="cashflow_history_income_badge">دخل</string>
+    <string name="cashflow_history_transfer_badge">تحويل</string>
+    <string name="cashflow_entry_deleted">تم حذف السجل.</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">تفصيل الفئات</string>
+    <string name="analytics_donut_total_label">إجمالي الإنفاق</string>
+    <string name="analytics_mom_lower">أقل بنسبة %1$d%% من الشهر الماضي</string>
+    <string name="analytics_mom_higher">أعلى بنسبة %1$d%% من الشهر الماضي</string>
+    <string name="analytics_mom_same">نفس وتيرة الإنفاق للشهر الماضي</string>
+    <string name="analytics_mom_no_prev">لا توجد بيانات للشهر الماضي بعد</string>
+    <string name="analytics_top_expense_label">أكبر مصروف هذا الشهر</string>
+    <string name="budget_alert_over">تنبيه ميزانية: تجاوز %1$s الحد (%2$d%%)!</string>
+    <string name="budget_alert_caution">تنبيه: وصل %1$s إلى %2$d%% من الميزانية الشهرية.</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">إملاء المصروف بالصوت</string>
+    <string name="voice_ai_prompt">قل المصروف، مثال: غداء 35 بالبطاقة</string>
+    <string name="voice_ai_unavailable">الإدخال الصوتي غير متاح على هذا الجهاز.</string>
+    <string name="action_undo">تراجع</string>
+    <string name="expense_restored_status">تم استعادة المصروف.</string>
+    <string name="expense_duplicated_status">تم تكرار \"%1$s\" لليوم!</string>
+    <string name="duplicate_expense_cd">تكرار المصروف</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">دليل البدء السريع</string>
+    <string name="onboarding_progress_format">تم إكمال %1$d من 3</string>
+    <string name="onboarding_step_budget_title">تعيين الميزانية الشهرية</string>
+    <string name="onboarding_step_budget_sub">حساب الحد اليومي الآمن تلقائياً</string>
+    <string name="onboarding_step_wallet_title">تعيين أرصدة المحافظ</string>
+    <string name="onboarding_step_wallet_sub">تتبع النقد والبنك والبطاقة تلقائياً</string>
+    <string name="onboarding_step_expense_title">امسح أو سجّل أول مصروف</string>
+    <string name="onboarding_step_expense_sub">جرّب مسح الإيصال بالذكاء الاصطناعي بلمسة</string>
+    <string name="onboarding_dismiss">إخفاء</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">دورة الراتب</string>
+    <string name="payday_default_subtitle">اليوم 1 من كل شهر (التقويم القياسي)</string>
+    <string name="payday_custom_subtitle">تبدأ في اليوم %1$d من كل شهر</string>
+    <string name="payday_cycle_desc">اضبط بداية دورتك الشهرية لتتوافق مع يوم استلام راتبك.</string>
+    <string name="payday_preset_1">1</string>
+    <string name="payday_preset_25">25</string>
+    <string name="payday_preset_28">28</string>
+    <string name="payday_day_label">يوم بداية الدورة: %1$d</string>
+    <string name="payday_preview_label">الفترة النشطة: %1$s</string>
+    <string name="payday_saved_status">تم تحديث دورة الراتب إلى اليوم %1$d.</string>
+    <string name="payday_badge_label">دورة %1$s</string>
+    <string name="payday_change_action">تغيير</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">كل المحافظ</string>
+    <string name="filter_with_receipt">مع إيصال</string>
+    <string name="filter_reset">إعادة ضبط</string>
+    <string name="sort_label_prefix">ترتيب:</string>
+    <string name="sort_newest">الأحدث</string>
+    <string name="sort_highest">الأعلى مبلغاً</string>
+    <string name="sort_lowest">الأقل مبلغاً</string>
+    <string name="sort_title_az">الاسم أ–ي</string>
+    <string name="filter_sort_cd">ترتيب المعاملات</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">اتجاه الإنفاق والدخل</string>
+    <string name="trend_6_months">6 أشهر</string>
+    <string name="trend_12_months">12 شهراً</string>
+    <string name="trend_legend_spending">الإنفاق</string>
+    <string name="trend_legend_income">الدخل</string>
+    <string name="trend_tap_hint">اضغط على عمود لعرض تفاصيل الشهر</string>
+    <string name="trend_total_spent">إجمالي الإنفاق</string>
+    <string name="trend_total_income">إجمالي الدخل</string>
+    <string name="trend_avg_monthly">المتوسط / شهر</string>
+    <string name="trend_net_cashflow">صافي التدفق</string>
+    <string name="trend_lowest_month">الأكثر توفيراً: %1$s (%2$s)</string>
+    <string name="trend_highest_month">الأعلى إنفاقاً: %1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d عملية</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">تعديل هدف الادخار</string>
+    <string name="savings_edit_save">حفظ التغييرات</string>
+    <string name="savings_edit_cd">تعديل هدف الادخار</string>
+    <string name="savings_history_cd">عرض سجل الإيداعات</string>
+    <string name="savings_history_button">السجل</string>
+    <string name="savings_goal_updated">تم تحديث هدف \"%1$s\"!</string>
+    <string name="savings_history_sheet_title">التقدم والسجل</string>
+    <string name="savings_history_total_deposits">إجمالي الإيداعات</string>
+    <string name="savings_history_total_withdrawals">إجمالي السحوبات</string>
+    <string name="savings_history_eta_label">الإنجاز المتوقع</string>
+    <string name="savings_history_eta_done">تم تحقيق الهدف! 🎉</string>
+    <string name="savings_history_eta_days">~%1$d يوم متبقي (%2$s)</string>
+    <string name="savings_history_eta_months">~%1$d شهر متبقي (%2$s)</string>
+    <string name="savings_history_eta_need_more">أضف إيداعات منتظمة لحساب تاريخ الإنجاز المتوقع.</string>
+    <string name="savings_history_empty">لا توجد إيداعات أو سحوبات لهذا الهدف بعد.</string>
+    <string name="savings_history_initial_label">الرصيد الابتدائي</string>
+    <string name="savings_history_deposit_label">إيداع</string>
+    <string name="savings_history_withdraw_label">سحب</string>
+    <string name="savings_history_balance_after">الرصيد: %1$s</string>
+
+    <!-- Ask SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">اسأل SakuPintar AI</string>
+    <string name="ai_chat_subtitle">مدرب مالي تفاعلي يعتمد على بياناتك الحقيقية</string>
+    <string name="ai_chat_open_button">اسأل AI</string>
+    <string name="ai_chat_open_cd">فتح محادثة SakuPintar AI</string>
+    <string name="ai_chat_reset_cd">إعادة ضبط المحادثة</string>
+    <string name="ai_chat_close_cd">إغلاق محادثة AI</string>
+    <string name="ai_chat_input_hint">اسأل عن مصروفاتك أو ميزانيتك أو مدخراتك…</string>
+    <string name="ai_chat_send_cd">إرسال السؤال</string>
+    <string name="ai_chat_welcome_title">مرحباً! أنا SakuPintar AI</string>
+    <string name="ai_chat_welcome_body">اسألني عن أنماط إنفاقك، حدك اليومي الآمن، أهداف ادخارك، أو نصائح عملية للتوفير.</string>
+    <string name="ai_chat_chip_1">أين أنفق أكبر قدر في هذه الفترة؟</string>
+    <string name="ai_chat_chip_2">أعطني خطة توفير عملية لبقية هذه الدورة</string>
+    <string name="ai_chat_chip_3">كيف يسير ادخاري وكيف أحقق أهدافي أسرع؟</string>
+    <string name="ai_chat_chip_4">قارن اتجاه إنفاقي خلال الأشهر الأخيرة</string>
+    <string name="ai_chat_typing">SakuPintar AI يقوم بالتحليل…</string>
+    <string name="ai_chat_retry">إعادة المحاولة</string>
+    <string name="ai_chat_context_badge">بيانات مباشرة: %1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">الإعدادات</string>
+    <string name="settings_section_general">عام</string>
+    <string name="settings_section_finance">المالية والأمان</string>
+    <string name="settings_section_account">الحساب</string>
+    <string name="settings_section_about">حول التطبيق</string>
+    <string name="settings_connected_account_title">الحساب المتصل</string>
+    <string name="settings_sign_out_subtitle">تسجيل الخروج من حسابك</string>
+    <string name="settings_app_version_title">إصدار التطبيق</string>
+    <string name="settings_quick_edit_profile">تعديل الملف</string>
+    <string name="settings_quick_change_photo">تغيير الصورة</string>
+    <string name="settings_guest_subtitle_fallback">وضع الضيف • محفوظ على هذا الجهاز</string>
+    <string name="settings_edit_profile_dialog_title">تعديل الملف الشخصي</string>
+    <string name="settings_haptic_title">الاهتزاز التفاعلي</string>
+    <string name="settings_haptic_subtitle_on">اهتزاز خفيف عند اللمس والتنقل</string>
+    <string name="settings_haptic_subtitle_off">الاهتزاز متوقف</string>
+    <string name="settings_export_title">تصدير التقرير المالي</string>
+    <string name="settings_export_subtitle">حفظ نسخ Excel أو PDF أو CSV أو نصية (.txt)</string>
+    <string name="settings_cache_title">ذاكرة التخزين المؤقت</string>
+    <string name="settings_cache_subtitle">مسح الذاكرة المؤقتة (%1$s)</string>
+    <string name="settings_cache_dialog_title">مسح الذاكرة المؤقتة؟</string>
+    <string name="settings_cache_dialog_body">سيتم حذف %1$s من الملفات المؤقتة. لن تتأثر معاملاتك أو ميزانيتك.</string>
+    <string name="settings_cache_clear_action">مسح</string>
+    <string name="settings_cache_cleared_status">تم تحرير %1$s من الذاكرة المؤقتة.</string>
+    <string name="settings_sign_out_confirm_title">تسجيل الخروج؟</string>
+    <string name="settings_sign_out_confirm_body_google">تبقى بياناتك متزامنة بأمان في حساب Google الخاص بك.</string>
+    <string name="settings_sign_out_confirm_body_guest">أنت في وضع الضيف. تبقى البيانات المحلية على جهازك ما لم تحذفها.</string>
+    <string name="settings_delete_account_title">حذف الحساب</string>
+    <string name="settings_delete_account_title_guest">حذف جميع البيانات</string>
+    <string name="settings_delete_account_subtitle">حذف الحساب وجميع بياناته</string>
+    <string name="settings_delete_account_subtitle_guest">مسح جميع السجلات المحلية على الجهاز</string>
+    <string name="settings_delete_account_dialog_title">حذف جميع البيانات نهائياً؟</string>
+    <string name="settings_delete_account_dialog_body_google">سيتم مسح جميع مصروفاتك وميزانياتك ومدخراتك نهائياً من السحابة. لا يمكن التراجع.</string>
+    <string name="settings_delete_account_dialog_body_guest">سيتم مسح جميع السجلات المالية المحلية نهائياً. لا يمكن التراجع.</string>
+    <string name="settings_delete_account_checkbox">أفهم أن هذا الإجراء نهائي ولا يمكن التراجع عنه</string>
+    <string name="settings_delete_account_confirm">حذف نهائياً</string>
+    <string name="settings_delete_account_in_progress">جارٍ حذف البيانات…</string>
+    <string name="settings_delete_account_success">تم حذف الحساب وجميع البيانات المالية.</string>
+    <string name="settings_delete_account_failed">فشل حذف الحساب: %1$s</string>
+    <string name="settings_privacy_policy_title">سياسة الخصوصية</string>
+    <string name="settings_privacy_policy_subtitle">اقرأ سياسة الخصوصية</string>
+    <string name="settings_privacy_policy_body">1. التخزين\n• حساب Google: تُحفظ بياناتك بخصوصية في Firebase Firestore.\n• وضع الضيف: تبقى جميع السجلات على جهازك فقط.\n\n2. الكاميرا والذكاء الاصطناعي\n• تُرسل البيانات اللازمة فقط لمسح الإيصال أو الإجابة عن سؤالك.\n• لا نبيع بياناتك أبداً.\n\n3. الأمان\n• يُشفّر رمز PIN محلياً.\n• يمكنك تصدير أو حذف بياناتك في أي وقت من الإعدادات &gt; حذف الحساب.</string>
+    <string name="settings_terms_title">الشروط والأحكام</string>
+    <string name="settings_terms_subtitle">اقرأ الشروط والأحكام</string>
+    <string name="settings_terms_body">1. الغرض\nيساعدك SakuPintar على تتبع مصروفاتك ومحافظك وأهداف ادخارك.\n\n2. تنويه الذكاء الاصطناعي\nنتائج مسح الإيصالات ونصائح الذكاء الاصطناعي للأغراض المعلوماتية فقط ولا تُعد استشارة مالية مرخصة.\n\n3. المسؤولية\nأنت مسؤول عن أمان جهازك وحساب Google الخاص بك.</string>
+    <string name="settings_contact_title">تواصل معنا</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">دعم وملاحظات SakuPintar</string>
+    <string name="settings_contact_copied_status">تم نسخ بريد الدعم: %1$s</string>
+
+    <!-- Budget Threshold Alerts -->
+    <string name="budget_alert_channel_name">تنبيهات حد الميزانية</string>
+    <string name="budget_alert_channel_desc" formatted="false">تنبيهات عند وصول فئة إنفاق إلى 80% أو 100% من الميزانية</string>
+    <string name="budget_alert_80_title">تنبيه ميزانية: %1$s</string>
+    <string name="budget_alert_80_body">لقد استخدمت %1$d%% (%2$s من %3$s) من ميزانية هذا الشهر.</string>
+    <string name="budget_alert_100_title">تم بلوغ الحد: %1$s</string>
+    <string name="budget_alert_100_body">وصل الإنفاق إلى %1$s مقابل الحد %2$s.</string>
+    <string name="settings_budget_alerts_title">تنبيهات حد الميزانية</string>
+    <string name="settings_budget_alerts_subtitle_on" formatted="false">إشعار تلقائي عند بلوغ 80% أو 100% من الميزانية</string>
+    <string name="settings_budget_alerts_subtitle_off">التنبيهات التلقائية متوقفة</string>
+    <string name="settings_budget_alerts_enabled_status">تم تفعيل تنبيهات الميزانية.</string>
+    <string name="settings_budget_alerts_disabled_status">تم إيقاف تنبيهات الميزانية.</string>
+
+    <!-- JSON Backup & Restore -->
+    <string name="settings_backup_restore_title">النسخ الاحتياطي والاستعادة</string>
+    <string name="settings_backup_restore_subtitle">حفظ أو استعادة JSON أو استيراد CSV</string>
+    <string name="backup_dialog_title">النسخ الاحتياطي والاستعادة</string>
+    <string name="backup_dialog_desc">صدّر جميع بياناتك في ملف JSON، أو استعد نسخة سابقة، أو استورد المعاملات من ملف CSV.</string>
+    <string name="backup_export_title">إنشاء نسخة احتياطية</string>
+    <string name="backup_export_subtitle">احفظ نسخة .json على جهازك أو السحابة</string>
+    <string name="backup_export_button">تصدير JSON</string>
+    <string name="backup_restore_title">استعادة من نسخة</string>
+    <string name="backup_restore_subtitle">استيراد السجلات من ملف .json محفوظ مسبقاً</string>
+    <string name="backup_restore_button">اختيار ملف JSON</string>
+    <string name="backup_in_progress">جارٍ التصدير…</string>
+    <string name="backup_restore_in_progress">جارٍ الاستعادة…</string>
+    <string name="backup_export_success">تم حفظ النسخة (%1$d عنصر).</string>
+    <string name="backup_restore_success">تمت استعادة %1$d سجل!</string>
+    <string name="backup_error_generic">خطأ في النسخ الاحتياطي: %1$s</string>
+    <string name="backup_restore_confirm_title">استعادة ملف النسخ الاحتياطي؟</string>
+    <string name="backup_restore_confirm_body">تم العثور على %1$d سجل مالي. هل تريد الاستعادة إلى حسابك؟</string>
+    <string name="backup_restore_confirm_action">استعادة الآن</string>
+
+    <!-- Custom Wallets -->
+    <string name="custom_wallets_section_title">المحافظ والحسابات المخصصة</string>
+    <string name="custom_wallets_section_subtitle">تتبع البنوك والمحافظ الإلكترونية المحددة</string>
+    <string name="custom_wallets_add_button">إضافة محفظة</string>
+    <string name="custom_wallets_empty_hint">لا توجد محافظ مخصصة بعد. أضف حساباتك البنكية أو محافظك الإلكترونية.</string>
+    <string name="custom_wallet_dialog_add_title">إضافة محفظة مخصصة</string>
+    <string name="custom_wallet_dialog_edit_title">تعديل المحفظة</string>
+    <string name="custom_wallet_name_label">اسم المحفظة / الحساب</string>
+    <string name="custom_wallet_name_hint">مثال: البنك، محفظة إلكترونية، نقدي</string>
+    <string name="custom_wallet_type_label">نوع الحساب</string>
+    <string name="custom_wallet_balance_label">الرصيد الحالي (%1$s)</string>
+    <string name="custom_wallet_color_label">اللون</string>
+    <string name="custom_wallet_type_bank">بنك</string>
+    <string name="custom_wallet_type_ewallet">محفظة إلكترونية</string>
+    <string name="custom_wallet_type_cash">نقدي</string>
+    <string name="custom_wallet_type_card">بطاقة</string>
+    <string name="custom_wallet_type_investment">استثمار</string>
+    <string name="custom_wallet_error_name">يرجى إدخال اسم المحفظة.</string>
+    <string name="custom_wallet_saved_status">تم حفظ محفظة \"%1$s\".</string>
+    <string name="custom_wallet_deleted_status">تم حذف المحفظة.</string>
+
+    <!-- Debt / Receivable & Split Bill -->
+    <string name="debt_section_title">الديون والمستحقات وتقسيم الفاتورة</string>
+    <string name="debt_section_subtitle">تتبع ما لك وما عليك وقسّم الفواتير الجماعية</string>
+    <string name="debt_add_button">إضافة سجل</string>
+    <string name="debt_empty_hint">لا توجد سجلات ديون أو تقسيم فواتير بعد.</string>
+    <string name="debt_summary_owed_to_me">لي عند الآخرين</string>
+    <string name="debt_summary_i_owe">عليّ للآخرين</string>
+    <string name="debt_filter_all">الكل</string>
+    <string name="debt_filter_active">نشط</string>
+    <string name="debt_filter_settled">مسدّد</string>
+    <string name="debt_type_owed_to_me">لي</string>
+    <string name="debt_type_i_owe">عليّ</string>
+    <string name="debt_status_settled">مسدّد</string>
+    <string name="debt_status_overdue">متأخر</string>
+    <string name="debt_due_label">الاستحقاق %1$s</string>
+    <string name="debt_mark_settled_cd">تبديل حالة السداد</string>
+    <string name="debt_dialog_title">دين جديد / تقسيم فاتورة</string>
+    <string name="debt_person_label">اسم الشخص</string>
+    <string name="debt_person_hint">مثال: خالد، سارة، الفريق</string>
+    <string name="debt_amount_label">المبلغ (%1$s)</string>
+    <string name="debt_due_date_label">تاريخ الاستحقاق</string>
+    <string name="debt_due_7d">+7 أيام</string>
+    <string name="debt_due_14d">+14 يوماً</string>
+    <string name="debt_due_30d">+30 يوماً</string>
+    <string name="debt_note_label">ملاحظة (اختياري)</string>
+    <string name="debt_note_hint">مثال: عشاء مشترك، تذاكر</string>
+    <string name="debt_error_person">يرجى إدخال اسم الشخص.</string>
+    <string name="debt_error_amount">يرجى إدخال مبلغ أكبر من 0.</string>
+    <string name="debt_saved_status">تم حفظ السجل لـ %1$s.</string>
+    <string name="debt_settled_status">تم تحديد %1$s كمسدّد!</string>
+    <string name="debt_reopened_status">تم تحديد %1$s كغير مسدّد.</string>
+    <string name="debt_deleted_status">تم حذف سجل الدين.</string>
+    <string name="split_bill_toggle_title">حاسبة تقسيم الفاتورة</string>
+    <string name="split_bill_total_label">إجمالي الفاتورة (%1$s)</string>
+    <string name="split_bill_people_label">عدد الأشخاص</string>
+    <string name="split_bill_result_preview">لكل شخص: %1$s</string>
+    <string name="split_bill_apply_action">استخدام المبلغ</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">الخصم من محفظة مخصصة (اختياري)</string>
+    <string name="csv_import_title">استيراد المعاملات من CSV</string>
+    <string name="csv_import_subtitle">استيراد المصروفات من ملف .csv من SakuPintar أو كشف حساب</string>
+    <string name="csv_import_button">اختيار ملف CSV</string>
+    <string name="csv_import_in_progress">جارٍ استيراد CSV…</string>
+    <string name="csv_import_empty_error">لم يتم العثور على معاملات صالحة في ملف CSV هذا.</string>
+    <string name="csv_import_confirm_title">استيراد معاملات CSV؟</string>
+    <string name="csv_import_confirm_body">تم العثور على %1$d معاملة في ملف CSV. هل تريد إضافتها إلى دفتر المصروفات؟</string>
+    <string name="csv_import_confirm_action">استيراد الآن</string>
+    <string name="csv_import_success">تم استيراد %1$d معاملة من CSV!</string>
+    <string name="bill_due_edit_cd">تعديل تذكير الاستحقاق لـ %1$s</string>
+    <string name="bill_due_edit_title">تذكير الفاتورة: %1$s</string>
+    <string name="bill_due_edit_desc">عيّن يوم الاستحقاق الشهري (1–31) لتلقي تذكيرات تلقائية قبل الموعد.</string>
+    <string name="bill_due_day_input_label">يوم الاستحقاق (1–31)</string>
+    <string name="bill_due_day_input_hint">مثال: 25</string>
+    <string name="bill_due_clear_action">إزالة التذكير</string>
+    <string name="budget_rollover_title">ترحيل فائض الميزانية</string>
+    <string name="budget_rollover_subtitle">ترحيل الميزانية غير المستخدمة من الشهر الماضي إلى هذه الفترة</string>
+    <string name="budget_rollover_active_bonus">نشط • +%1$s مرحّل من الفترة السابقة</string>
+    <string name="filter_last_7_days">آخر 7 أيام</string>
+    <string name="sort_oldest">الأقدم</string>
 </resources>

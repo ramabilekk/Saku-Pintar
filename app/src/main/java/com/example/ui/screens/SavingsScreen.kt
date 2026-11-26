@@ -64,6 +64,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,7 +87,16 @@ import com.example.R
 import com.example.data.local.CashflowEntry
 import com.example.data.local.CashflowLedgerManager
 import com.example.data.local.CashflowType
+import com.example.data.local.CustomWallet
+import com.example.data.local.CustomWalletManager
+import com.example.data.local.DebtLedgerManager
+import com.example.data.local.DebtRecord
+import com.example.data.local.DebtType
+import com.example.data.local.NetWorthSnapshot
+import com.example.data.local.NetWorthSnapshotManager
 import com.example.data.local.SavingsHistoryManager
+import com.example.data.local.SubscriptionItem
+import com.example.data.local.SubscriptionManager
 import com.example.data.model.PaymentMethod
 import com.example.data.model.SavingsGoal
 import com.example.data.model.SavingsGoalCategory
@@ -94,14 +104,21 @@ import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
 import com.example.security.PrivacySecurityManager
+import com.example.ui.components.AddDebtRecordDialog
+import com.example.ui.components.AddEditCustomWalletDialog
 import com.example.ui.components.CreateSavingsGoalDialog
+import com.example.ui.components.CustomWalletsCardSection
+import com.example.ui.components.DebtTrackerSection
 import com.example.ui.components.DimensionalVaultCard
 import com.example.ui.components.EditSavingsGoalDialog
+import com.example.ui.components.LiquidGlassAlertDialog
 import com.example.ui.components.MonthYearPickerDialog
+import com.example.ui.components.NetWorthTrendCard
 import com.example.ui.components.RecordIncomeDialog
 import com.example.ui.components.SavingsGoalHistorySheet
 import com.example.ui.components.SavingsTransactionDialog
 import com.example.ui.components.SculptedSurfaceCard
+import com.example.ui.components.SubscriptionTrackerSection
 import com.example.ui.components.WalletBalanceDialog
 import com.example.ui.components.WalletTransferDialog
 import com.example.ui.components.rememberIsEffectiveDarkTheme
@@ -146,6 +163,15 @@ fun SavingsScreen(
   onPreviousMonth: () -> Unit = {},
   onNextMonth: () -> Unit = {},
   onSelectMonth: (String) -> Unit = {},
+  onUpsertCustomWallet: (CustomWallet) -> Unit = {},
+  onDeleteCustomWallet: (String) -> Unit = {},
+  onUpsertDebtRecord: (DebtRecord) -> Unit = {},
+  onDeleteDebtRecord: (String) -> Unit = {},
+  onUpsertSubscription: (SubscriptionItem) -> Unit = {},
+  onDeleteSubscription: (String) -> Unit = {},
+  onLogSubscriptionAsExpense: (SubscriptionItem) -> Unit = {},
+  onUpsertNetWorthSnapshot: (NetWorthSnapshot) -> Unit = {},
+  onStatusMessage: (String) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -156,6 +182,39 @@ fun SavingsScreen(
   val allCashflowEntries by cashflowFlow.collectAsStateWithLifecycle()
   val historyFlow = remember(context, userId) { SavingsHistoryManager.observeEntries(context, userId) }
   val allSavingsHistory by historyFlow.collectAsStateWithLifecycle()
+  val customWalletsFlow = remember(context, userId) { CustomWalletManager.observeWallets(context, userId) }
+  val customWallets by customWalletsFlow.collectAsStateWithLifecycle()
+  val debtsFlow = remember(context, userId) { DebtLedgerManager.observeRecords(context, userId) }
+  val debtRecords by debtsFlow.collectAsStateWithLifecycle()
+  val subsFlow = remember(context, userId) { SubscriptionManager.observeSubscriptions(context, userId) }
+  val subscriptions by subsFlow.collectAsStateWithLifecycle()
+  val snapshotsFlow = remember(context, userId) { NetWorthSnapshotManager.observeSnapshots(context, userId) }
+  val netWorthSnapshots by snapshotsFlow.collectAsStateWithLifecycle()
+  val combinedWalletTotal = remember(data.totalWalletBalance, customWallets) {
+    data.totalWalletBalance + customWallets.sumOf { it.balance }
+  }
+  val totalAssets = remember(combinedWalletTotal, data.totalSaved) {
+    (combinedWalletTotal + data.totalSaved).coerceAtLeast(0L)
+  }
+  val totalLiabilities = remember(debtRecords) {
+    debtRecords.filter { !it.settled && it.type == DebtType.I_OWE }.sumOf { it.amount }
+  }
+  val totalReceivables = remember(debtRecords) {
+    debtRecords.filter { !it.settled && it.type == DebtType.OWED_TO_ME }.sumOf { it.amount }
+  }
+
+  LaunchedEffect(userId, totalAssets, totalLiabilities) {
+    val changed = NetWorthSnapshotManager.recordSnapshotIfChanged(
+      context = context,
+      userId = userId,
+      totalAssets = totalAssets,
+      totalLiabilities = totalLiabilities,
+    )
+    if (changed != null) {
+      onUpsertNetWorthSnapshot(changed)
+    }
+  }
+
   val monthlyCashflow = remember(allCashflowEntries, monthKey) {
     allCashflowEntries.filter { it.monthKey == monthKey }
   }
@@ -165,6 +224,9 @@ fun SavingsScreen(
   var showCreateDialog by remember { mutableStateOf(false) }
   var showIncomeDialog by remember { mutableStateOf(false) }
   var showTransferDialog by remember { mutableStateOf(false) }
+  var showCustomWalletDialog by remember { mutableStateOf(false) }
+  var editingCustomWallet by remember { mutableStateOf<CustomWallet?>(null) }
+  var showAddDebtDialog by remember { mutableStateOf(false) }
   var transactionTarget by remember { mutableStateOf<Pair<SavingsGoal, Boolean>?>(null) }
   var editingGoal by remember { mutableStateOf<SavingsGoal?>(null) }
   var historyGoal by remember { mutableStateOf<SavingsGoal?>(null) }
@@ -186,6 +248,7 @@ fun SavingsScreen(
       item {
         SavingsHeroCard(
           data = data,
+          totalWalletBalance = combinedWalletTotal,
           monthKey = monthKey,
           currency = activeCurrency,
           locale = activeLocale,
@@ -194,6 +257,16 @@ fun SavingsScreen(
           onPreviousMonth = onPreviousMonth,
           onNextMonth = onNextMonth,
           onSelectMonth = onSelectMonth,
+        )
+      }
+
+      // 1a. Live Net Worth Tracker & Monthly Trend Chart
+      item {
+        NetWorthTrendCard(
+          totalAssets = totalAssets,
+          totalLiabilities = totalLiabilities,
+          totalReceivables = totalReceivables,
+          snapshots = netWorthSnapshots,
         )
       }
 
@@ -283,6 +356,23 @@ fun SavingsScreen(
             }
           }
         }
+      }
+
+      // 2a. Custom Named Wallets & Bank Accounts (BCA, GoPay, OVO, SeaBank, etc.)
+      item {
+        CustomWalletsCardSection(
+          wallets = customWallets,
+          currency = activeCurrency,
+          hideBalances = hideBalances,
+          onAddClick = {
+            editingCustomWallet = null
+            showCustomWalletDialog = true
+          },
+          onEditClick = { wallet ->
+            editingCustomWallet = wallet
+            showCustomWalletDialog = true
+          },
+        )
       }
 
       // 2b. Monthly Cashflow History (Incomes & Wallet Transfers)
@@ -423,12 +513,83 @@ fun SavingsScreen(
         }
       }
 
+      // 4b. Debts, Receivables & Split Bill Tracker
+      item {
+        DebtTrackerSection(
+          records = debtRecords,
+          currency = activeCurrency,
+          locale = activeLocale,
+          hideBalances = hideBalances,
+          onAddClick = { showAddDebtDialog = true },
+          onToggleSettled = { record ->
+            val toggled = DebtLedgerManager.toggleSettled(context, userId, record.id)
+            if (toggled != null) {
+              onUpsertDebtRecord(toggled)
+              onStatusMessage(
+                context.getString(
+                  if (toggled.settled) R.string.debt_settled_status else R.string.debt_reopened_status,
+                  toggled.personName,
+                )
+              )
+            }
+          },
+          onDelete = { record ->
+            DebtLedgerManager.deleteRecord(context, userId, record.id)
+            onDeleteDebtRecord(record.id)
+            onStatusMessage(context.getString(R.string.debt_deleted_status))
+          },
+        )
+      }
+
+      // 4c. Recurring Subscription Tracker (Pelacak Langganan)
+      item {
+        SubscriptionTrackerSection(
+          subscriptions = subscriptions,
+          onAddSubscription = { name, amount, cycle, day, cat, method, note ->
+            val created = SubscriptionManager.addSubscription(
+              context = context,
+              userId = userId,
+              name = name,
+              amount = amount,
+              billingCycle = cycle,
+              renewalDay = day,
+              category = cat,
+              paymentMethod = method,
+              note = note,
+            )
+            if (created != null) {
+              onUpsertSubscription(created)
+              onStatusMessage(context.getString(R.string.sub_saved_status, created.name))
+            }
+          },
+          onUpdateSubscription = { updated ->
+            val saved = SubscriptionManager.updateSubscription(context, userId, updated)
+            if (saved != null) {
+              onUpsertSubscription(saved)
+              onStatusMessage(context.getString(R.string.sub_saved_status, saved.name))
+            }
+          },
+          onToggleActive = { item ->
+            val toggled = SubscriptionManager.toggleActive(context, userId, item.id)
+            if (toggled != null) {
+              onUpsertSubscription(toggled)
+            }
+          },
+          onDeleteSubscription = { item ->
+            SubscriptionManager.deleteSubscription(context, userId, item.id)
+            onDeleteSubscription(item.id)
+            onStatusMessage(context.getString(R.string.sub_deleted_status))
+          },
+          onLogPayment = { item ->
+            onLogSubscriptionAsExpense(item)
+          },
+        )
+      }
+
       // 5. Reassuring info notice
       item {
-        Surface(
-          shape = RoundedCornerShape(16.dp),
-          color = MaterialTheme.colorScheme.surface,
-          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        SculptedSurfaceCard(
+          cornerRadius = 18,
           modifier = Modifier.fillMaxWidth(),
         ) {
           Row(
@@ -514,8 +675,9 @@ fun SavingsScreen(
   }
 
   pendingDeleteGoal?.let { target ->
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { pendingDeleteGoal = null },
+      accentColor = CoralDanger,
       title = { Text(stringResource(R.string.savings_delete_title)) },
       text = {
         Text(
@@ -569,11 +731,68 @@ fun SavingsScreen(
       onDismiss = { historyGoal = null },
     )
   }
+
+  if (showCustomWalletDialog) {
+    AddEditCustomWalletDialog(
+      existingWallet = editingCustomWallet,
+      currency = activeCurrency,
+      onSave = { name, walletType, balance, colorHex, existingId ->
+        val saved = CustomWalletManager.upsertWallet(
+          context = context,
+          userId = userId,
+          name = name,
+          walletType = walletType,
+          balance = balance,
+          colorHex = colorHex,
+          id = existingId ?: java.util.UUID.randomUUID().toString(),
+        )
+        if (saved != null) {
+          onUpsertCustomWallet(saved)
+          onStatusMessage(context.getString(R.string.custom_wallet_saved_status, saved.name))
+        }
+        showCustomWalletDialog = false
+        editingCustomWallet = null
+      },
+      onDelete = { walletId ->
+        CustomWalletManager.deleteWallet(context, userId, walletId)
+        onDeleteCustomWallet(walletId)
+        onStatusMessage(context.getString(R.string.custom_wallet_deleted_status))
+        showCustomWalletDialog = false
+        editingCustomWallet = null
+      },
+      onDismiss = {
+        showCustomWalletDialog = false
+        editingCustomWallet = null
+      },
+    )
+  }
+
+  if (showAddDebtDialog) {
+    AddDebtRecordDialog(
+      currency = activeCurrency,
+      onSave = { personName, type, amount, dueEpochDay, note ->
+        val created = DebtLedgerManager.addRecord(
+          context = context,
+          userId = userId,
+          personName = personName,
+          type = type,
+          amount = amount,
+          dueDateEpochDay = dueEpochDay,
+          note = note,
+        )
+        onUpsertDebtRecord(created)
+        onStatusMessage(context.getString(R.string.debt_saved_status, created.personName))
+        showAddDebtDialog = false
+      },
+      onDismiss = { showAddDebtDialog = false },
+    )
+  }
 }
 
 @Composable
 private fun SavingsHeroCard(
   data: SavingsUiData,
+  totalWalletBalance: Long,
   monthKey: String,
   currency: AppCurrency,
   locale: Locale,
@@ -801,7 +1020,7 @@ private fun SavingsHeroCard(
             )
           }
           Text(
-            text = Formatters.formatMoneyMasked(data.totalWalletBalance, currency, hideBalances),
+            text = Formatters.formatMoneyMasked(totalWalletBalance, currency, hideBalances),
             style = MaterialTheme.typography.titleSmall,
             fontFamily = JetBrainsMonoFontFamily,
             fontWeight = FontWeight.Bold,

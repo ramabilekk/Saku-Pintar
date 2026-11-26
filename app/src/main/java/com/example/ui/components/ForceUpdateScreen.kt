@@ -86,16 +86,18 @@ fun ForceUpdateScreen(
     }
   }
 
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = MaterialTheme.colorScheme.background,
-  ) { innerPadding ->
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(innerPadding),
-      contentAlignment = Alignment.Center,
-    ) {
+  Box(modifier = modifier.fillMaxSize()) {
+    AppAmbientBackdrop()
+    Scaffold(
+      modifier = Modifier.fillMaxSize(),
+      containerColor = Color.Transparent,
+    ) { innerPadding ->
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(innerPadding),
+        contentAlignment = Alignment.Center,
+      ) {
       Column(
         modifier = Modifier
           .widthIn(max = 520.dp)
@@ -173,10 +175,9 @@ fun ForceUpdateScreen(
 
         Spacer(modifier = Modifier.height(22.dp))
 
-        Surface(
-          shape = RoundedCornerShape(20.dp),
-          color = MaterialTheme.colorScheme.surface,
-          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        SculptedSurfaceCard(
+          accentColor = MaterialTheme.colorScheme.primary,
+          cornerRadius = 22,
           modifier = Modifier.fillMaxWidth(),
         ) {
           Column(
@@ -308,6 +309,7 @@ fun ForceUpdateScreen(
             Text(text = stringResource(R.string.force_update_open_release_page))
           }
         }
+      }
       }
     }
   }

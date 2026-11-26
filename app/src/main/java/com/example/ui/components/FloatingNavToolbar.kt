@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.ui.theme.EmeraldSafe
+import com.example.ui.theme.SkyPositiveAccent
 
 data class FloatingNavItem(
   val route: String,
@@ -55,8 +61,9 @@ data class FloatingNavItem(
 )
 
 /**
- * Floating translucent pill-shaped bottom navigation toolbar with minimalist icon-only items,
- * circular soft-glow active indicator, and centered Scan Struk action.
+ * Floating Liquid Glass capsule bottom navigation toolbar with overhead specular curvature glare,
+ * prismatic beveled rim, raised liquid-droplet active indicator, and jewel-like emerald glass
+ * Scan Struk center lens.
  */
 @Composable
 fun FloatingPillBottomBar(
@@ -67,30 +74,52 @@ fun FloatingPillBottomBar(
   modifier: Modifier = Modifier,
 ) {
   val isDarkTheme = rememberIsEffectiveDarkTheme()
-  val accentColor = EmeraldSafe
+  val accentColor = if (isDarkTheme) SkyPositiveAccent else EmeraldSafe
 
   val pillBackgroundBrush = remember(isDarkTheme) {
     if (isDarkTheme) {
-      Brush.verticalGradient(
+      Brush.linearGradient(
         colors = listOf(
-          Color(0xFF1D2228).copy(alpha = 0.86f),
-          Color(0xFF13161A).copy(alpha = 0.90f),
+          Color(0xFF1D2E4A).copy(alpha = 0.72f),
+          Color(0xFF0E182B).copy(alpha = 0.66f),
+          Color(0xFF122338).copy(alpha = 0.74f),
         ),
+        start = Offset.Zero,
+        end = Offset(900f, 180f),
       )
     } else {
-      Brush.verticalGradient(
+      Brush.linearGradient(
         colors = listOf(
-          Color(0xFFFFFFFF).copy(alpha = 0.95f),
-          Color(0xFFF3F8F5).copy(alpha = 0.92f),
+          Color.White.copy(alpha = 0.78f),
+          Color(0xFFEEF7FA).copy(alpha = 0.62f),
+          Color.White.copy(alpha = 0.74f),
         ),
+        start = Offset.Zero,
+        end = Offset(900f, 180f),
       )
     }
   }
 
-  val pillBorderColor = if (isDarkTheme) {
-    Color.White.copy(alpha = 0.13f)
-  } else {
-    accentColor.copy(alpha = 0.16f)
+  val pillRimBrush = remember(isDarkTheme, accentColor) {
+    if (isDarkTheme) {
+      Brush.linearGradient(
+        colors = listOf(
+          Color.White.copy(alpha = 0.36f),
+          accentColor.copy(alpha = 0.30f),
+          Color.White.copy(alpha = 0.10f),
+          Color.White.copy(alpha = 0.22f),
+        ),
+      )
+    } else {
+      Brush.linearGradient(
+        colors = listOf(
+          Color.White.copy(alpha = 0.98f),
+          Color.White.copy(alpha = 0.70f),
+          accentColor.copy(alpha = 0.28f),
+          Color.White.copy(alpha = 0.84f),
+        ),
+      )
+    }
   }
 
   Box(
@@ -103,18 +132,36 @@ fun FloatingPillBottomBar(
     Surface(
       shape = CircleShape,
       color = Color.Transparent,
-      shadowElevation = if (isDarkTheme) 14.dp else 10.dp,
-      border = BorderStroke(1.dp, pillBorderColor),
+      shadowElevation = if (isDarkTheme) 18.dp else 12.dp,
+      border = BorderStroke(1.3.dp, pillRimBrush),
       modifier = Modifier
-        .fillMaxWidth()
         .widthIn(max = 420.dp)
-        .height(66.dp)
+        .fillMaxWidth()
+        .height(68.dp)
         .testTag("floating_bottom_toolbar"),
     ) {
       Row(
         modifier = Modifier
           .fillMaxSize()
           .background(pillBackgroundBrush)
+          .drawBehind {
+            if (size.width <= 1f || size.height <= 1f) return@drawBehind
+            // Curved liquid glass top specular reflection arc
+            val radius = size.height / 2f
+            drawRoundRect(
+              brush = Brush.verticalGradient(
+                colors = listOf(
+                  Color.White.copy(alpha = if (isDarkTheme) 0.18f else 0.62f),
+                  Color.White.copy(alpha = if (isDarkTheme) 0.03f else 0.14f),
+                  Color.Transparent,
+                ),
+                startY = 0f,
+                endY = size.height * 0.54f,
+              ),
+              size = Size(size.width, size.height * 0.54f),
+              cornerRadius = CornerRadius(radius, radius),
+            )
+          }
           .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
@@ -154,7 +201,7 @@ private fun FloatingPillTabItem(
   val interactionSource = remember { MutableInteractionSource() }
 
   val indicatorScale by animateFloatAsState(
-    targetValue = if (isSelected) 1f else 0.72f,
+    targetValue = if (isSelected) 1f else 0.68f,
     animationSpec = spring(
       dampingRatio = Spring.DampingRatioMediumBouncy,
       stiffness = Spring.StiffnessMediumLow,
@@ -167,7 +214,7 @@ private fun FloatingPillTabItem(
     label = "pill_indicator_alpha_${tab.route}",
   )
   val iconScale by animateFloatAsState(
-    targetValue = if (isSelected) 1.08f else 1.0f,
+    targetValue = if (isSelected) 1.10f else 1.0f,
     animationSpec = spring(
       dampingRatio = Spring.DampingRatioMediumBouncy,
       stiffness = Spring.StiffnessMediumLow,
@@ -179,19 +226,48 @@ private fun FloatingPillTabItem(
       accentColor
     } else {
       if (isDarkTheme) {
-        Color(0xFF9AA3B0)
+        Color(0xFFB4C4DA).copy(alpha = 0.78f)
       } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.80f)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
       }
     },
     animationSpec = tween(durationMillis = 180),
     label = "pill_icon_tint_${tab.route}",
   )
 
-  val activeCircleColor = if (isDarkTheme) {
-    accentColor.copy(alpha = 0.22f)
-  } else {
-    accentColor.copy(alpha = 0.14f)
+  val dropletFill = remember(isDarkTheme, accentColor) {
+    if (isDarkTheme) {
+      Brush.verticalGradient(
+        colors = listOf(
+          accentColor.copy(alpha = 0.30f),
+          accentColor.copy(alpha = 0.14f),
+        ),
+      )
+    } else {
+      Brush.verticalGradient(
+        colors = listOf(
+          Color.White.copy(alpha = 0.92f),
+          accentColor.copy(alpha = 0.18f),
+        ),
+      )
+    }
+  }
+  val dropletRim = remember(isDarkTheme, accentColor) {
+    Brush.linearGradient(
+      colors = if (isDarkTheme) {
+        listOf(
+          Color.White.copy(alpha = 0.42f),
+          accentColor.copy(alpha = 0.48f),
+          Color.White.copy(alpha = 0.10f),
+        )
+      } else {
+        listOf(
+          Color.White.copy(alpha = 0.98f),
+          accentColor.copy(alpha = 0.36f),
+          Color.White.copy(alpha = 0.60f),
+        )
+      },
+    )
   }
 
   Box(
@@ -200,7 +276,7 @@ private fun FloatingPillTabItem(
       .clip(CircleShape)
       .tactilePressScale(
         interactionSource = interactionSource,
-        pressedScale = 0.90f,
+        pressedScale = 0.88f,
         enablePressHaptic = false,
       )
       .clickable(
@@ -216,16 +292,18 @@ private fun FloatingPillTabItem(
       .testTag(tab.testTag),
     contentAlignment = Alignment.Center,
   ) {
+    // Raised Liquid Glass Droplet active indicator
     Box(
       modifier = Modifier
-        .size(52.dp)
+        .size(50.dp)
         .graphicsLayer {
           scaleX = indicatorScale
           scaleY = indicatorScale
           alpha = indicatorAlpha
         }
         .clip(CircleShape)
-        .background(activeCircleColor),
+        .background(dropletFill)
+        .border(width = 1.1.dp, brush = dropletRim, shape = CircleShape),
     )
 
     Icon(
@@ -251,24 +329,40 @@ private fun FloatingScanCenterItem(
   val scanDesc = stringResource(R.string.ai_scan_quick_title)
   val interactionSource = remember { MutableInteractionSource() }
 
-  val circleFill = if (isDarkTheme) {
-    accentColor.copy(alpha = 0.18f)
-  } else {
-    accentColor.copy(alpha = 0.14f)
+  val orbFill = remember(isDarkTheme) {
+    Brush.linearGradient(
+      colors = if (isDarkTheme) {
+        listOf(
+          Color(0xFF14B8A6).copy(alpha = 0.92f),
+          Color(0xFF0284C7).copy(alpha = 0.88f),
+        )
+      } else {
+        listOf(
+          Color(0xFF0D9488).copy(alpha = 0.94f),
+          Color(0xFF0284C7).copy(alpha = 0.90f),
+        )
+      },
+      start = Offset.Zero,
+      end = Offset(130f, 130f),
+    )
   }
-  val circleBorder = if (isDarkTheme) {
-    accentColor.copy(alpha = 0.46f)
-  } else {
-    accentColor.copy(alpha = 0.36f)
+  val orbRim = remember(isDarkTheme) {
+    Brush.linearGradient(
+      colors = listOf(
+        Color.White.copy(alpha = if (isDarkTheme) 0.72f else 0.88f),
+        SkyPositiveAccent.copy(alpha = 0.55f),
+        Color.White.copy(alpha = 0.25f),
+      ),
+    )
   }
 
   Box(
     modifier = Modifier
-      .size(52.dp)
+      .size(54.dp)
       .clip(CircleShape)
       .tactilePressScale(
         interactionSource = interactionSource,
-        pressedScale = 0.88f,
+        pressedScale = 0.86f,
         enablePressHaptic = false,
       )
       .clickable(
@@ -283,15 +377,36 @@ private fun FloatingScanCenterItem(
   ) {
     Surface(
       shape = CircleShape,
-      color = circleFill,
-      border = BorderStroke(1.2.dp, circleBorder),
-      modifier = Modifier.size(46.dp),
+      color = Color.Transparent,
+      shadowElevation = if (isDarkTheme) 10.dp else 6.dp,
+      border = BorderStroke(1.3.dp, orbRim),
+      modifier = Modifier.size(48.dp),
     ) {
-      Box(contentAlignment = Alignment.Center) {
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .background(orbFill)
+          .drawBehind {
+            // Curved liquid lens glare crescent at top
+            drawCircle(
+              brush = Brush.verticalGradient(
+                colors = listOf(
+                  Color.White.copy(alpha = 0.45f),
+                  Color.Transparent,
+                ),
+                startY = 0f,
+                endY = size.height * 0.52f,
+              ),
+              radius = size.width * 0.48f,
+              center = Offset(size.width * 0.5f, size.height * 0.28f),
+            )
+          },
+        contentAlignment = Alignment.Center,
+      ) {
         Icon(
           imageVector = Icons.Rounded.DocumentScanner,
           contentDescription = null,
-          tint = accentColor,
+          tint = Color.White,
           modifier = Modifier.size(22.dp),
         )
       }

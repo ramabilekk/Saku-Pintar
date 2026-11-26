@@ -275,12 +275,25 @@
     <string name="export_primary_badge">Rekomendasi</string>
     <string name="export_pdf_title">Dokumen PDF (.pdf)</string>
     <string name="export_pdf_subtitle">Laporan A4 eksekutif dengan thumbnail tabel &amp; galeri foto 2 kolom</string>
-    <string name="export_csv_title">Tabel CSV &amp; Indeks Struk (.csv)</string>
-    <string name="export_csv_subtitle">Format tabel universal lengkap dengan daftar indeks lampiran struk</string>
-    <string name="export_share_section">Bagikan Langsung via WhatsApp / Email / Drive</string>
+    <string name="export_csv_title">Tabel CSV Sederhana (.csv)</string>
+    <string name="export_csv_subtitle">Cadangan tabel universal yang ringan, siap dibuka di Excel, Google Sheets &amp; editor teks</string>
+    <string name="export_txt_title">File Teks Sederhana (.txt)</string>
+    <string name="export_txt_subtitle">Cadangan teks rapi berisi ringkasan bulanan &amp; daftar lengkap semua pengeluaran</string>
+    <string name="export_share_section">Bagikan File Langsung via WhatsApp / Email / Drive</string>
     <string name="export_btn_excel">Excel</string>
     <string name="export_btn_pdf">PDF</string>
-    <string name="export_btn_text">Teks</string>
+    <string name="export_btn_csv">CSV</string>
+    <string name="export_btn_text">Teks (.txt)</string>
+    <string name="export_backup_preview_title">Pratinjau Cadangan Teks / CSV</string>
+    <string name="export_backup_preview_show">Lihat Pratinjau</string>
+    <string name="export_backup_preview_hide">Tutup Pratinjau</string>
+    <string name="export_backup_copy_action">Salin %1$s</string>
+    <string name="export_backup_copied_status">Cadangan bulanan %1$s berhasil disalin.</string>
+    <string name="export_txt_header">CADANGAN PENGELUARAN BULANAN SAKUPINTAR</string>
+    <string name="export_txt_period_label">Periode</string>
+    <string name="export_txt_all_transactions">Daftar Lengkap Transaksi (%1$d)</string>
+    <string name="export_txt_empty_transactions">Belum ada transaksi pengeluaran pada bulan ini.</string>
+    <string name="export_txt_note_prefix">Catatan</string>
     <string name="export_saved_success">Rekap %1$s berhasil disimpan.</string>
     <string name="export_saved_error">Gagal menyimpan %1$s: %2$s</string>
     <string name="export_no_app_file">Tidak ada aplikasi untuk membagikan file %1$s.</string>
@@ -652,6 +665,252 @@
     <string name="ai_chat_typing">SakuPintar AI sedang menganalisis…</string>
     <string name="ai_chat_retry">Coba Lagi</string>
     <string name="ai_chat_context_badge">Data aktif: %1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">Pengaturan</string>
+    <string name="settings_section_general">Umum</string>
+    <string name="settings_section_finance">Keuangan &amp; Keamanan</string>
+    <string name="settings_section_account">Akun</string>
+    <string name="settings_section_about">Tentang Aplikasi</string>
+    <string name="settings_connected_account_title">Akun Terhubung</string>
+    <string name="settings_sign_out_subtitle">Keluar dari akun Anda</string>
+    <string name="settings_app_version_title">Versi Aplikasi</string>
+    <string name="settings_quick_edit_profile">Edit Profil</string>
+    <string name="settings_quick_change_photo">Ganti Foto</string>
+    <string name="settings_guest_subtitle_fallback">Mode Tamu • Tersimpan di perangkat ini</string>
+    <string name="settings_edit_profile_dialog_title">Edit Profil</string>
+    <string name="settings_haptic_title">Efek Getar (Haptic)</string>
+    <string name="settings_haptic_subtitle_on">Getaran halus saat sentuhan &amp; navigasi</string>
+    <string name="settings_haptic_subtitle_off">Umpan balik getar dinonaktifkan</string>
+    <string name="settings_export_title">Ekspor Laporan Keuangan</string>
+    <string name="settings_export_subtitle">Simpan cadangan bulanan Excel, PDF, CSV, atau Teks (.txt)</string>
+    <string name="settings_cache_title">Pengaturan Cache</string>
+    <string name="settings_cache_subtitle">Bersihkan cache (%1$s)</string>
+    <string name="settings_cache_dialog_title">Bersihkan Cache Aplikasi?</string>
+    <string name="settings_cache_dialog_body">Tindakan ini menghapus %1$s file sementara gambar dan ekspor. Transaksi, anggaran, dan tabungan Anda tidak akan terpengaruh.</string>
+    <string name="settings_cache_clear_action">Bersihkan</string>
+    <string name="settings_cache_cleared_status">Cache sebesar %1$s berhasil dibersihkan.</string>
+    <string name="settings_sign_out_confirm_title">Keluar dari Akun?</string>
+    <string name="settings_sign_out_confirm_body_google">Data Anda tetap tersimpan aman di akun Google. Anda dapat masuk kembali kapan saja.</string>
+    <string name="settings_sign_out_confirm_body_guest">Anda sedang dalam mode Tamu. Data lokal tetap tersimpan di perangkat ini kecuali dihapus.</string>
+    <string name="settings_delete_account_title">Hapus Akun</string>
+    <string name="settings_delete_account_title_guest">Hapus Semua Data</string>
+    <string name="settings_delete_account_subtitle">Hapus akun dan semua datanya</string>
+    <string name="settings_delete_account_subtitle_guest">Hapus semua catatan lokal di perangkat ini</string>
+    <string name="settings_delete_account_dialog_title">Hapus Semua Data Permanen?</string>
+    <string name="settings_delete_account_dialog_body_google">Seluruh pengeluaran, anggaran, target tabungan, saldo dompet, dan profil Anda akan dihapus permanen dari cloud. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="settings_delete_account_dialog_body_guest">Seluruh pengeluaran, anggaran, target tabungan, dan saldo dompet yang tersimpan di perangkat ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="settings_delete_account_checkbox">Saya mengerti tindakan ini permanen dan tidak bisa dibatalkan</string>
+    <string name="settings_delete_account_confirm">Hapus Permanen</string>
+    <string name="settings_delete_account_in_progress">Menghapus data…</string>
+    <string name="settings_delete_account_success">Akun dan seluruh data keuangan berhasil dihapus.</string>
+    <string name="settings_delete_account_failed">Gagal menghapus akun: %1$s</string>
+    <string name="settings_privacy_policy_title">Kebijakan Privasi</string>
+    <string name="settings_privacy_policy_subtitle">Lihat kebijakan privasi kami</string>
+    <string name="settings_privacy_policy_body">1. Penyimpanan Data\n• Masuk Google: Pengeluaran, anggaran bulanan, dompet, dan target tabungan disimpan aman di akun cloud pribadi Anda (Firebase Firestore) dan hanya dapat diakses oleh Anda.\n• Mode Tamu: Seluruh catatan keuangan tersimpan hanya di perangkat ini sampai Anda menyinkronkannya ke Google atau menghapusnya.\n\n2. Kamera, Foto &amp; Pemrosesan AI\n• Saat Anda memindai struk atau bertanya ke SakuPintar AI, hanya gambar struk atau ringkasan keuangan yang diperlukan untuk permintaan tersebut yang diproses.\n• Kami tidak pernah menjual data pribadi maupun data keuangan Anda kepada pihak ketiga.\n\n3. Keamanan &amp; Kendali Anda\n• PIN Kunci Aplikasi di-hash secara lokal menggunakan SHA-256 + salt dan tidak pernah dikirim keluar perangkat.\n• Anda dapat mengekspor data kapan saja atau menghapus permanen seluruh data melalui Pengaturan &gt; Hapus Akun.</string>
+    <string name="settings_terms_title">Syarat &amp; Ketentuan</string>
+    <string name="settings_terms_subtitle">Lihat syarat dan ketentuan</string>
+    <string name="settings_terms_body">1. Tujuan Aplikasi\nSakuPintar adalah pendamping pencatatan keuangan dan anggaran pribadi untuk membantu Anda memantau pengeluaran harian, saldo dompet, dan target tabungan.\n\n2. Penafian Fitur AI\nPemindaian struk otomatis, rekomendasi anggaran, dan jawaban SakuPintar AI disediakan sebagai alat bantu informasi dan bukan merupakan nasihat keuangan, pajak, atau investasi resmi. Selalu periksa kembali nominal hasil pindai struk sebelum menyimpan.\n\n3. Tanggung Jawab Pengguna\nAnda bertanggung jawab menjaga keamanan perangkat dan kredensial akun Google Anda. Anda bebas mengekspor atau menghapus permanen seluruh data Anda kapan saja melalui halaman Pengaturan.</string>
+    <string name="settings_contact_title">Hubungi Kami</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">Dukungan &amp; Masukan SakuPintar</string>
+    <string name="settings_contact_copied_status">Email dukungan disalin: %1$s</string>
+
+    <!-- Notifikasi Batas Anggaran (80% & 100%) -->
+    <string name="budget_alert_channel_name">Peringatan Batas Anggaran</string>
+    <string name="budget_alert_channel_desc" formatted="false">Notifikasi saat pengeluaran kategori mencapai 80% atau 100% dari anggaran bulanan</string>
+    <string name="budget_alert_80_title">Waspada Anggaran: %1$s</string>
+    <string name="budget_alert_80_body">Pengeluaran sudah mencapai %1$d%% (%2$s dari %3$s) anggaran bulan ini.</string>
+    <string name="budget_alert_100_title">Batas Anggaran Tercapai: %1$s</string>
+    <string name="budget_alert_100_body">Pengeluaran sudah mencapai %1$s dari batas %2$s.</string>
+    <string name="settings_budget_alerts_title">Peringatan Batas Anggaran</string>
+    <string name="settings_budget_alerts_subtitle_on">Notifikasi otomatis saat kategori mencapai 80% &amp; 100%</string>
+    <string name="settings_budget_alerts_subtitle_off">Notifikasi batas anggaran dinonaktifkan</string>
+    <string name="settings_budget_alerts_enabled_status">Peringatan batas anggaran diaktifkan.</string>
+    <string name="settings_budget_alerts_disabled_status">Peringatan batas anggaran dinonaktifkan.</string>
+
+    <!-- Cadangkan & Pulihkan JSON -->
+    <string name="settings_backup_restore_title">Cadangkan &amp; Pulihkan Data</string>
+    <string name="settings_backup_restore_subtitle">Simpan atau pulihkan file cadangan JSON lengkap</string>
+    <string name="backup_dialog_title">Cadangkan &amp; Pulihkan (JSON)</string>
+    <string name="backup_dialog_desc">Ekspor seluruh pengeluaran, anggaran, target tabungan, dompet, arus kas, kategori kustom, dan catatan utang ke satu file JSON, atau pulihkan kapan saja.</string>
+    <string name="backup_export_title">Buat File Cadangan</string>
+    <string name="backup_export_subtitle">Simpan salinan .json ke perangkat atau penyimpanan cloud Anda</string>
+    <string name="backup_export_button">Ekspor JSON</string>
+    <string name="backup_restore_title">Pulihkan Dari Cadangan</string>
+    <string name="backup_restore_subtitle">Impor catatan dari file cadangan .json SakuPintar sebelumnya</string>
+    <string name="backup_restore_button">Pilih File JSON</string>
+    <string name="backup_in_progress">Mengekspor cadangan…</string>
+    <string name="backup_restore_in_progress">Memulihkan data…</string>
+    <string name="backup_export_success">Cadangan tersimpan (%1$d item).</string>
+    <string name="backup_restore_success">Berhasil memulihkan %1$d data dari cadangan!</string>
+    <string name="backup_error_generic">Gagal memproses cadangan: %1$s</string>
+    <string name="backup_restore_confirm_title">Pulihkan File Cadangan?</string>
+    <string name="backup_restore_confirm_body">Ditemukan %1$d catatan keuangan di file cadangan ini. Lanjutkan memulihkan ke akun Anda?</string>
+    <string name="backup_restore_confirm_action">Pulihkan Sekarang</string>
+
+    <!-- Dompet / Rekening Kustom -->
+    <string name="custom_wallets_section_title">Dompet &amp; Rekening Kustom</string>
+    <string name="custom_wallets_section_subtitle">Kelola rekening bank &amp; e-wallet spesifik (BCA, GoPay, OVO, SeaBank)</string>
+    <string name="custom_wallets_add_button">Tambah Dompet</string>
+    <string name="custom_wallets_empty_hint">Belum ada dompet kustom. Tambahkan BCA, GoPay, OVO, atau dompet tunai agar otomatis dihitung dalam total saldo.</string>
+    <string name="custom_wallet_dialog_add_title">Tambah Dompet Kustom</string>
+    <string name="custom_wallet_dialog_edit_title">Ubah Dompet</string>
+    <string name="custom_wallet_name_label">Nama Dompet / Rekening</string>
+    <string name="custom_wallet_name_hint">Contoh: BCA, GoPay, SeaBank, Tunai Saku</string>
+    <string name="custom_wallet_type_label">Jenis Rekening</string>
+    <string name="custom_wallet_balance_label">Saldo Saat Ini (%1$s)</string>
+    <string name="custom_wallet_color_label">Warna Aksen</string>
+    <string name="custom_wallet_type_bank">Bank</string>
+    <string name="custom_wallet_type_ewallet">E-Wallet</string>
+    <string name="custom_wallet_type_cash">Tunai</string>
+    <string name="custom_wallet_type_card">Kartu</string>
+    <string name="custom_wallet_type_investment">Investasi</string>
+    <string name="custom_wallet_error_name">Masukkan nama dompet terlebih dahulu.</string>
+    <string name="custom_wallet_saved_status">Dompet \"%1$s\" disimpan.</string>
+    <string name="custom_wallet_deleted_status">Dompet dihapus.</string>
+
+    <!-- Catatan Utang, Piutang & Split Bill -->
+    <string name="debt_section_title">Utang, Piutang &amp; Split Bill</string>
+    <string name="debt_section_subtitle">Catat pinjaman teman, tagihan pribadi, dan patungan makan</string>
+    <string name="debt_add_button">Catat Baru</string>
+    <string name="debt_empty_hint">Belum ada catatan utang atau split bill. Ketuk Catat Baru untuk mencatat pinjaman atau patungan.</string>
+    <string name="debt_summary_owed_to_me">Piutang (Ditagih)</string>
+    <string name="debt_summary_i_owe">Utang Saya</string>
+    <string name="debt_filter_all">Semua</string>
+    <string name="debt_filter_active">Aktif</string>
+    <string name="debt_filter_settled">Lunas</string>
+    <string name="debt_type_owed_to_me">Piutang (Teman Berutang)</string>
+    <string name="debt_type_i_owe">Utang (Saya Berutang)</string>
+    <string name="debt_status_settled">Lunas</string>
+    <string name="debt_status_overdue">Jatuh Tempo</string>
+    <string name="debt_due_label">Tempo %1$s</string>
+    <string name="debt_mark_settled_cd">Ubah status lunas</string>
+    <string name="debt_dialog_title">Catat Utang / Split Bill</string>
+    <string name="debt_person_label">Nama Orang</string>
+    <string name="debt_person_hint">Contoh: Budi, Rina, Tim Kantor</string>
+    <string name="debt_amount_label">Nominal (%1$s)</string>
+    <string name="debt_due_date_label">Jatuh Tempo</string>
+    <string name="debt_due_7d">+7 Hari</string>
+    <string name="debt_due_14d">+14 Hari</string>
+    <string name="debt_due_30d">+30 Hari</string>
+    <string name="debt_note_label">Catatan (Opsional)</string>
+    <string name="debt_note_hint">Contoh: Patungan makan malam, tiket konser</string>
+    <string name="debt_error_person">Masukkan nama orang terlebih dahulu.</string>
+    <string name="debt_error_amount">Masukkan nominal lebih dari 0.</string>
+    <string name="debt_saved_status">Catatan untuk %1$s disimpan.</string>
+    <string name="debt_settled_status">%1$s ditandai lunas!</string>
+    <string name="debt_reopened_status">%1$s ditandai belum lunas.</string>
+    <string name="debt_deleted_status">Catatan utang dihapus.</string>
+    <string name="split_bill_toggle_title">Kalkulator Split Bill (Patungan)</string>
+    <string name="split_bill_total_label">Total Tagihan (%1$s)</string>
+    <string name="split_bill_people_label">Jumlah Orang</string>
+    <string name="split_bill_result_preview">Per orang: %1$s</string>
+    <string name="split_bill_apply_action">Gunakan Nominal</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">Potong dari Dompet Kustom (Opsional)</string>
+    <string name="csv_import_title">Impor Transaksi dari CSV</string>
+    <string name="csv_import_subtitle">Muat pengeluaran dari file ekspor .csv SakuPintar atau mutasi bank</string>
+    <string name="csv_import_button">Pilih File CSV</string>
+    <string name="csv_import_in_progress">Mengimpor CSV…</string>
+    <string name="csv_import_empty_error">Tidak ada transaksi valid yang ditemukan di file CSV ini.</string>
+    <string name="csv_import_confirm_title">Impor Transaksi CSV?</string>
+    <string name="csv_import_confirm_body">Ditemukan %1$d transaksi di file CSV ini. Tambahkan ke catatan pengeluaran Anda?</string>
+    <string name="csv_import_confirm_action">Impor Sekarang</string>
+    <string name="csv_import_success">Berhasil mengimpor %1$d transaksi dari CSV!</string>
+    <string name="bill_due_edit_cd">Ubah pengingat jatuh tempo untuk %1$s</string>
+    <string name="bill_due_edit_title">Pengingat Tagihan: %1$s</string>
+    <string name="bill_due_edit_desc">Atur tanggal jatuh tempo bulanan (1–31) untuk notifikasi otomatis sebelum tagihan tiba.</string>
+    <string name="bill_due_day_input_label">Tanggal Jatuh Tempo (1–31)</string>
+    <string name="bill_due_day_input_hint">Contoh: 25</string>
+    <string name="bill_due_clear_action">Hapus Pengingat</string>
+    <string name="budget_rollover_title">Rollover Sisa Anggaran</string>
+    <string name="budget_rollover_subtitle">Bawa sisa anggaran bulan lalu ke anggaran belanja periode ini</string>
+    <string name="budget_rollover_active_bonus">Aktif • +%1$s dibawa dari periode lalu</string>
+    <string name="filter_last_7_days">7 Hari Terakhir</string>
+    <string name="sort_oldest">Terlama</string>
+
+    <!-- Dasbor Visual Distribusi Pengeluaran Bulanan -->
+    <string name="analytics_mode_donut">Donat</string>
+    <string name="analytics_mode_budget_bar">Anggaran</string>
+    <string name="analytics_budget_kpi_budget">Anggaran</string>
+    <string name="analytics_budget_kpi_spent">Terpakai</string>
+    <string name="analytics_budget_kpi_remaining">Sisa</string>
+    <string name="analytics_budget_kpi_over">Melebihi</string>
+    <string name="analytics_budget_not_set">Belum diatur</string>
+    <string name="analytics_budget_used_pct">%1$d%% terpakai</string>
+    <string name="analytics_tap_chart_hint">Ketuk bagian grafik atau kategori untuk lihat detail anggaran</string>
+    <string name="analytics_legend_allocated">Anggaran</string>
+    <string name="analytics_legend_spent">Terpakai</string>
+    <string name="analytics_legend_over">Melebihi</string>
+    <string name="analytics_tooltip_share">%1$d%% dari total bulan ini</string>
+    <string name="analytics_tooltip_tx_count">%1$d transaksi</string>
+    <string name="analytics_tooltip_budget_usage">%1$d%% anggaran</string>
+    <string name="analytics_tooltip_no_budget">Tanpa batas</string>
+    <string name="analytics_empty_title">Belum ada pengeluaran bulan ini</string>
+    <string name="analytics_empty_subtitle">Catat pengeluaran pertama atau atur anggaran bulanan untuk melihat grafik kategori interaktif.</string>
+    <string name="analytics_setup_budget_cta">Atur Anggaran</string>
+    <string name="analytics_clear_selection_cd">Hapus pilihan kategori</string>
+
+    <!-- Pelacak Langganan -->
+    <string name="sub_section_title">Langganan Rutin</string>
+    <string name="sub_section_subtitle">Pantau biaya langganan aktif &amp; tanggal perpanjangan</string>
+    <string name="sub_add_button">Tambah</string>
+    <string name="sub_empty_hint">Belum ada langganan tercatat. Tambahkan Netflix, Spotify, iCloud, atau Gym untuk memantau total biaya rutin bulanan &amp; tahunan.</string>
+    <string name="sub_monthly_total_label">Est. Bulanan</string>
+    <string name="sub_yearly_total_label">Est. Tahunan</string>
+    <string name="sub_active_count">%1$d aktif</string>
+    <string name="sub_cycle_weekly">Mingguan</string>
+    <string name="sub_cycle_monthly">Bulanan</string>
+    <string name="sub_cycle_yearly">Tahunan</string>
+    <string name="sub_renews_today">Perpanjang hari ini</string>
+    <string name="sub_renews_in_days">%1$d hari lagi</string>
+    <string name="sub_status_paused">Dijeda</string>
+    <string name="sub_log_payment_action">Catat</string>
+    <string name="sub_log_payment_cd">Catat pembayaran langganan ke pengeluaran</string>
+    <string name="sub_toggle_active_cd">Jeda atau aktifkan langganan</string>
+    <string name="sub_edit_cd">Ubah langganan</string>
+    <string name="sub_delete_cd">Hapus langganan</string>
+    <string name="sub_dialog_add_title">Tambah Langganan</string>
+    <string name="sub_dialog_edit_title">Ubah Langganan</string>
+    <string name="sub_name_label">Nama Layanan</string>
+    <string name="sub_name_hint">Contoh: Netflix, Spotify, iCloud, Gym</string>
+    <string name="sub_cycle_label">Siklus Tagihan</string>
+    <string name="sub_renewal_day_label">Tanggal Perpanjangan (1–31)</string>
+    <string name="sub_error_name">Masukkan nama layanan terlebih dahulu.</string>
+    <string name="sub_error_amount">Masukkan nominal lebih dari 0.</string>
+    <string name="sub_saved_status">Langganan \"%1$s\" disimpan.</string>
+    <string name="sub_deleted_status">Langganan dihapus.</string>
+    <string name="sub_logged_expense_status">\"%1$s\" dicatat ke pengeluaran!</string>
+
+    <!-- Catat Otomatis Tagihan Berulang -->
+    <string name="bill_autolog_title">Catat Otomatis Saat Jatuh Tempo</string>
+    <string name="bill_autolog_subtitle">Otomatis masukkan tagihan ini ke pengeluaran 1x per bulan saat jatuh tempo</string>
+    <string name="bill_autolog_badge">Auto</string>
+    <string name="bill_autolog_triggered_status">%1$d tagihan jatuh tempo otomatis dicatat ke pengeluaran.</string>
+
+    <!-- Grafik Kekayaan Bersih -->
+    <string name="net_worth_title">Kekayaan Bersih</string>
+    <string name="net_worth_subtitle">Total Dompet + Tabungan dikurangi Utang Aktif</string>
+    <string name="net_worth_assets_label">Total Aset</string>
+    <string name="net_worth_liabilities_label">Kewajiban</string>
+    <string name="net_worth_receivables_pill">Piutang: +%1$s</string>
+    <string name="net_worth_trend_hint">Ketuk titik grafik untuk detail bulan</string>
+    <string name="net_worth_single_month_hint">Riwayat bulanan terekam otomatis seiring Anda memperbarui dompet, tabungan &amp; utang.</string>
+    <string name="net_worth_delta_up">+%1$s vs bln lalu</string>
+    <string name="net_worth_delta_down">-%1$s vs bln lalu</string>
+
+    <!-- Tag Acara / Proyek Khusus -->
+    <string name="event_tags_section_title">Tag Acara / Proyek</string>
+    <string name="event_tags_section_hint">Kelompokkan pengeluaran lintas kategori (cth: #liburan, #mudik, #proyek)</string>
+    <string name="event_tags_custom_hint">Tambah #tag…</string>
+    <string name="event_tags_add_cd">Tambah tag acara kustom</string>
+    <string name="event_tags_filter_label">Acara:</string>
+    <string name="event_tags_all_chip">Semua Acara</string>
+    <string name="event_summary_title">Ringkasan Acara: %1$s</string>
+    <string name="event_summary_tx_count">%1$d transaksi di %2$d kategori</string>
 </resources>
+
 
 

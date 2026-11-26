@@ -58,7 +58,7 @@ fun RecordIncomeDialog(
     listOf("Gaji", "Bonus", "Freelance", "Cashback")
   }
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(
@@ -210,7 +210,7 @@ fun WalletTransferDialog(
 
   val sourceBalance = walletBalances[fromWallet] ?: 0L
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(

@@ -100,7 +100,7 @@ fun CreateSavingsGoalDialog(
   val targetAmount = targetInput.filter { it.isDigit() }.toLongOrNull() ?: 0L
   val initialAmount = initialInput.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.savings_create_title)) },
     text = {
@@ -230,8 +230,9 @@ fun SavingsTransactionDialog(
   val amount = amountInput.filter { it.isDigit() }.toLongOrNull() ?: 0L
   val isValid = if (isDeposit) amount > 0L else amount in 1L..goal.savedAmount
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
+    accentColor = if (isDeposit) EmeraldSafe else CoralDanger,
     title = {
       Text(
         if (isDeposit) {
@@ -353,7 +354,7 @@ fun WalletBalanceDialog(
   var balanceInput by remember(currentBalance) { mutableStateOf(currentBalance.toString()) }
   val parsedBalance = balanceInput.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.wallet_dialog_title, methodLabel)) },
     text = {
@@ -435,7 +436,7 @@ fun EditSavingsGoalDialog(
 
   val targetAmount = targetInput.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
-  AlertDialog(
+  LiquidGlassAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.savings_edit_title)) },
     text = {
@@ -571,17 +572,23 @@ fun SavingsGoalHistorySheet(
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.surface,
+    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    containerColor = rememberLiquidGlassSheetContainerColor(),
+    tonalElevation = 0.dp,
+    dragHandle = { LiquidGlassSheetDragHandle() },
   ) {
-    Column(
-      modifier = Modifier
-        .fillMaxWidth()
-        .verticalScroll(rememberScrollState())
-        .navigationBarsPadding()
-        .padding(horizontal = 20.dp, vertical = 8.dp)
-        .testTag("savings_history_sheet"),
-      verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
+    LiquidGlassWindowBlurEffect()
+    Box(modifier = Modifier.fillMaxWidth()) {
+      AppAmbientBackdrop()
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .verticalScroll(rememberScrollState())
+          .navigationBarsPadding()
+          .padding(horizontal = 20.dp, vertical = 8.dp)
+          .testTag("savings_history_sheet"),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+      ) {
       // Header
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -872,6 +879,7 @@ fun SavingsGoalHistorySheet(
         }
       }
       Spacer(modifier = Modifier.height(12.dp))
+      }
     }
   }
 }

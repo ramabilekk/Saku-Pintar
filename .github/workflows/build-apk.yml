@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -92,9 +94,10 @@ jobs:
 
       - name: Publish APK to GitHub Releases
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN || github.token }}
+          TARGET_RELEASE_REPO: ${{ secrets.PUBLIC_RELEASE_REPO || github.repository }}
         run: |
-          TAG="v2.0.${{ github.run_number }}"
+          TAG="v3.0.${{ github.run_number }}"
           APK_NAME="SakuPintar-${TAG}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           SHA1=$(keytool -list -v -keystore debug.keystore -storepass android 2>/dev/null | grep -m1 "SHA1:" | awk '{print $2}' || echo "N/A")
@@ -103,16 +106,43 @@ jobs:
           else
             FIREBASE_STATUS="BELUM TERPASANG — tambahkan secret GOOGLE_SERVICES_JSON di GitHub lalu build ulang"
           fi
-          NOTES="Build APK otomatis untuk SakuPintar v2.0 (${TAG}).
-          - Versi Aplikasi: 2.0 (${TAG} • Build ${{ github.run_number }})
-          - Firebase Config: ${FIREBASE_STATUS}
-          - SHA-1 signing: ${SHA1}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK_NAME" --clobber
-            gh release edit "$TAG" --title "SakuPintar v2.0 (${TAG})" --notes "$NOTES" --latest
+
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            COMMIT_LOG=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges | head -n 15 || true)
+          else
+            COMMIT_LOG=$(git log -n 10 --pretty=format:"- %s" --no-merges || true)
+          fi
+
+          {
+            echo "Build APK otomatis untuk **SakuPintar v3.0 (${TAG})**."
+            echo ""
+            if [ -f RELEASE_NOTES.md ]; then
+              cat RELEASE_NOTES.md
+              echo ""
+            fi
+            if [ -n "$COMMIT_LOG" ]; then
+              echo "### Ringkasan Perubahan Commit"
+              echo "$COMMIT_LOG"
+              echo ""
+            fi
+            echo "### Detail Build"
+            echo "- Versi Aplikasi: 3.0 (${TAG} • Build ${{ github.run_number }})"
+            echo "- Firebase Config: ${FIREBASE_STATUS}"
+            echo "- SHA-1 signing: ${SHA1}"
+          } > release-notes.md
+
+          if gh release view "$TAG" --repo "$TARGET_RELEASE_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK_NAME" --repo "$TARGET_RELEASE_REPO" --clobber
+            gh release edit "$TAG" \
+              --repo "$TARGET_RELEASE_REPO" \
+              --title "SakuPintar v3.0 (${TAG})" \
+              --notes-file release-notes.md \
+              --latest
           else
             gh release create "$TAG" "$APK_NAME" \
-              --title "SakuPintar v2.0 (${TAG})" \
-              --notes "$NOTES" \
+              --repo "$TARGET_RELEASE_REPO" \
+              --title "SakuPintar v3.0 (${TAG})" \
+              --notes-file release-notes.md \
               --latest
           fi

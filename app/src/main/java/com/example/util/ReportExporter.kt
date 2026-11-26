@@ -39,6 +39,12 @@ enum class ReportFormat(
     mimeType = "text/csv",
     labelId = "CSV (.csv)",
     labelRes = R.string.export_csv_title,
+  ),
+  TXT(
+    extension = "txt",
+    mimeType = "text/plain",
+    labelId = "File Teks (.txt)",
+    labelRes = R.string.export_txt_title,
   );
 
   fun label(context: Context?): String = context?.getString(labelRes) ?: labelId
@@ -106,6 +112,11 @@ object ReportExporter {
       ReportFormat.CSV -> {
         val csv = buildMonthlyCsv(monthKey, expenses, budget, context, currency)
         outputStream.write(csv.toByteArray(Charsets.UTF_8))
+        outputStream.flush()
+      }
+      ReportFormat.TXT -> {
+        val plainText = buildMonthlyPlainText(monthKey, expenses, budget, dailyInsight, context, currency)
+        outputStream.write(plainText.toByteArray(Charsets.UTF_8))
         outputStream.flush()
       }
     }
@@ -277,6 +288,96 @@ object ReportExporter {
         }
       }
     }.trim()
+  }
+
+  /**
+   * Builds a complete, clean UTF-8 plain-text backup of a monthly expense ledger including
+   * financial summary, category breakdown, and every single transaction in chronological order.
+   */
+  fun buildMonthlyPlainText(
+    monthKey: String,
+    expenses: List<Expense>,
+    budget: MonthlyBudget?,
+    dailyInsight: DailyBudgetInsight,
+    context: Context? = null,
+    currency: AppCurrency = CurrencyPreferenceManager.currentCurrency,
+  ): String {
+    val locale: Locale = if (context != null) LanguagePreferenceManager.currentLocale() else Locale.forLanguageTag("id-ID")
+    val monthTitle = Formatters.formatMonthTitle(monthKey, locale)
+    val sorted = expenses.sortedWith(
+      compareBy<Expense> { it.dateEpochDay }
+        .thenBy { it.createdAt?.seconds ?: 0L }
+        .thenBy { it.id },
+    )
+    val totalSpent = sorted.sumOf { it.amount }
+    val receiptCount = sorted.count { it.hasReceiptPhoto }
+    val byCategory = sorted.groupBy { it.categoryEnum }
+      .mapValues { (_, items) -> items.sumOf { it.amount } }
+      .entries
+      .sortedByDescending { it.value }
+
+    val header = context?.getString(R.string.export_txt_header) ?: "CADANGAN PENGELUARAN BULANAN SAKUPINTAR"
+    val periodLabel = context?.getString(R.string.export_txt_period_label) ?: "Periode"
+    val totalLabel = context?.getString(R.string.hero_total_spent_month) ?: "Total Pengeluaran"
+    val txLabel = context?.getString(R.string.export_tx_count, sorted.size) ?: "${sorted.size} transaksi"
+    val receiptSummary = context?.getString(R.string.report_receipt_attached_count, receiptCount)
+      ?: "$receiptCount foto struk terlampir"
+    val incomeLabel = context?.getString(R.string.budget_income_label, currency.symbol) ?: "Pendapatan Bulanan"
+    val budgetLabel = context?.getString(R.string.budget_shopping_allocation) ?: "Anggaran Belanja"
+    val remainingLabel = context?.getString(R.string.hero_remaining_budget) ?: "Sisa Anggaran"
+    val savingsLabel = context?.getString(R.string.hero_savings_target) ?: "Target Tabungan"
+    val categoryHeader = context?.getString(R.string.dashboard_category_allocation) ?: "Rincian per Kategori"
+    val allTxHeader = context?.getString(R.string.export_txt_all_transactions, sorted.size)
+      ?: "Daftar Lengkap Transaksi (${sorted.size})"
+    val emptyTxLabel = context?.getString(R.string.export_txt_empty_transactions)
+      ?: "Belum ada transaksi pengeluaran pada bulan ini."
+    val notePrefix = context?.getString(R.string.export_txt_note_prefix) ?: "Catatan"
+
+    return buildString {
+      appendLine("==========================================")
+      appendLine(header)
+      appendLine("==========================================")
+      appendLine("$periodLabel : $monthTitle ($monthKey)")
+      appendLine("$totalLabel : ${Formatters.formatMoney(totalSpent, currency)} ($txLabel • $receiptSummary)")
+      if (budget != null) {
+        appendLine("$incomeLabel : ${Formatters.formatMoney(budget.monthlyIncome, currency)}")
+        appendLine("$budgetLabel : ${Formatters.formatMoney(dailyInsight.totalBudget, currency)}")
+        appendLine("$remainingLabel : ${Formatters.formatMoney(dailyInsight.remainingBudget, currency)}")
+        appendLine("$savingsLabel : ${Formatters.formatMoney(budget.savingsTarget, currency)}")
+      }
+
+      if (byCategory.isNotEmpty()) {
+        appendLine()
+        appendLine("------------------------------------------")
+        appendLine(categoryHeader.uppercase(locale))
+        appendLine("------------------------------------------")
+        byCategory.forEach { (cat, sum) ->
+          val pct = if (totalSpent > 0L) ((sum * 100.0) / totalSpent).toInt() else 0
+          appendLine("- ${cat.label(context)}: ${Formatters.formatMoney(sum, currency)} ($pct%)")
+        }
+      }
+
+      appendLine()
+      appendLine("------------------------------------------")
+      appendLine(allTxHeader.uppercase(locale))
+      appendLine("------------------------------------------")
+      if (sorted.isEmpty()) {
+        appendLine(emptyTxLabel)
+      } else {
+        sorted.forEachIndexed { index, item ->
+          val dateStr = LocalDate.ofEpochDay(item.dateEpochDay).toString()
+          val receiptTag = if (item.hasReceiptPhoto) " [Struk]" else ""
+          appendLine(
+            "${index + 1}. $dateStr | ${item.title} | ${item.categoryEnum.label(context)} | " +
+              "${item.paymentMethodEnum.label(context)} | ${Formatters.formatMoney(item.amount, currency)}$receiptTag"
+          )
+          if (item.note.isNotBlank()) {
+            appendLine("   $notePrefix: ${item.note.replace("\r", " ").replace("\n", " ").trim()}")
+          }
+        }
+      }
+      appendLine("==========================================")
+    }.trimEnd() + "\n"
   }
 
   private fun csvCell(value: String): String {

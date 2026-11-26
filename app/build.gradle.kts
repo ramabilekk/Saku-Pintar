@@ -19,8 +19,8 @@ android {
     targetSdk = 36
     val ciRunNumber = (project.findProperty("appVersionCode") as? String)?.toIntOrNull()
       ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
-    versionCode = ciRunNumber ?: 2
-    versionName = if (ciRunNumber != null) "2.0.$ciRunNumber" else "2.0"
+    versionCode = ciRunNumber ?: 3
+    versionName = if (ciRunNumber != null) "3.0.$ciRunNumber" else "3.0"
 
     buildConfigField("boolean", "IS_GITHUB_RELEASE_BUILD", (ciRunNumber != null).toString())
     buildConfigField(

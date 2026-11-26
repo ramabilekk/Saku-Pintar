@@ -161,6 +161,173 @@ service cloud.firestore {
              data.updatedAt <= request.time;
     }
 
+    function isValidCashflowEntry(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.type in ['INCOME', 'TRANSFER'] &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 80 &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 100000000000 &&
+             data.targetWallet in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+             (!('sourceWallet' in data) || (data.sourceWallet in ['QRIS', 'CASH', 'TRANSFER', 'CARD'])) &&
+             data.dateEpochDay is int &&
+             data.dateEpochDay >= 0 &&
+             data.dateEpochDay <= 100000 &&
+             isValidMonthKey(data.monthKey) &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 120)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidCustomCategory(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.name is string &&
+             data.name.size() >= 1 &&
+             data.name.size() <= 24 &&
+             data.parentCategory in ['FOOD', 'TRANSPORT', 'BILLS', 'HEALTH', 'SHOPPING', 'ENTERTAINMENT', 'OTHER'] &&
+             data.colorHex is int &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidSavingsHistoryEntry(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.goalId is string &&
+             data.goalId.size() >= 1 &&
+             data.goalId.size() <= 128 &&
+             data.type in ['INITIAL', 'DEPOSIT', 'WITHDRAW'] &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 100000000000 &&
+             data.balanceAfter is int &&
+             data.balanceAfter >= 0 &&
+             data.balanceAfter <= 100000000000 &&
+             data.timestampMillis is int &&
+             data.timestampMillis > 0 &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 120)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidDebtRecord(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.personName is string &&
+             data.personName.size() >= 1 &&
+             data.personName.size() <= 60 &&
+             data.type in ['OWED_TO_ME', 'I_OWE'] &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 100000000000 &&
+             data.dueDateEpochDay is int &&
+             data.dueDateEpochDay >= 0 &&
+             data.dueDateEpochDay <= 100000 &&
+             data.settled is bool &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 160)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidCustomWallet(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.name is string &&
+             data.name.size() >= 1 &&
+             data.name.size() <= 40 &&
+             data.walletType in ['BANK', 'EWALLET', 'CASH', 'CARD', 'INVESTMENT'] &&
+             data.balance is int &&
+             data.balance >= 0 &&
+             data.balance <= 100000000000 &&
+             data.colorHex is int &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidSubscription(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.name is string &&
+             data.name.size() >= 1 &&
+             data.name.size() <= 60 &&
+             data.amount is int &&
+             data.amount > 0 &&
+             data.amount <= 100000000000 &&
+             data.billingCycle in ['WEEKLY', 'MONTHLY', 'YEARLY'] &&
+             data.renewalDay is int &&
+             data.renewalDay >= 1 &&
+             data.renewalDay <= 31 &&
+             data.category in ['FOOD', 'TRANSPORT', 'BILLS', 'HEALTH', 'SHOPPING', 'ENTERTAINMENT', 'OTHER'] &&
+             data.paymentMethod in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] &&
+             data.active is bool &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 160)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidBillSchedule(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 80 &&
+             data.dueDayOfMonth is int &&
+             data.dueDayOfMonth >= 1 &&
+             data.dueDayOfMonth <= 31 &&
+             data.reminderEnabled is bool &&
+             data.autoLogEnabled is bool &&
+             (!('lastAutoLoggedMonthKey' in data) || (data.lastAutoLoggedMonthKey is string && (data.lastAutoLoggedMonthKey == '' || isValidMonthKey(data.lastAutoLoggedMonthKey)))) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidNetWorthSnapshot(data, userId, monthKey) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             isValidMonthKey(data.monthKey) &&
+             data.monthKey == monthKey &&
+             data.totalAssets is int &&
+             data.totalAssets >= 0 &&
+             data.totalAssets <= 1000000000000 &&
+             data.totalLiabilities is int &&
+             data.totalLiabilities >= 0 &&
+             data.totalLiabilities <= 1000000000000 &&
+             data.netWorth is int &&
+             data.netWorth >= -1000000000000 &&
+             data.netWorth <= 1000000000000 &&
+             data.netWorth == data.totalAssets - data.totalLiabilities &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
     match /users/{userId}/expenses/{expenseId} {
       allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
 
@@ -309,6 +476,200 @@ service cloud.firestore {
                        incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']);
 
       allow delete: if isSignedIn() && isValidId(userId) && methodKey in ['QRIS', 'CASH', 'TRANSFER', 'CARD'] && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/cashflowEntries/{entryId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(entryId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(entryId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'type', 'title', 'amount', 'targetWallet', 'dateEpochDay', 'monthKey', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'type', 'title', 'amount', 'targetWallet', 'sourceWallet', 'dateEpochDay', 'monthKey', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidCashflowEntry(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(entryId) &&
+                       request.auth.uid == userId &&
+                       isValidCashflowEntry(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'targetWallet', 'sourceWallet', 'dateEpochDay', 'monthKey', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(entryId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/customCategories/{categoryId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(categoryId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(categoryId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'name', 'parentCategory', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'parentCategory', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       isValidCustomCategory(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(categoryId) &&
+                       request.auth.uid == userId &&
+                       isValidCustomCategory(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'parentCategory', 'colorHex', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(categoryId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/savingsHistory/{entryId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(entryId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(entryId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'goalId', 'type', 'amount', 'balanceAfter', 'timestampMillis', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'goalId', 'type', 'amount', 'balanceAfter', 'timestampMillis', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidSavingsHistoryEntry(incoming(), userId);
+
+      allow update: if false;
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(entryId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/debtRecords/{debtId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(debtId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(debtId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'personName', 'type', 'amount', 'dueDateEpochDay', 'settled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'personName', 'type', 'amount', 'dueDateEpochDay', 'settled', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidDebtRecord(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(debtId) &&
+                       request.auth.uid == userId &&
+                       isValidDebtRecord(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['personName', 'type', 'amount', 'dueDateEpochDay', 'settled', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(debtId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/customWallets/{walletId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(walletId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(walletId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'name', 'walletType', 'balance', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'walletType', 'balance', 'colorHex', 'createdAt', 'updatedAt']) &&
+                       isValidCustomWallet(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(walletId) &&
+                       request.auth.uid == userId &&
+                       isValidCustomWallet(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'walletType', 'balance', 'colorHex', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(walletId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/subscriptions/{subId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(subId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(subId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'renewalDay', 'category', 'paymentMethod', 'active', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'amount', 'billingCycle', 'renewalDay', 'category', 'paymentMethod', 'active', 'note', 'createdAt', 'updatedAt']) &&
+                       isValidSubscription(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(subId) &&
+                       request.auth.uid == userId &&
+                       isValidSubscription(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'billingCycle', 'renewalDay', 'category', 'paymentMethod', 'active', 'note', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(subId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/billSchedules/{templateId} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(templateId) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(templateId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'dueDayOfMonth', 'reminderEnabled', 'autoLogEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'dueDayOfMonth', 'reminderEnabled', 'autoLogEnabled', 'lastAutoLoggedMonthKey', 'createdAt', 'updatedAt']) &&
+                       isValidBillSchedule(incoming(), userId);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(templateId) &&
+                       request.auth.uid == userId &&
+                       isValidBillSchedule(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'dueDayOfMonth', 'reminderEnabled', 'autoLogEnabled', 'lastAutoLoggedMonthKey', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(templateId) && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/netWorthSnapshots/{monthKey} {
+      allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      allow get: if isSignedIn() && isValidId(userId) && isValidMonthKey(monthKey) && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidMonthKey(monthKey) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll(['userId', 'monthKey', 'totalAssets', 'totalLiabilities', 'netWorth', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'monthKey', 'totalAssets', 'totalLiabilities', 'netWorth', 'createdAt', 'updatedAt']) &&
+                       isValidNetWorthSnapshot(incoming(), userId, monthKey);
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidMonthKey(monthKey) &&
+                       request.auth.uid == userId &&
+                       isValidNetWorthSnapshot(incoming(), userId, monthKey) &&
+                       incoming().userId == existing().userId &&
+                       incoming().monthKey == existing().monthKey &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['totalAssets', 'totalLiabilities', 'netWorth', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidMonthKey(monthKey) && request.auth.uid == userId;
     }
   }
 }

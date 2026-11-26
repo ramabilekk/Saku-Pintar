@@ -65,6 +65,7 @@ import com.example.auth.AccountSecurityOtpManager
 import com.example.auth.onGoogleSignInClicked
 import com.example.ui.components.AppAmbientBackdrop
 import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.LiquidGlassIconBadge
 import com.example.ui.components.SculptedSurfaceCard
 import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
@@ -150,12 +151,10 @@ fun AuthScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
           ) {
-            Surface(
-              shape = RoundedCornerShape(12.dp),
-              color = MaterialTheme.colorScheme.surface,
-              border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-              shadowElevation = if (isDarkTheme) 0.dp else 1.5.dp,
-              modifier = Modifier.size(38.dp),
+            LiquidGlassIconBadge(
+              size = 40.dp,
+              shape = RoundedCornerShape(14.dp),
+              tintColor = EmeraldSafe,
             ) {
               Image(
                 painter = painterResource(id = R.drawable.img_sakupintar_logo),

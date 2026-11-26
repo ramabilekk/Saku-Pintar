@@ -21,12 +21,16 @@ object PrivacySecurityManager {
   private const val KEY_PIN_HASH = "pin_hash"
   private const val KEY_AUTO_DEDUCT_WALLET = "auto_deduct_wallet"
   private const val KEY_ONBOARDING_DISMISSED = "onboarding_dismissed"
+  private const val KEY_HAPTIC_FEEDBACK_ENABLED = "haptic_feedback_enabled"
+  private const val KEY_BUDGET_ALERTS_ENABLED = "budget_alerts_enabled"
   private const val PIN_SALT = "sakupintar_v2_pin_salt_2026"
 
   private val _hideBalances = MutableStateFlow(false)
   private val _appLockEnabled = MutableStateFlow(false)
   private val _autoDeductWallet = MutableStateFlow(true)
   private val _onboardingDismissed = MutableStateFlow(false)
+  private val _hapticFeedbackEnabled = MutableStateFlow(true)
+  private val _budgetAlertsEnabled = MutableStateFlow(true)
 
   @Volatile
   private var isLoaded = false
@@ -51,6 +55,16 @@ object PrivacySecurityManager {
     return _onboardingDismissed.asStateFlow()
   }
 
+  fun observeHapticFeedbackEnabled(context: Context): StateFlow<Boolean> {
+    ensureLoaded(context)
+    return _hapticFeedbackEnabled.asStateFlow()
+  }
+
+  fun observeBudgetAlertsEnabled(context: Context): StateFlow<Boolean> {
+    ensureLoaded(context)
+    return _budgetAlertsEnabled.asStateFlow()
+  }
+
   fun isHideBalances(context: Context): Boolean {
     ensureLoaded(context)
     return _hideBalances.value
@@ -64,6 +78,16 @@ object PrivacySecurityManager {
   fun isAutoDeductWalletEnabled(context: Context): Boolean {
     ensureLoaded(context)
     return _autoDeductWallet.value
+  }
+
+  fun isHapticFeedbackEnabled(context: Context): Boolean {
+    ensureLoaded(context)
+    return _hapticFeedbackEnabled.value
+  }
+
+  fun isBudgetAlertsEnabled(context: Context): Boolean {
+    ensureLoaded(context)
+    return _budgetAlertsEnabled.value
   }
 
   fun toggleHideBalances(context: Context): Boolean {
@@ -83,6 +107,18 @@ object PrivacySecurityManager {
     ensureLoaded(context)
     _autoDeductWallet.value = enabled
     prefs(context).edit().putBoolean(KEY_AUTO_DEDUCT_WALLET, enabled).apply()
+  }
+
+  fun setHapticFeedbackEnabled(context: Context, enabled: Boolean) {
+    ensureLoaded(context)
+    _hapticFeedbackEnabled.value = enabled
+    prefs(context).edit().putBoolean(KEY_HAPTIC_FEEDBACK_ENABLED, enabled).apply()
+  }
+
+  fun setBudgetAlertsEnabled(context: Context, enabled: Boolean) {
+    ensureLoaded(context)
+    _budgetAlertsEnabled.value = enabled
+    prefs(context).edit().putBoolean(KEY_BUDGET_ALERTS_ENABLED, enabled).apply()
   }
 
   fun dismissOnboarding(context: Context) {
@@ -140,6 +176,8 @@ object PrivacySecurityManager {
       _appLockEnabled.value = p.getBoolean(KEY_APP_LOCK_ENABLED, false)
       _autoDeductWallet.value = p.getBoolean(KEY_AUTO_DEDUCT_WALLET, true)
       _onboardingDismissed.value = p.getBoolean(KEY_ONBOARDING_DISMISSED, false)
+      _hapticFeedbackEnabled.value = p.getBoolean(KEY_HAPTIC_FEEDBACK_ENABLED, true)
+      _budgetAlertsEnabled.value = p.getBoolean(KEY_BUDGET_ALERTS_ENABLED, true)
       isLoaded = true
     }
   }

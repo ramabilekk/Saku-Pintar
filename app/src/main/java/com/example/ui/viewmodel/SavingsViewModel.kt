@@ -12,6 +12,7 @@ import com.example.data.local.SavingsHistoryType
 import com.example.data.model.PaymentMethod
 import com.example.data.model.SavingsGoal
 import com.example.data.model.SavingsGoalCategory
+import com.example.data.repository.ExtrasCloudSyncRepository
 import com.example.data.repository.SavingsRepository
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
@@ -44,6 +45,10 @@ class SavingsViewModel(
   private val currentUserId: String,
   private val appContext: Context? = null,
 ) : ViewModel() {
+
+  private val extrasSync: ExtrasCloudSyncRepository? = appContext?.let {
+    ExtrasCloudSyncRepository(it)
+  }
 
   private fun localizedCtx(): Context? =
     appContext?.let { LanguagePreferenceManager.localizedContext(it) }
@@ -110,7 +115,7 @@ class SavingsViewModel(
         )
         if (initialSavedAmount > 0L) {
           appContext?.let { ctx ->
-            SavingsHistoryManager.recordEvent(
+            val recorded = SavingsHistoryManager.recordEvent(
               context = ctx,
               userId = currentUserId,
               goalId = createdId,
@@ -118,6 +123,9 @@ class SavingsViewModel(
               amount = initialSavedAmount,
               balanceAfter = initialSavedAmount,
             )
+            if (recorded != null) {
+              extrasSync?.addSavingsHistoryEntry(recorded)
+            }
           }
         }
         _actionStatus.value = str(R.string.vm_goal_created, "Savings goal \"%1\$s\" created!", title.trim())
@@ -175,7 +183,7 @@ class SavingsViewModel(
       try {
         val nextSaved = repository.adjustSavingsGoalAmount(goal.id, amount)
         appContext?.let { ctx ->
-          SavingsHistoryManager.recordEvent(
+          val recorded = SavingsHistoryManager.recordEvent(
             context = ctx,
             userId = currentUserId,
             goalId = goal.id,
@@ -183,6 +191,9 @@ class SavingsViewModel(
             amount = amount,
             balanceAfter = nextSaved,
           )
+          if (recorded != null) {
+            extrasSync?.addSavingsHistoryEntry(recorded)
+          }
         }
         val statusPrefix = if (goal.targetAmount > 0L && nextSaved >= goal.targetAmount) {
           str(R.string.vm_goal_reached, "Congrats! Goal \"%1\$s\" reached!", goal.title)
@@ -217,7 +228,7 @@ class SavingsViewModel(
       try {
         val nextSaved = repository.adjustSavingsGoalAmount(goal.id, -amount)
         appContext?.let { ctx ->
-          SavingsHistoryManager.recordEvent(
+          val recorded = SavingsHistoryManager.recordEvent(
             context = ctx,
             userId = currentUserId,
             goalId = goal.id,
@@ -225,6 +236,9 @@ class SavingsViewModel(
             amount = amount,
             balanceAfter = nextSaved,
           )
+          if (recorded != null) {
+            extrasSync?.addSavingsHistoryEntry(recorded)
+          }
         }
         val formattedWithdraw = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
         _actionStatus.value = str(R.string.vm_goal_withdrawn, "Recorded withdrawal of %1\$s from %2\$s.", formattedWithdraw, goal.title)
@@ -313,7 +327,7 @@ class SavingsViewModel(
       try {
         repository.setWalletBalance(targetWallet, nextBal)
         appContext?.let { ctx ->
-          CashflowLedgerManager.recordIncome(
+          val entry = CashflowLedgerManager.recordIncome(
             context = ctx,
             userId = currentUserId,
             title = title,
@@ -321,6 +335,7 @@ class SavingsViewModel(
             targetWallet = targetWallet,
             note = note,
           )
+          extrasSync?.upsertCashflowEntry(entry)
         }
         val formattedAmt = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
         val walletLabel = targetWallet.label(localizedCtx())
@@ -372,7 +387,7 @@ class SavingsViewModel(
         repository.setWalletBalance(fromWallet, (fromBal - amount).coerceAtLeast(0L))
         repository.setWalletBalance(toWallet, toBal + amount)
         appContext?.let { ctx ->
-          CashflowLedgerManager.recordTransfer(
+          val entry = CashflowLedgerManager.recordTransfer(
             context = ctx,
             userId = currentUserId,
             fromWallet = fromWallet,
@@ -380,6 +395,7 @@ class SavingsViewModel(
             amount = amount,
             note = note,
           )
+          extrasSync?.upsertCashflowEntry(entry)
         }
         val formattedAmt = Formatters.formatMoney(amount, CurrencyPreferenceManager.currentCurrency)
         _actionStatus.value = str(
@@ -403,6 +419,9 @@ class SavingsViewModel(
   fun deleteCashflowEntry(entryId: String) {
     appContext?.let { ctx ->
       CashflowLedgerManager.deleteEntry(ctx, currentUserId, entryId)
+      viewModelScope.launch {
+        extrasSync?.deleteCashflowEntry(entryId)
+      }
       _actionStatus.value = str(R.string.cashflow_entry_deleted, "Cashflow entry removed.")
     }
   }

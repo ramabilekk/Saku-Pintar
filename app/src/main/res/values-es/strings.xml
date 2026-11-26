@@ -374,4 +374,457 @@
     <string name="profile_support_subtitle">Apoya el desarrollo continuo en Trakteer</string>
     <string name="profile_support_button">Support</string>
     <string name="profile_support_browser_error">No se pudo abrir el navegador. Visita trakteer.id/ramabilekk/gift.</string>
+
+    <!-- Plain Text Export & Backup Preview -->
+    <string name="export_txt_title">Respaldo de texto simple (.txt)</string>
+    <string name="export_txt_subtitle">Archivo .txt ligero y legible con el resumen mensual y todas las transacciones</string>
+    <string name="export_backup_preview_title">Vista previa de respaldo Texto / CSV</string>
+    <string name="export_backup_preview_show">Mostrar vista previa</string>
+    <string name="export_backup_preview_hide">Ocultar vista previa</string>
+    <string name="export_backup_copy_action">Copiar %1$s</string>
+    <string name="export_backup_copied_status">Respaldo mensual %1$s copiado al portapapeles.</string>
+    <string name="export_txt_header">RESPALDO MENSUAL DE GASTOS SAKUPINTAR</string>
+    <string name="export_txt_period_label">Período</string>
+    <string name="export_txt_all_transactions">Todas las transacciones (%1$d)</string>
+    <string name="export_txt_empty_transactions">No hay gastos registrados este mes.</string>
+    <string name="export_txt_note_prefix">Nota</string>
+    <string name="export_receipt_preview_title">Resumen de fotos de recibos listo (%1$d fotos)</string>
+    <string name="export_receipt_preview_subtitle">Las fotos se organizan en Excel (.xlsx) y en cuadrícula de 2 columnas en PDF (.pdf)</string>
+    <string name="report_col_receipt_photo">Foto del recibo</string>
+
+    <!-- Receipt in Recaps -->
+    <string name="report_col_receipt">Comprobante</string>
+    <string name="report_sheet_receipts">Fotos de recibos</string>
+    <string name="report_receipt_section_title">Fotos de recibos y facturas adjuntas</string>
+    <string name="report_receipt_attached_count">%1$d fotos de recibos adjuntas</string>
+    <string name="report_receipt_yes">Adjunto (#%1$d)</string>
+    <string name="report_receipt_no">-</string>
+    <string name="receipt_included_in_recap_hint">Incluido automáticamente en resúmenes PDF y Excel</string>
+
+    <!-- Login Methods -->
+    <string name="auth_tab_sign_in">Iniciar sesión</string>
+    <string name="auth_tab_sign_up">Registrarse</string>
+    <string name="auth_choose_method_sign_in">Elige cómo iniciar sesión</string>
+    <string name="auth_choose_method_sign_up">Elige cómo registrarte</string>
+    <string name="auth_sign_up_google">Registrarse con Google</string>
+    <string name="auth_method_google">Google</string>
+    <string name="auth_method_guest">Cuenta de invitado</string>
+    <string name="auth_or_other_methods">O elige otro método</string>
+    <string name="auth_guest_continue">Continuar como invitado</string>
+    <string name="auth_guest_subtitle">Modo visitante: acceso instantáneo sin copia en la nube</string>
+    <string name="guest_visitor_banner">Modo invitado • Sesión temporal sin copia en la nube</string>
+    <string name="guest_account_display_name">Invitado</string>
+    <string name="guest_account_badge">Modo invitado (sin respaldo en la nube)</string>
+    <string name="auth_landing_enter_action">Entrar</string>
+    <string name="auth_landing_subtitle">Toca Entrar para iniciar sesión o registrarte</string>
+    <string name="auth_method_screen_sign_in_title">Método de inicio de sesión</string>
+    <string name="auth_method_screen_sign_up_title">Método de registro</string>
+    <string name="auth_back_action">Atrás</string>
+    <string name="topbar_expenses_title">Registro diario de gastos</string>
+    <string name="topbar_expenses_subtitle">Gestiona gastos diarios y facturas recurrentes</string>
+    <string name="topbar_budget_title">Planificador de presupuesto</string>
+    <string name="topbar_budget_subtitle">Asignación 50/30/20 y límite diario seguro</string>
+    <string name="topbar_savings_title">Metas de ahorro y carteras</string>
+    <string name="topbar_savings_subtitle">Controla tus metas de ahorro y carteras activas</string>
+
+    <!-- Simplified Minimalist Auth Screen -->
+    <string name="auth_simple_signin_title">Inicia sesión en tu cuenta</string>
+    <string name="auth_simple_signin_subtitle">Gestiona tus gastos diarios y tu presupuesto mensual.</string>
+    <string name="auth_simple_google_continue">Continuar con Google</string>
+    <string name="auth_or_divider">o</string>
+    <string name="auth_guest_simple_cta">Continuar como invitado</string>
+    <string name="auth_simple_divider_signin">o acceso rápido</string>
+    <string name="auth_simple_guest_name_label">Nombre para mostrar (opcional)</string>
+    <string name="auth_simple_guest_name_placeholder">ej. Alex</string>
+    <string name="auth_simple_help_link">¿Problemas para iniciar sesión?</string>
+    <string name="auth_simple_guest_cta">Continuar como invitado</string>
+    <string name="auth_simple_no_account_prompt">¿No tienes una cuenta?</string>
+    <string name="auth_simple_register_action">Registrarse</string>
+    <string name="auth_simple_signup_title">Empieza con SakuPintar</string>
+    <string name="auth_simple_signup_subtitle">Registra gastos y automatiza tu presupuesto mensual sin esfuerzo.</string>
+    <string name="auth_simple_divider_signup">o pruébalo al instante</string>
+    <string name="auth_simple_guest_signup_cta">Probar modo invitado</string>
+    <string name="auth_simple_have_account_prompt">¿Ya tienes una cuenta?</string>
+    <string name="auth_simple_login_action">Iniciar sesión</string>
+    <string name="auth_simple_feature_cloud">Sincronización automática en la nube con Google</string>
+    <string name="auth_simple_feature_budget">Planificador inteligente 50/30/20</string>
+    <string name="auth_simple_feature_ai">Escaneo de recibos con IA y análisis de gastos</string>
+    <string name="auth_help_back">Volver al inicio de sesión</string>
+    <string name="auth_help_title">¿Problemas para iniciar sesión?</string>
+    <string name="auth_help_body">SakuPintar usa Google Sign-In para que no necesites otra contraseña. Si olvidaste tu acceso, recupera tu cuenta de Google abajo.</string>
+    <string name="auth_help_recover_cta">Recuperar cuenta de Google</string>
+    <string name="auth_help_retry_google">Reintentar con Google</string>
+    <string name="auth_help_footer_prompt">¿Necesitas acceso rápido?</string>
+    <string name="auth_help_footer_action">Usar modo invitado</string>
+    <string name="auth_help_browser_error">No se pudo abrir el navegador. Visita accounts.google.com/signin/recovery.</string>
+
+    <!-- AI Receipt Scanner Pro -->
+    <string name="ai_scan_quick_title">Escanear recibo IA</string>
+    <string name="ai_scan_quick_subtitle">Toma o elige un recibo para autocompletar</string>
+    <string name="ai_scan_camera_action">Cámara IA</string>
+    <string name="ai_scan_gallery_action">Galería IA</string>
+    <string name="ai_scan_chooser_title">Escanear recibo con IA</string>
+    <string name="ai_scan_chooser_subtitle">Toma una foto nítida o elige un recibo. La IA leerá el comercio, total, fecha y categoría automáticamente.</string>
+    <string name="ai_scan_success_banner">Recibo escaneado por IA — revisa los detalles abajo</string>
+    <string name="ai_scan_date_detected">Fecha detectada: %1$s</string>
+
+    <!-- Guest to Google Cloud Sync & Migration -->
+    <string name="guest_sync_card_title">Sincronizar datos con Google</string>
+    <string name="guest_sync_card_subtitle">Guarda tus %1$d registro(s) locales en la nube y accede desde cualquier dispositivo.</string>
+    <string name="guest_sync_card_subtitle_empty">Conecta tu cuenta de Google para copia automática en la nube.</string>
+    <string name="guest_sync_cta">Conectar Google y migrar</string>
+    <string name="guest_sync_in_progress">Sincronizando datos con Google Cloud…</string>
+    <string name="guest_sync_success">¡Conectado a Google! %1$d registro(s) sincronizado(s).</string>
+    <string name="guest_sync_partial">¡Conectado a Google! %1$d sincronizados, %2$d no se pudieron subir.</string>
+    <string name="guest_sync_connected_empty">¡Conectado a Google Cloud!</string>
+
+    <!-- Custom Categories -->
+    <string name="custom_cat_section_title">Categorías personalizadas</string>
+    <string name="custom_cat_add_action">Añadir</string>
+    <string name="custom_cat_dialog_title">Nueva categoría personalizada</string>
+    <string name="custom_cat_name_label">Nombre de la categoría</string>
+    <string name="custom_cat_name_hint">ej. Café, Cuotas, Cuidado personal</string>
+    <string name="custom_cat_parent_label">Grupo de presupuesto</string>
+    <string name="custom_cat_color_label">Color de acento</string>
+    <string name="custom_cat_empty_hint">Crea etiquetas personalizadas como Café o Gimnasio</string>
+    <string name="custom_cat_error_name">Introduce un nombre de categoría.</string>
+
+    <!-- Bill Due-Date Reminders -->
+    <string name="bill_due_day_label">Día de vencimiento mensual (opcional)</string>
+    <string name="bill_due_day_none">Sin fecha límite</string>
+    <string name="bill_due_day_format">Día %1$d</string>
+    <string name="bill_due_today_badge">¡Vence hoy!</string>
+    <string name="bill_due_in_days_badge">Vence en %1$d d</string>
+    <string name="bill_due_upcoming_title">Próximas facturas</string>
+    <string name="bill_due_pay_now">Registrar</string>
+    <string name="bill_due_notif_title">Recordatorio de factura</string>
+    <string name="bill_due_notif_channel_desc">Alertas de facturas recurrentes próximas a vencer</string>
+    <string name="bill_due_notif_today">%1$s vence hoy. Toca para registrar el pago en SakuPintar.</string>
+    <string name="bill_due_notif_tomorrow">%1$s vence mañana. Prepara tu presupuesto en SakuPintar.</string>
+
+    <!-- Home Screen Quick Widget -->
+    <string name="widget_name">Acceso rápido SakuPintar</string>
+    <string name="widget_description">Consulta tu límite diario seguro y registra gastos en 1 toque</string>
+    <string name="widget_safe_limit_label">Límite seguro hoy</string>
+    <string name="widget_today_spent_format">Gastado hoy: %1$s</string>
+    <string name="widget_action_add">+ Gasto</string>
+    <string name="widget_action_scan">Escáner IA</string>
+
+    <!-- Privacy Eye & App Lock -->
+    <string name="privacy_toggle_hide_cd">Ocultar saldos</string>
+    <string name="privacy_toggle_show_cd">Mostrar saldos</string>
+    <string name="privacy_security_section_title">Privacidad y seguridad</string>
+    <string name="privacy_hide_balances_title">Ocultar saldos</string>
+    <string name="privacy_hide_balances_subtitle">Oculta los importes con •••••• en público</string>
+    <string name="app_lock_title">Bloqueo de app (PIN / Biometría)</string>
+    <string name="app_lock_subtitle_on">Protegido al abrir SakuPintar</string>
+    <string name="app_lock_subtitle_off">Solicitar PIN o bloqueo del dispositivo al abrir</string>
+    <string name="app_lock_setup_title">Configurar PIN de 4 dígitos</string>
+    <string name="app_lock_setup_subtitle">Introduce un PIN de 4 dígitos para proteger tus datos financieros.</string>
+    <string name="app_lock_setup_confirm">Vuelve a introducir el PIN</string>
+    <string name="app_lock_pin_mismatch">Los PIN no coinciden. Inténtalo de nuevo.</string>
+    <string name="app_lock_pin_saved">¡Bloqueo de app activado!</string>
+    <string name="app_lock_disabled_status">Bloqueo de app desactivado.</string>
+    <string name="app_lock_screen_title">SakuPintar bloqueado</string>
+    <string name="app_lock_screen_subtitle">Introduce tu PIN de 4 dígitos para continuar</string>
+    <string name="app_lock_wrong_pin">PIN incorrecto. Inténtalo de nuevo.</string>
+    <string name="app_lock_use_biometric">Desbloquear con biometría / dispositivo</string>
+    <string name="app_lock_change_pin">Cambiar PIN</string>
+
+    <!-- Auto-Deduct Wallet, Income & Wallet Transfer -->
+    <string name="wallet_auto_deduct_title">Descontar saldo automáticamente</string>
+    <string name="wallet_auto_deduct_subtitle">Actualiza la cartera automáticamente al registrar gastos</string>
+    <string name="cashflow_record_income_action">Añadir ingreso</string>
+    <string name="cashflow_transfer_action">Transferir</string>
+    <string name="cashflow_income_dialog_title">Registrar ingreso</string>
+    <string name="cashflow_income_source_label">Fuente de ingreso</string>
+    <string name="cashflow_income_source_hint">ej. Salario, Bono, Freelance</string>
+    <string name="cashflow_income_target_wallet">Depositar en cartera</string>
+    <string name="cashflow_income_saved">¡Ingreso de %1$s añadido a %2$s!</string>
+    <string name="cashflow_transfer_dialog_title">Transferir entre carteras</string>
+    <string name="cashflow_transfer_from_label">Desde cartera</string>
+    <string name="cashflow_transfer_to_label">Hacia cartera</string>
+    <string name="cashflow_transfer_same_wallet_error">Elige dos carteras diferentes.</string>
+    <string name="cashflow_transfer_insufficient">Saldo insuficiente en %1$s.</string>
+    <string name="cashflow_transfer_saved">¡Transferido %1$s de %2$s a %3$s!</string>
+    <string name="cashflow_history_title">Actividad de flujo de caja</string>
+    <string name="cashflow_history_income_badge">Ingreso</string>
+    <string name="cashflow_history_transfer_badge">Transferencia</string>
+    <string name="cashflow_entry_deleted">Registro eliminado.</string>
+
+    <!-- Visual Analytics & Budget Alerts -->
+    <string name="analytics_donut_title">Desglose por categoría</string>
+    <string name="analytics_donut_total_label">Total gastado</string>
+    <string name="analytics_mom_lower">%1$d%% menos que el mes pasado</string>
+    <string name="analytics_mom_higher">%1$d%% más que el mes pasado</string>
+    <string name="analytics_mom_same">Mismo ritmo de gasto que el mes pasado</string>
+    <string name="analytics_mom_no_prev">Aún no hay datos del mes pasado</string>
+    <string name="analytics_top_expense_label">Mayor gasto de este mes</string>
+    <string name="budget_alert_over">¡Alerta de presupuesto: %1$s superó el límite (%2$d%%)!</string>
+    <string name="budget_alert_caution">Aviso: %1$s alcanzó el %2$d%% del presupuesto mensual.</string>
+
+    <!-- Voice AI, Undo Delete & Duplicate -->
+    <string name="voice_ai_button_cd">Dictar gasto por voz con IA</string>
+    <string name="voice_ai_prompt">Di el gasto, ej. Almuerzo 25 con tarjeta</string>
+    <string name="voice_ai_unavailable">La entrada de voz no está disponible en este dispositivo.</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="expense_restored_status">Gasto restaurado.</string>
+    <string name="expense_duplicated_status">¡\"%1$s\" duplicado para hoy!</string>
+    <string name="duplicate_expense_cd">Duplicar gasto</string>
+
+    <!-- Starter Onboarding Checklist -->
+    <string name="onboarding_title">Guía de inicio rápido</string>
+    <string name="onboarding_progress_format">%1$d de 3 completados</string>
+    <string name="onboarding_step_budget_title">Configura el presupuesto mensual</string>
+    <string name="onboarding_step_budget_sub">Calcula automáticamente tu límite diario seguro</string>
+    <string name="onboarding_step_wallet_title">Configura tus saldos</string>
+    <string name="onboarding_step_wallet_sub">Controla efectivo, QRIS, banco y tarjeta</string>
+    <string name="onboarding_step_expense_title">Escanea o registra tu primer gasto</string>
+    <string name="onboarding_step_expense_sub">Prueba el escaneo IA de recibos o registro rápido</string>
+    <string name="onboarding_dismiss">Ocultar</string>
+
+    <!-- Payday Cycle -->
+    <string name="payday_section_title">Ciclo de pago</string>
+    <string name="payday_default_subtitle">Día 1 de cada mes (calendario estándar)</string>
+    <string name="payday_custom_subtitle">Comienza el día %1$d de cada mes</string>
+    <string name="payday_cycle_desc">Alinea el reinicio mensual del presupuesto con tu día de cobro real.</string>
+    <string name="payday_preset_1">Día 1</string>
+    <string name="payday_preset_25">Día 25</string>
+    <string name="payday_preset_28">Día 28</string>
+    <string name="payday_day_label">Día de inicio del ciclo: %1$d</string>
+    <string name="payday_preview_label">Período activo: %1$s</string>
+    <string name="payday_saved_status">Ciclo de pago actualizado al día %1$d.</string>
+    <string name="payday_badge_label">Ciclo %1$s</string>
+    <string name="payday_change_action">Cambiar</string>
+
+    <!-- Advanced Expense Filter & Sort -->
+    <string name="filter_all_methods">Todas las carteras</string>
+    <string name="filter_with_receipt">Con recibo</string>
+    <string name="filter_reset">Restablecer</string>
+    <string name="sort_label_prefix">Ordenar:</string>
+    <string name="sort_newest">Más recientes</string>
+    <string name="sort_highest">Mayor monto</string>
+    <string name="sort_lowest">Menor monto</string>
+    <string name="sort_title_az">Nombre A–Z</string>
+    <string name="filter_sort_cd">Ordenar transacciones</string>
+
+    <!-- Multi-Month Trend & Annual Recap -->
+    <string name="trend_card_title">Tendencia de gastos e ingresos</string>
+    <string name="trend_6_months">6 M</string>
+    <string name="trend_12_months">12 M</string>
+    <string name="trend_legend_spending">Gastos</string>
+    <string name="trend_legend_income">Ingresos</string>
+    <string name="trend_tap_hint">Toca una barra para ver el detalle mensual</string>
+    <string name="trend_total_spent">Total gastado</string>
+    <string name="trend_total_income">Total ingresos</string>
+    <string name="trend_avg_monthly">Prom. / Mes</string>
+    <string name="trend_net_cashflow">Flujo neto</string>
+    <string name="trend_lowest_month">Más ahorrativo: %1$s (%2$s)</string>
+    <string name="trend_highest_month">Mayor gasto: %1$s (%2$s)</string>
+    <string name="trend_tx_count">%1$d mov.</string>
+
+    <!-- Edit Savings Goal & Deposit/Withdraw History -->
+    <string name="savings_edit_title">Editar meta de ahorro</string>
+    <string name="savings_edit_save">Guardar cambios</string>
+    <string name="savings_edit_cd">Editar meta de ahorro</string>
+    <string name="savings_history_cd">Ver historial de depósitos</string>
+    <string name="savings_history_button">Historial</string>
+    <string name="savings_goal_updated">¡Meta \"%1$s\" actualizada!</string>
+    <string name="savings_history_sheet_title">Progreso e historial</string>
+    <string name="savings_history_total_deposits">Total depositado</string>
+    <string name="savings_history_total_withdrawals">Total retirado</string>
+    <string name="savings_history_eta_label">Finalización estimada</string>
+    <string name="savings_history_eta_done">¡Meta alcanzada! 🎉</string>
+    <string name="savings_history_eta_days">~%1$d días restantes (%2$s)</string>
+    <string name="savings_history_eta_months">~%1$d meses restantes (%2$s)</string>
+    <string name="savings_history_eta_need_more">Añade depósitos regulares para estimar la fecha de finalización.</string>
+    <string name="savings_history_empty">Aún no hay depósitos ni retiros para esta meta.</string>
+    <string name="savings_history_initial_label">Saldo inicial</string>
+    <string name="savings_history_deposit_label">Depósito</string>
+    <string name="savings_history_withdraw_label">Retiro</string>
+    <string name="savings_history_balance_after">Saldo: %1$s</string>
+
+    <!-- Ask SakuPintar AI Interactive Chat -->
+    <string name="ai_chat_title">Preguntar a SakuPintar IA</string>
+    <string name="ai_chat_subtitle">Asesor financiero interactivo basado en tus datos reales</string>
+    <string name="ai_chat_open_button">Preguntar IA</string>
+    <string name="ai_chat_open_cd">Abrir chat con SakuPintar IA</string>
+    <string name="ai_chat_reset_cd">Reiniciar conversación</string>
+    <string name="ai_chat_close_cd">Cerrar chat IA</string>
+    <string name="ai_chat_input_hint">Pregunta sobre tus gastos, presupuesto o ahorros…</string>
+    <string name="ai_chat_send_cd">Enviar pregunta</string>
+    <string name="ai_chat_welcome_title">¡Hola! Soy SakuPintar IA</string>
+    <string name="ai_chat_welcome_body">Pregúntame sobre tus patrones de gasto, límite diario seguro, metas de ahorro o consejos prácticos.</string>
+    <string name="ai_chat_chip_1">¿En qué estoy gastando más este período?</string>
+    <string name="ai_chat_chip_2">Dame un plan práctico para ahorrar el resto del ciclo</string>
+    <string name="ai_chat_chip_3">¿Cómo van mis ahorros y cómo alcanzo mis metas más rápido?</string>
+    <string name="ai_chat_chip_4">Compara mi tendencia de gastos en los últimos meses</string>
+    <string name="ai_chat_typing">SakuPintar IA está analizando…</string>
+    <string name="ai_chat_retry">Reintentar</string>
+    <string name="ai_chat_context_badge">Contexto en vivo: %1$s</string>
+
+    <!-- Grouped Settings Screen -->
+    <string name="settings_screen_title">Configuración</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_finance">Finanzas y seguridad</string>
+    <string name="settings_section_account">Cuenta</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_connected_account_title">Cuenta conectada</string>
+    <string name="settings_sign_out_subtitle">Cerrar sesión en tu cuenta</string>
+    <string name="settings_app_version_title">Versión de la app</string>
+    <string name="settings_quick_edit_profile">Editar perfil</string>
+    <string name="settings_quick_change_photo">Cambiar foto</string>
+    <string name="settings_guest_subtitle_fallback">Modo invitado • Guardado en este dispositivo</string>
+    <string name="settings_edit_profile_dialog_title">Editar perfil</string>
+    <string name="settings_haptic_title">Respuesta háptica</string>
+    <string name="settings_haptic_subtitle_on">Vibración sutil al tocar y navegar</string>
+    <string name="settings_haptic_subtitle_off">Vibración desactivada</string>
+    <string name="settings_export_title">Exportar informe financiero</string>
+    <string name="settings_export_subtitle">Guarda respaldos mensuales en Excel, PDF, CSV o Texto (.txt)</string>
+    <string name="settings_cache_title">Caché de la app</string>
+    <string name="settings_cache_subtitle">Borrar caché (%1$s)</string>
+    <string name="settings_cache_dialog_title">¿Borrar caché?</string>
+    <string name="settings_cache_dialog_body">Esto elimina %1$s de vistas previas y exportaciones temporales. Tus datos financieros no se verán afectados.</string>
+    <string name="settings_cache_clear_action">Borrar caché</string>
+    <string name="settings_cache_cleared_status">Se borraron %1$s de caché.</string>
+    <string name="settings_sign_out_confirm_title">¿Cerrar sesión?</string>
+    <string name="settings_sign_out_confirm_body_google">Tus datos siguen sincronizados en tu cuenta de Google. Puedes volver a entrar cuando quieras.</string>
+    <string name="settings_sign_out_confirm_body_guest">Estás en modo invitado. Los datos locales permanecen en este dispositivo salvo que los borres.</string>
+    <string name="settings_delete_account_title">Eliminar cuenta</string>
+    <string name="settings_delete_account_title_guest">Eliminar todos los datos</string>
+    <string name="settings_delete_account_subtitle">Eliminar cuenta y todos sus datos</string>
+    <string name="settings_delete_account_subtitle_guest">Borrar todos los registros locales del dispositivo</string>
+    <string name="settings_delete_account_dialog_title">¿Eliminar todos los datos permanentemente?</string>
+    <string name="settings_delete_account_dialog_body_google">Todos tus gastos, presupuestos, metas de ahorro y saldos se eliminarán permanentemente de la nube. Esta acción no se puede deshacer.</string>
+    <string name="settings_delete_account_dialog_body_guest">Todos los gastos, presupuestos, metas y saldos guardados en este dispositivo se eliminarán permanentemente. Esta acción no se puede deshacer.</string>
+    <string name="settings_delete_account_checkbox">Entiendo que esta acción es permanente y no se puede deshacer</string>
+    <string name="settings_delete_account_confirm">Eliminar permanentemente</string>
+    <string name="settings_delete_account_in_progress">Eliminando datos…</string>
+    <string name="settings_delete_account_success">Cuenta y datos financieros eliminados.</string>
+    <string name="settings_delete_account_failed">Error al eliminar cuenta: %1$s</string>
+    <string name="settings_privacy_policy_title">Política de privacidad</string>
+    <string name="settings_privacy_policy_subtitle">Lee nuestra política de privacidad</string>
+    <string name="settings_privacy_policy_body">1. Almacenamiento\n• Google Sign-In: Tus datos financieros se guardan de forma privada en Firebase Firestore y solo tú tienes acceso.\n• Modo invitado: Todos los registros permanecen en tu dispositivo hasta que decidas sincronizarlos o eliminarlos.\n\n2. Cámara e IA\n• Al escanear recibos o consultar a SakuPintar IA, solo se envía la información necesaria para generar la respuesta.\n• Nunca vendemos tus datos personales.\n\n3. Seguridad y control\n• El PIN se almacena cifrado localmente y nunca sale del dispositivo.\n• Puedes exportar o eliminar permanentemente tus datos desde Configuración &gt; Eliminar cuenta.</string>
+    <string name="settings_terms_title">Términos y condiciones</string>
+    <string name="settings_terms_subtitle">Lee nuestros términos y condiciones</string>
+    <string name="settings_terms_body">1. Propósito\nSakuPintar es un asistente personal de finanzas para registrar gastos diarios, controlar carteras y planificar ahorros.\n\n2. Aviso sobre IA\nEl escaneo de recibos y las sugerencias de SakuPintar IA son informativos y no constituyen asesoría financiera profesional. Verifica siempre los montos escaneados.\n\n3. Responsabilidad\nEres responsable de proteger tu dispositivo y cuenta de Google. Puedes exportar o eliminar tus datos en cualquier momento.</string>
+    <string name="settings_contact_title">Contáctanos</string>
+    <string name="settings_contact_email">mgar0810@gmail.com</string>
+    <string name="settings_contact_email_subject">Soporte y comentarios SakuPintar</string>
+    <string name="settings_contact_copied_status">Correo de soporte copiado: %1$s</string>
+
+    <!-- Budget Threshold Alerts -->
+    <string name="budget_alert_channel_name">Alertas de límite de presupuesto</string>
+    <string name="budget_alert_channel_desc" formatted="false">Alertas cuando una categoría alcanza el 80% o 100% del presupuesto mensual</string>
+    <string name="budget_alert_80_title">Precaución de presupuesto: %1$s</string>
+    <string name="budget_alert_80_body">Has usado el %1$d%% (%2$s de %3$s) del presupuesto mensual.</string>
+    <string name="budget_alert_100_title">Límite alcanzado: %1$s</string>
+    <string name="budget_alert_100_body">El gasto alcanzó %1$s frente a tu límite de %2$s.</string>
+    <string name="settings_budget_alerts_title">Alertas de presupuesto</string>
+    <string name="settings_budget_alerts_subtitle_on" formatted="false">Notificar al alcanzar el 80% o 100% por categoría</string>
+    <string name="settings_budget_alerts_subtitle_off">Las alertas automáticas están desactivadas</string>
+    <string name="settings_budget_alerts_enabled_status">Alertas de presupuesto activadas.</string>
+    <string name="settings_budget_alerts_disabled_status">Alertas de presupuesto desactivadas.</string>
+
+    <!-- JSON Backup & Restore -->
+    <string name="settings_backup_restore_title">Respaldo y restauración</string>
+    <string name="settings_backup_restore_subtitle">Guardar, restaurar JSON o importar CSV</string>
+    <string name="backup_dialog_title">Respaldo y restauración</string>
+    <string name="backup_dialog_desc">Exporta todos tus gastos, presupuestos, metas, carteras y deudas en un archivo JSON, restaura un respaldo o importa gastos desde CSV.</string>
+    <string name="backup_export_title">Crear archivo de respaldo</string>
+    <string name="backup_export_subtitle">Guarda una copia .json en tu dispositivo o nube</string>
+    <string name="backup_export_button">Exportar JSON</string>
+    <string name="backup_restore_title">Restaurar respaldo</string>
+    <string name="backup_restore_subtitle">Importa datos desde un archivo .json de SakuPintar</string>
+    <string name="backup_restore_button">Seleccionar JSON</string>
+    <string name="backup_in_progress">Exportando respaldo…</string>
+    <string name="backup_restore_in_progress">Restaurando registros…</string>
+    <string name="backup_export_success">Respaldo guardado (%1$d elementos).</string>
+    <string name="backup_restore_success">¡Se restauraron %1$d registros!</string>
+    <string name="backup_error_generic">Error de respaldo: %1$s</string>
+    <string name="backup_restore_confirm_title">¿Restaurar respaldo?</string>
+    <string name="backup_restore_confirm_body">Se encontraron %1$d registros en este archivo. ¿Deseas restaurarlos en tu cuenta?</string>
+    <string name="backup_restore_confirm_action">Restaurar ahora</string>
+
+    <!-- Custom Wallets -->
+    <string name="custom_wallets_section_title">Carteras y cuentas personalizadas</string>
+    <string name="custom_wallets_section_subtitle">Controla bancos y monederos específicos (BCA, GoPay, OVO, etc.)</string>
+    <string name="custom_wallets_add_button">Añadir cartera</string>
+    <string name="custom_wallets_empty_hint">Aún no hay carteras personalizadas. Añade tus cuentas bancarias o monederos digitales.</string>
+    <string name="custom_wallet_dialog_add_title">Añadir cartera personalizada</string>
+    <string name="custom_wallet_dialog_edit_title">Editar cartera</string>
+    <string name="custom_wallet_name_label">Nombre de la cartera / cuenta</string>
+    <string name="custom_wallet_name_hint">ej. Banco, Monedero, Efectivo</string>
+    <string name="custom_wallet_type_label">Tipo de cuenta</string>
+    <string name="custom_wallet_balance_label">Saldo actual (%1$s)</string>
+    <string name="custom_wallet_color_label">Color</string>
+    <string name="custom_wallet_type_bank">Banco</string>
+    <string name="custom_wallet_type_ewallet">Monedero</string>
+    <string name="custom_wallet_type_cash">Efectivo</string>
+    <string name="custom_wallet_type_card">Tarjeta</string>
+    <string name="custom_wallet_type_investment">Inversión</string>
+    <string name="custom_wallet_error_name">Introduce el nombre de la cartera.</string>
+    <string name="custom_wallet_saved_status">Cartera \"%1$s\" guardada.</string>
+    <string name="custom_wallet_deleted_status">Cartera eliminada.</string>
+
+    <!-- Debt / Receivable & Split Bill -->
+    <string name="debt_section_title">Deudas, cobros y dividir cuenta</string>
+    <string name="debt_section_subtitle">Controla quién te debe, qué debes y divide cuentas grupales</string>
+    <string name="debt_add_button">Añadir registro</string>
+    <string name="debt_empty_hint">Aún no hay deudas ni cuentas divididas. Toca Añadir registro para empezar.</string>
+    <string name="debt_summary_owed_to_me">Me deben</string>
+    <string name="debt_summary_i_owe">Debo</string>
+    <string name="debt_filter_all">Todos</string>
+    <string name="debt_filter_active">Activos</string>
+    <string name="debt_filter_settled">Saldados</string>
+    <string name="debt_type_owed_to_me">Me deben</string>
+    <string name="debt_type_i_owe">Debo</string>
+    <string name="debt_status_settled">Saldado</string>
+    <string name="debt_status_overdue">Vencido</string>
+    <string name="debt_due_label">Vence %1$s</string>
+    <string name="debt_mark_settled_cd">Cambiar estado de pago</string>
+    <string name="debt_dialog_title">Nueva deuda / Dividir cuenta</string>
+    <string name="debt_person_label">Nombre de la persona</string>
+    <string name="debt_person_hint">ej. Carlos, Ana, Equipo</string>
+    <string name="debt_amount_label">Monto (%1$s)</string>
+    <string name="debt_due_date_label">Fecha límite</string>
+    <string name="debt_due_7d">+7 días</string>
+    <string name="debt_due_14d">+14 días</string>
+    <string name="debt_due_30d">+30 días</string>
+    <string name="debt_note_label">Nota (opcional)</string>
+    <string name="debt_note_hint">ej. Cena compartida, entradas</string>
+    <string name="debt_error_person">Introduce el nombre de la persona.</string>
+    <string name="debt_error_amount">Introduce un monto mayor que 0.</string>
+    <string name="debt_saved_status">Registro de %1$s guardado.</string>
+    <string name="debt_settled_status">¡%1$s marcado como saldado!</string>
+    <string name="debt_reopened_status">%1$s marcado como pendiente.</string>
+    <string name="debt_deleted_status">Registro de deuda eliminado.</string>
+    <string name="split_bill_toggle_title">Calculadora para dividir cuenta</string>
+    <string name="split_bill_total_label">Total de la cuenta (%1$s)</string>
+    <string name="split_bill_people_label">Personas</string>
+    <string name="split_bill_result_preview">Por persona: %1$s</string>
+    <string name="split_bill_apply_action">Usar monto</string>
+
+    <!-- Custom Wallet Auto-Deduction, CSV Import, Bill Due Edit, Budget Rollover & Filters -->
+    <string name="editor_custom_wallet_deduct_label">Descontar de cartera personalizada (opcional)</string>
+    <string name="csv_import_title">Importar transacciones desde CSV</string>
+    <string name="csv_import_subtitle">Carga gastos desde un archivo .csv de SakuPintar o tu banco</string>
+    <string name="csv_import_button">Seleccionar archivo CSV</string>
+    <string name="csv_import_in_progress">Importando CSV…</string>
+    <string name="csv_import_empty_error">No se encontraron transacciones válidas en este archivo CSV.</string>
+    <string name="csv_import_confirm_title">¿Importar transacciones CSV?</string>
+    <string name="csv_import_confirm_body">Se encontraron %1$d transacción(es) en este CSV. ¿Añadirlas a tu registro de gastos?</string>
+    <string name="csv_import_confirm_action">Importar ahora</string>
+    <string name="csv_import_success">¡Se importaron %1$d transacción(es) desde CSV!</string>
+    <string name="bill_due_edit_cd">Editar recordatorio de vencimiento para %1$s</string>
+    <string name="bill_due_edit_title">Recordatorio: %1$s</string>
+    <string name="bill_due_edit_desc">Configura el día mensual de vencimiento (1–31) para recibir alertas automáticas.</string>
+    <string name="bill_due_day_input_label">Día de vencimiento (1–31)</string>
+    <string name="bill_due_day_input_hint">ej. 25</string>
+    <string name="bill_due_clear_action">Quitar recordatorio</string>
+    <string name="budget_rollover_title">Acumulación de presupuesto</string>
+    <string name="budget_rollover_subtitle">Transfiere el presupuesto no gastado del mes anterior a este período</string>
+    <string name="budget_rollover_active_bonus">Activo • +%1$s transferido del período anterior</string>
+    <string name="filter_last_7_days">Últimos 7 días</string>
+    <string name="sort_oldest">Más antiguos</string>
 </resources>

@@ -50,6 +50,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.budget.BudgetAutoComposer
+import com.example.data.budget.BudgetRolloverManager
 import com.example.data.budget.PaydayCycleManager
 import com.example.data.model.BudgetStrategy
 import com.example.data.model.ExpenseCategory
@@ -80,8 +82,10 @@ import com.example.i18n.LanguagePreferenceManager
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.CategoryIconBadge
 import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.LiquidGlassAlertDialog
 import com.example.ui.components.MonthYearPickerDialog
 import com.example.ui.components.SculptedSurfaceCard
+import com.example.ui.components.ThousandSeparatorVisualTransformation
 import com.example.ui.components.rememberIsEffectiveDarkTheme
 import com.example.ui.components.rememberTactileFeedback
 import com.example.ui.components.tactileClickable
@@ -109,6 +113,7 @@ fun AutoBudgetScreen(
   val activeLanguage by LanguagePreferenceManager.observeLanguage(context).collectAsStateWithLifecycle()
   val activeCurrency by CurrencyPreferenceManager.observeCurrency(context).collectAsStateWithLifecycle()
   val paydayStartDay by PaydayCycleManager.observePaydayStartDay(context).collectAsStateWithLifecycle()
+  val rolloverEnabled by BudgetRolloverManager.observeRolloverEnabled(context).collectAsStateWithLifecycle()
   val activeLocale = remember(activeLanguage) { activeLanguage.toLocale() }
   val isDarkTheme = rememberIsEffectiveDarkTheme()
   var showMonthPicker by remember { mutableStateOf(false) }
@@ -350,10 +355,70 @@ fun AutoBudgetScreen(
               }
             }
 
+            // Budget Rollover (Carry Over Unused Budget from Previous Month)
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = MaterialTheme.colorScheme.surfaceContainerLow,
+              border = BorderStroke(
+                0.8.dp,
+                if (rolloverEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+              ),
+              modifier = Modifier
+                .fillMaxWidth()
+                .testTag("budget_rollover_card"),
+            ) {
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                  Text(
+                    text = stringResource(R.string.budget_rollover_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                  )
+                  Text(
+                    text = if (rolloverEnabled && data.dailyInsight.rolloverAmount > 0L) {
+                      stringResource(
+                        R.string.budget_rollover_active_bonus,
+                        Formatters.formatMoney(data.dailyInsight.rolloverAmount, activeCurrency),
+                      )
+                    } else {
+                      stringResource(R.string.budget_rollover_subtitle)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (rolloverEnabled && data.dailyInsight.rolloverAmount > 0L) {
+                      MaterialTheme.colorScheme.primary
+                    } else {
+                      MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                  )
+                }
+                Switch(
+                  checked = rolloverEnabled,
+                  onCheckedChange = { enabled ->
+                    tactile.tick()
+                    BudgetRolloverManager.setRolloverEnabled(context, enabled)
+                  },
+                  modifier = Modifier.testTag("budget_rollover_switch"),
+                )
+              }
+            }
+
+            val incomeVisualTransformation = remember(activeCurrency) {
+              ThousandSeparatorVisualTransformation(
+                separator = ThousandSeparatorVisualTransformation.groupingSeparatorFor(activeCurrency),
+              )
+            }
             OutlinedTextField(
               value = incomeText,
               onValueChange = { raw ->
-                val digits = raw.filter { it.isDigit() }.take(11)
+                val digits = raw.filter { it.isDigit() }.trimStart('0').take(11)
                 incomeText = digits
                 regenerateAutoDraft(digits.toLongOrNull() ?: 0L, selectedStrategy)
               },
@@ -367,6 +432,17 @@ fun AutoBudgetScreen(
                   fontWeight = FontWeight.Bold,
                 )
               },
+              placeholder = {
+                Text(
+                  text = "0",
+                  fontFamily = JetBrainsMonoFontFamily,
+                )
+              },
+              textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = JetBrainsMonoFontFamily,
+                fontWeight = FontWeight.SemiBold,
+              ),
+              visualTransformation = incomeVisualTransformation,
               singleLine = true,
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               shape = RoundedCornerShape(12.dp),
@@ -728,7 +804,7 @@ fun AutoBudgetScreen(
     val previewCycle = remember(data.monthKey, draftDay) {
       PaydayCycleManager.resolveCycle(data.monthKey, draftDay)
     }
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { showPaydayPicker = false },
       title = { Text(stringResource(R.string.payday_section_title)) },
       text = {
@@ -866,10 +942,15 @@ private fun CategoryBudgetAdjustCard(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
+        val categoryVisualTransformation = remember(currency) {
+          ThousandSeparatorVisualTransformation(
+            separator = ThousandSeparatorVisualTransformation.groupingSeparatorFor(currency),
+          )
+        }
         OutlinedTextField(
           value = if (amount > 0L) amount.toString() else "",
           onValueChange = { raw ->
-            val digits = raw.filter { it.isDigit() }.take(11)
+            val digits = raw.filter { it.isDigit() }.trimStart('0').take(11)
             onAmountChange(digits.toLongOrNull() ?: 0L)
           },
           prefix = {
@@ -890,6 +971,7 @@ private fun CategoryBudgetAdjustCard(
             fontFamily = JetBrainsMonoFontFamily,
             fontWeight = FontWeight.SemiBold,
           ),
+          visualTransformation = categoryVisualTransformation,
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           shape = RoundedCornerShape(12.dp),
           colors = OutlinedTextFieldDefaults.colors(

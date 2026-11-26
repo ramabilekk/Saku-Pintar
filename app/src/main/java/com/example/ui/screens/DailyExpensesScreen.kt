@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.TableChart
+import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -84,9 +85,11 @@ import com.example.data.model.RecurringTemplate
 import com.example.i18n.AppCurrency
 import com.example.i18n.CurrencyPreferenceManager
 import com.example.i18n.LanguagePreferenceManager
+import com.example.notifications.BillDueSchedule
 import com.example.security.PrivacySecurityManager
 import com.example.ui.components.CategoryIconBadge
 import com.example.ui.components.DimensionalVaultCard
+import com.example.ui.components.LiquidGlassAlertDialog
 import com.example.ui.components.MonthlyCalendarCard
 import com.example.ui.components.ReceiptPhotoViewerDialog
 import com.example.ui.components.ReceiptThumbnailBadge
@@ -97,8 +100,11 @@ import com.example.ui.theme.CoralDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.ObsidianInk
+import com.example.ui.theme.SkyPositiveAccent
 import com.example.ui.viewmodel.FinanceDashboardData
+import com.example.util.EventTagHelper
 import com.example.util.Formatters
+import java.time.LocalDate
 
 @Composable
 fun DailyExpensesScreen(
@@ -115,6 +121,7 @@ fun DailyExpensesScreen(
     paymentMethod: PaymentMethod,
     note: String,
     dueDayOfMonth: Int?,
+    autoLogEnabled: Boolean,
   ) -> Unit,
   onDeleteRecurringTemplate: (String) -> Unit,
   onOpenExportReport: () -> Unit,
@@ -125,6 +132,7 @@ fun DailyExpensesScreen(
   onQuickScanReceipt: () -> Unit = {},
   onDuplicateExpense: (Expense) -> Unit = {},
   onDeleteExpenseWithUndo: ((Expense) -> Unit)? = null,
+  onBillScheduleChanged: (templateId: String, schedule: BillDueSchedule?) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -138,12 +146,26 @@ fun DailyExpensesScreen(
   var viewingReceiptExpense by remember { mutableStateOf<Expense?>(null) }
   var selectedDateEpochDay by remember(data.monthKey) { mutableStateOf<Long?>(null) }
   var selectedPaymentFilter by remember { mutableStateOf<PaymentMethod?>(null) }
+  var selectedEventTag by remember { mutableStateOf<String?>(null) }
   var receiptOnlyFilter by remember { mutableStateOf(false) }
+  var last7DaysOnly by remember { mutableStateOf(false) }
   var sortOption by remember { mutableStateOf(ExpenseSortOption.NEWEST) }
   var showSortMenu by remember { mutableStateOf(false) }
 
+  val discoveredEventTags = remember(data.allHistoricalExpenses, customCategories) {
+    val customCatTagSet = customCategories.map { it.noteTag.lowercase() }.toSet()
+    EventTagHelper.collectAllTags(data.allHistoricalExpenses, excludedTags = customCatTagSet)
+  }
+
+  val eventTagExpensesAllTime = remember(selectedEventTag, data.allHistoricalExpenses) {
+    val tag = selectedEventTag ?: return@remember emptyList()
+    data.allHistoricalExpenses.filter { EventTagHelper.hasTag(it.note, tag) }
+  }
+
   val hasActiveExtraFilters = selectedPaymentFilter != null ||
+    selectedEventTag != null ||
     receiptOnlyFilter ||
+    last7DaysOnly ||
     sortOption != ExpenseSortOption.NEWEST ||
     selectedDateEpochDay != null ||
     data.selectedCategoryFilter != null ||
@@ -151,20 +173,39 @@ fun DailyExpensesScreen(
 
   val visibleExpenses = remember(
     data.filteredExpenses,
+    data.allHistoricalExpenses,
     selectedDateEpochDay,
     selectedPaymentFilter,
+    selectedEventTag,
     receiptOnlyFilter,
+    last7DaysOnly,
     sortOption,
   ) {
     val targetDay = selectedDateEpochDay
-    val filtered = data.filteredExpenses.filter { exp ->
+    val cutoff7Days = LocalDate.now().minusDays(6).toEpochDay()
+    val baseSource = if (selectedEventTag != null) {
+      data.allHistoricalExpenses.filter { exp ->
+        val matchesTag = EventTagHelper.hasTag(exp.note, selectedEventTag!!)
+        val matchesCat = data.selectedCategoryFilter == null || exp.categoryEnum == data.selectedCategoryFilter
+        val q = data.searchQuery.trim()
+        val matchesQuery = q.isEmpty() ||
+          exp.title.contains(q, ignoreCase = true) ||
+          exp.note.contains(q, ignoreCase = true)
+        matchesTag && matchesCat && matchesQuery
+      }
+    } else {
+      data.filteredExpenses
+    }
+    val filtered = baseSource.filter { exp ->
       val matchesDay = targetDay == null || exp.dateEpochDay == targetDay
       val matchesPayment = selectedPaymentFilter == null || exp.paymentMethodEnum == selectedPaymentFilter
       val matchesReceipt = !receiptOnlyFilter || exp.hasReceiptPhoto
-      matchesDay && matchesPayment && matchesReceipt
+      val matchesRecent = !last7DaysOnly || exp.dateEpochDay >= cutoff7Days
+      matchesDay && matchesPayment && matchesReceipt && matchesRecent
     }
     when (sortOption) {
       ExpenseSortOption.NEWEST -> filtered.sortedByDescending { it.dateEpochDay }
+      ExpenseSortOption.OLDEST -> filtered.sortedBy { it.dateEpochDay }
       ExpenseSortOption.HIGHEST_AMOUNT -> filtered.sortedByDescending { it.amount }
       ExpenseSortOption.LOWEST_AMOUNT -> filtered.sortedBy { it.amount }
       ExpenseSortOption.TITLE_AZ -> filtered.sortedBy { it.title.lowercase() }
@@ -352,6 +393,13 @@ fun DailyExpensesScreen(
           }
 
           FilterChip(
+            selected = last7DaysOnly,
+            onClick = { last7DaysOnly = !last7DaysOnly },
+            label = { Text(stringResource(R.string.filter_last_7_days)) },
+            modifier = Modifier.testTag("filter_last_7_days_chip"),
+          )
+
+          FilterChip(
             selected = receiptOnlyFilter,
             onClick = { receiptOnlyFilter = !receiptOnlyFilter },
             label = { Text(stringResource(R.string.filter_with_receipt)) },
@@ -382,7 +430,9 @@ fun DailyExpensesScreen(
               selected = false,
               onClick = {
                 selectedPaymentFilter = null
+                selectedEventTag = null
                 receiptOnlyFilter = false
+                last7DaysOnly = false
                 sortOption = ExpenseSortOption.NEWEST
                 selectedDateEpochDay = null
                 onCategoryFilterSelect(null)
@@ -398,6 +448,47 @@ fun DailyExpensesScreen(
               },
               modifier = Modifier.testTag("filter_reset_chip"),
             )
+          }
+        }
+
+        // Event / Project #Tags Filter Row
+        if (discoveredEventTags.isNotEmpty()) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Text(
+              text = stringResource(R.string.event_tags_filter_label),
+              style = MaterialTheme.typography.labelMedium,
+              fontWeight = FontWeight.SemiBold,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            discoveredEventTags.forEach { (tag, count) ->
+              val isSelected = selectedEventTag.equals(tag, ignoreCase = true)
+              FilterChip(
+                selected = isSelected,
+                onClick = {
+                  selectedEventTag = if (isSelected) null else tag
+                },
+                label = { Text("$tag ($count)") },
+                leadingIcon = {
+                  Icon(
+                    imageVector = Icons.Rounded.Tag,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                  )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                  selectedContainerColor = SkyPositiveAccent.copy(alpha = 0.18f),
+                  selectedLabelColor = SkyPositiveAccent,
+                  selectedLeadingIconColor = SkyPositiveAccent,
+                ),
+                modifier = Modifier.testTag("filter_event_tag_$tag"),
+              )
+            }
           }
         }
       }
@@ -562,12 +653,114 @@ fun DailyExpensesScreen(
           )
         }
 
+        // Event / Project Spending Summary Card (when an #event tag is selected)
+        if (selectedEventTag != null) {
+          item(key = "event_tag_summary_card") {
+            val tag = selectedEventTag!!
+            val totalEventSpend = eventTagExpensesAllTime.sumOf { it.amount }
+            val byCategory = eventTagExpensesAllTime
+              .groupBy { it.categoryEnum }
+              .mapValues { (_, list) -> list.sumOf { it.amount } }
+              .entries
+              .sortedByDescending { it.value }
+            SculptedSurfaceCard(
+              cornerRadius = 20,
+              accentColor = SkyPositiveAccent,
+              modifier = Modifier
+                .fillMaxWidth()
+                .testTag("event_tag_summary_card"),
+            ) {
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+              ) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                  verticalAlignment = Alignment.CenterVertically,
+                ) {
+                  Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Tag,
+                      contentDescription = null,
+                      tint = SkyPositiveAccent,
+                      modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                      text = stringResource(R.string.event_summary_title, tag),
+                      style = MaterialTheme.typography.titleSmall,
+                      fontWeight = FontWeight.Bold,
+                      color = MaterialTheme.colorScheme.onSurface,
+                    )
+                  }
+                  IconButton(
+                    onClick = { selectedEventTag = null },
+                    modifier = Modifier.size(36.dp),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Rounded.Close,
+                      contentDescription = stringResource(R.string.filter_reset),
+                      modifier = Modifier.size(16.dp),
+                    )
+                  }
+                }
+                Text(
+                  text = Formatters.formatMoneyMasked(totalEventSpend, activeCurrency, hideBalances),
+                  style = MaterialTheme.typography.headlineSmall,
+                  fontFamily = JetBrainsMonoFontFamily,
+                  fontWeight = FontWeight.ExtraBold,
+                  color = SkyPositiveAccent,
+                )
+                Text(
+                  text = stringResource(
+                    R.string.event_summary_tx_count,
+                    eventTagExpensesAllTime.size,
+                    byCategory.size,
+                  ),
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (byCategory.isNotEmpty()) {
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  ) {
+                    byCategory.take(4).forEach { (cat, sum) ->
+                      Surface(
+                        shape = RoundedCornerShape(50),
+                        color = cat.accentColor.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, cat.accentColor.copy(alpha = 0.30f)),
+                      ) {
+                        Text(
+                          text = "${stringResource(cat.shortLabelRes)}: ${Formatters.formatMoneyCompactMasked(sum, activeCurrency, activeLocale, hideBalances)}",
+                          style = MaterialTheme.typography.labelSmall,
+                          fontWeight = FontWeight.SemiBold,
+                          color = cat.accentColor,
+                          modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
         item(key = "recurring_templates_section") {
           RecurringTemplatesSection(
             templates = data.recurringTemplates,
             onLogTemplate = onLogRecurringTemplate,
             onAddTemplate = onAddRecurringTemplate,
             onDeleteTemplate = onDeleteRecurringTemplate,
+            onScheduleChanged = onBillScheduleChanged,
             modifier = Modifier.padding(bottom = 4.dp),
           )
         }
@@ -706,8 +899,9 @@ fun DailyExpensesScreen(
   }
 
   pendingDeleteExpense?.let { target ->
-    AlertDialog(
+    LiquidGlassAlertDialog(
       onDismissRequest = { pendingDeleteExpense = null },
+      accentColor = CoralDanger,
       title = { Text(stringResource(R.string.delete_expense_title)) },
       text = {
         Text(
@@ -869,6 +1063,7 @@ private fun DetailedExpenseCard(
 
 private enum class ExpenseSortOption(val labelRes: Int) {
   NEWEST(R.string.sort_newest),
+  OLDEST(R.string.sort_oldest),
   HIGHEST_AMOUNT(R.string.sort_highest),
   LOWEST_AMOUNT(R.string.sort_lowest),
   TITLE_AZ(R.string.sort_title_az),

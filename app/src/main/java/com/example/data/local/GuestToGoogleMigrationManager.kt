@@ -2,6 +2,7 @@ package com.example.data.local
 
 import android.content.Context
 import android.util.Log
+import com.example.data.repository.ExtrasCloudSyncRepository
 import com.example.data.repository.FinanceRepository
 import com.example.data.repository.SavingsRepository
 import com.example.notifications.BillDueReminderManager
@@ -13,16 +14,18 @@ data class GuestMigrationResult(
   val migratedTemplates: Int = 0,
   val migratedGoals: Int = 0,
   val migratedWallets: Int = 0,
+  val migratedExtras: Int = 0,
   val failedCount: Int = 0,
 ) {
   val totalMigrated: Int
-    get() = migratedExpenses + migratedBudgets + migratedTemplates + migratedGoals + migratedWallets
+    get() = migratedExpenses + migratedBudgets + migratedTemplates + migratedGoals + migratedWallets + migratedExtras
 }
 
 /**
  * Migrates all locally saved Guest Mode records (expenses, monthly budgets, recurring templates
- * with due dates, savings goals, and wallet balances) into the newly signed-in Google user's
- * Firestore collections while strictly respecting Firestore security rules.
+ * with due dates, savings goals, wallet balances, cashflow, custom categories, savings history,
+ * debt records, and custom wallets) into the newly signed-in Google user's Firestore collections
+ * while strictly respecting Firestore security rules.
  */
 object GuestToGoogleMigrationManager {
   private const val TAG = "GuestMigration"
@@ -35,7 +38,19 @@ object GuestToGoogleMigrationManager {
   ): GuestMigrationResult {
     val appCtx = context.applicationContext
     val snapshot = LocalAccountVault.loadSnapshot(appCtx, guestUserId)
-    if (!snapshot.hasAnyData) {
+    val guestCashflow = CashflowLedgerManager.observeEntries(appCtx, guestUserId).value
+    val guestCategories = CustomCategoryManager.observeCategories(appCtx).value
+    val guestSavingsHistory = SavingsHistoryManager.observeEntries(appCtx, guestUserId).value
+    val guestDebts = DebtLedgerManager.observeRecords(appCtx, guestUserId).value
+    val guestCustomWallets = CustomWalletManager.observeWallets(appCtx, guestUserId).value
+
+    val hasAnyExtras = guestCashflow.isNotEmpty() ||
+      guestCategories.isNotEmpty() ||
+      guestSavingsHistory.isNotEmpty() ||
+      guestDebts.isNotEmpty() ||
+      guestCustomWallets.isNotEmpty()
+
+    if (!snapshot.hasAnyData && !hasAnyExtras) {
       LocalAccountVault.clearVault(appCtx, guestUserId)
       return GuestMigrationResult()
     }
@@ -45,6 +60,7 @@ object GuestToGoogleMigrationManager {
     var templatesOk = 0
     var goalsOk = 0
     var walletsOk = 0
+    var extrasOk = 0
     var failed = 0
 
     for (expense in snapshot.expenses) {
@@ -144,8 +160,31 @@ object GuestToGoogleMigrationManager {
       }
     }
 
+    if (hasAnyExtras) {
+      val extrasRepo = ExtrasCloudSyncRepository(appCtx)
+      guestCashflow.forEach { entry ->
+        if (extrasRepo.upsertCashflowEntry(entry).isSuccess) extrasOk++ else failed++
+      }
+      guestCategories.forEach { cat ->
+        if (extrasRepo.upsertCustomCategory(cat).isSuccess) extrasOk++ else failed++
+      }
+      guestSavingsHistory.forEach { entry ->
+        if (extrasRepo.addSavingsHistoryEntry(entry).isSuccess) extrasOk++ else failed++
+      }
+      guestDebts.forEach { debt ->
+        if (extrasRepo.upsertDebtRecord(debt).isSuccess) extrasOk++ else failed++
+      }
+      guestCustomWallets.forEach { wallet ->
+        if (extrasRepo.upsertCustomWallet(wallet).isSuccess) extrasOk++ else failed++
+      }
+    }
+
     if (failed == 0) {
       LocalAccountVault.clearVault(appCtx, guestUserId)
+      CashflowLedgerManager.clearAll(appCtx, guestUserId)
+      SavingsHistoryManager.clearAll(appCtx, guestUserId)
+      DebtLedgerManager.clearAll(appCtx, guestUserId)
+      CustomWalletManager.clearAll(appCtx, guestUserId)
     }
 
     return GuestMigrationResult(
@@ -154,6 +193,7 @@ object GuestToGoogleMigrationManager {
       migratedTemplates = templatesOk,
       migratedGoals = goalsOk,
       migratedWallets = walletsOk,
+      migratedExtras = extrasOk,
       failedCount = failed,
     )
   }
