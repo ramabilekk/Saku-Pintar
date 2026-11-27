@@ -23,6 +23,14 @@ android {
     versionName = if (ciRunNumber != null) "3.0.$ciRunNumber" else "3.0"
 
     buildConfigField("boolean", "IS_GITHUB_RELEASE_BUILD", (ciRunNumber != null).toString())
+    val ciAppCheckDebugToken = ((project.findProperty("appCheckDebugToken") as? String)
+      ?: System.getenv("GITHUB_APPCHECK_DEBUG_TOKEN")
+      ?: "").trim()
+    buildConfigField(
+      "String",
+      "GITHUB_APPCHECK_DEBUG_TOKEN",
+      "\"${ciAppCheckDebugToken.replace("\\", "").replace("\"", "")}\"",
+    )
     buildConfigField(
       "String",
       "GITHUB_RELEASES_API_URL",

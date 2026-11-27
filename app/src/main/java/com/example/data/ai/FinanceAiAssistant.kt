@@ -26,11 +26,15 @@ import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
+import com.google.firebase.appcheck.FirebaseAppCheck
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.YearMonth
@@ -235,9 +239,48 @@ class FinanceAiAssistant {
       throw FinanceAiException("AI request timed out. Please check your connection and try again.", lastError)
     }
     throw FinanceAiException(
-      lastError?.localizedMessage ?: "Failed to reach Gemini AI.",
+      enrichAiErrorMessage(lastError, "Failed to reach Gemini AI."),
       lastError,
     )
+  }
+
+  private suspend fun enrichAiErrorMessage(error: Exception?, fallback: String): String {
+    val rawMessage = error?.localizedMessage?.takeIf { it.isNotBlank() } ?: fallback
+    val isAppCheckError = rawMessage.contains("App Check", ignoreCase = true) ||
+      rawMessage.contains("403", ignoreCase = true)
+    if (!isAppCheckError) return rawMessage
+
+    val diagnostic = fetchAppCheckFailureDetail()
+    return if (!diagnostic.isNullOrBlank()) {
+      "$rawMessage\nDetail App Check: $diagnostic"
+    } else {
+      rawMessage
+    }
+  }
+
+  private suspend fun fetchAppCheckFailureDetail(): String? {
+    return withTimeoutOrNull(8_000L) {
+      suspendCancellableCoroutine { cont ->
+        try {
+          FirebaseAppCheck.getInstance()
+            .getAppCheckToken(true)
+            .addOnSuccessListener {
+              if (cont.isActive) cont.resume(null)
+            }
+            .addOnFailureListener { ex ->
+              Log.e(TAG, "App Check token fetch failed", ex)
+              if (cont.isActive) {
+                cont.resume(ex.localizedMessage ?: ex.javaClass.simpleName)
+              }
+            }
+        } catch (ex: Exception) {
+          Log.e(TAG, "App Check token diagnostic failed", ex)
+          if (cont.isActive) {
+            cont.resume(ex.localizedMessage ?: ex.javaClass.simpleName)
+          }
+        }
+      }
+    }
   }
 
   suspend fun analyzeMonthlyFinances(
@@ -511,7 +554,7 @@ class FinanceAiAssistant {
       throw FinanceAiException("AI response timed out after 60 seconds. Please try again.", lastError)
     }
     throw FinanceAiException(
-      lastError?.localizedMessage ?: "Failed to reach Gemini AI. Please check your connection.",
+      enrichAiErrorMessage(lastError, "Failed to reach Gemini AI. Please check your connection."),
       lastError,
     )
   }

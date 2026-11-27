@@ -84,6 +84,8 @@ jobs:
           fi
 
       - name: Build Debug APK
+        env:
+          GITHUB_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
         run: gradle assembleDebug -PappVersionCode=${{ github.run_number }} --no-daemon --stacktrace
 
       - name: Upload APK as Workflow Artifact
