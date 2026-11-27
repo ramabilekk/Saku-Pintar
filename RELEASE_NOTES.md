@@ -9,3 +9,4 @@
 - **Sinkronisasi Cloud Penuh:** Data langganan, jadwal tagihan rutin, dan riwayat kekayaan bersih kini tersinkronisasi aman ke Firebase Firestore.
 - **Toolbar Landscape Konsisten:** Toolbar navigasi kapsul kini tetap berada di bagian bawah saat layar diputar ke mode landscape seperti di mode portrait.
 - **Format Titik Ribuan Otomatis:** Input Pendapatan Bulanan dan batas anggaran kategori kini menampilkan pemisah titik ribuan otomatis saat mengetik nominal Rupiah.
+- **Perbaikan Koneksi SakuPintar AI (App Check):** Memperbaiki error `Firebase App Check token is invalid` pada HP Android dengan membersihkan token debug lama secara otomatis dan beralih ke verifikasi reCAPTCHA Enterprise.
